@@ -251,6 +251,13 @@ export const scheduleApi = {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
+    console.log('📅 This week query range:', {
+      start: startOfWeek.toISOString(),
+      end: endOfWeek.toISOString(),
+      startLocal: startOfWeek.toString(),
+      endLocal: endOfWeek.toString()
+    });
+
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
@@ -259,6 +266,7 @@ export const scheduleApi = {
       .order('start_time');
 
     if (error) throw error;
+    console.log('📅 This week query returned:', data?.length, 'shifts');
     return data || [];
   },
 
@@ -273,6 +281,13 @@ export const scheduleApi = {
     endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
     endOfNextWeek.setHours(23, 59, 59, 999);
 
+    console.log('📅 Next week query range:', {
+      start: startOfNextWeek.toISOString(),
+      end: endOfNextWeek.toISOString(),
+      startLocal: startOfNextWeek.toString(),
+      endLocal: endOfNextWeek.toString()
+    });
+
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
@@ -281,6 +296,7 @@ export const scheduleApi = {
       .order('start_time');
 
     if (error) throw error;
+    console.log('📅 Next week query returned:', data?.length, 'shifts');
     return data || [];
   },
 

@@ -241,7 +241,6 @@ export default function EmployeePortal_B() {
   const [activeTab, setActiveTab] = useState<'weeklySchedule' | 'todaySchedule' | 'timesheet' | 'profile' | 'feedback'>('weeklySchedule')
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
   const [language, _setLanguage] = useState<'en' | 'es'>('en')
-  const [menuOpen, setMenuOpen] = useState(false)
   const [todayScheduleData, setTodayScheduleData] = useState<any[]>([])
 
   // Get current translations
@@ -644,99 +643,35 @@ export default function EmployeePortal_B() {
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-2xl mx-auto p-5">
-          {/* Menu Navigation with Glass Effect */}
-        <div style={{ marginBottom: '16px', marginTop: '16px', position: 'relative' }}>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            style={{
-              width: '100%',
-              padding: '14px 18px',
-              fontSize: '15px',
-              fontWeight: '600',
-              background: 'rgba(255, 255, 255, 0.9)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              color: '#1F2937',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)'
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
-            }}
-          >
-            <span>
-              {activeTab === 'weeklySchedule' && t.weeklySchedule}
-              {activeTab === 'todaySchedule' && t.todaySchedule}
-              {activeTab === 'timesheet' && t.timesheet}
-              {activeTab === 'profile' && t.profile}
-              {activeTab === 'feedback' && t.feedback}
-            </span>
-            <span style={{ fontSize: '11px', color: '#6B7280' }}>{menuOpen ? '▲' : '▼'}</span>
-          </button>
-
-          {menuOpen && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: '6px',
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              borderRadius: '10px',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-              overflow: 'hidden',
-              zIndex: 1000,
-              border: '1px solid rgba(0, 0, 0, 0.06)'
-            }}>
-              {['weeklySchedule', 'todaySchedule', 'timesheet', 'profile'].map((tab, index) => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    setActiveTab(tab as any)
-                    setMenuOpen(false)
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px 18px',
-                    fontSize: '14px',
-                    border: 'none',
-                    borderBottom: index < 3 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                    backgroundColor: activeTab === tab ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
-                    color: activeTab === tab ? '#2563EB' : '#1F2937',
-                    fontWeight: activeTab === tab ? '600' : '500',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (activeTab !== tab) {
-                      e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.02)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (activeTab !== tab) {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                    }
-                  }}
-                >
-                  {t[tab as keyof typeof t]}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Horizontal Tab Navigation */}
+        <div className="flex gap-2 mb-4 overflow-x-auto" style={{
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}>
+          {[
+            { key: 'weeklySchedule', label: t.weeklySchedule },
+            { key: 'todaySchedule', label: t.todaySchedule },
+            { key: 'timesheet', label: t.timesheet },
+            { key: 'profile', label: t.profile }
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key as any)}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
+                activeTab === key
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-white/90 text-gray-700 hover:bg-white'
+              }`}
+              style={{
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: activeTab === key ? 'none' : '1px solid rgba(0,0,0,0.06)'
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Content Area with Glass Effect */}
