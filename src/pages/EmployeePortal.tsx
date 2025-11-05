@@ -764,14 +764,15 @@ export default function EmployeePortal_B() {
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
   return (
-    <div className="w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
+    <div className="w-full overflow-hidden flex flex-col"
          style={{
            position: 'fixed',
            top: 0,
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '8px'
+           paddingTop: '8px',
+           background: 'linear-gradient(180deg, #E0F2FE 0%, #DBEAFE 50%, #EDE9FE 100%)'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-2xl mx-auto px-4 py-3">
@@ -794,11 +795,31 @@ export default function EmployeePortal_B() {
                 fontSize: '28px',
                 fontWeight: '700',
                 color: '#1F2937',
-                marginBottom: '32px',
+                marginBottom: '20px',
                 letterSpacing: '-0.5px'
               }}>
                 Hi {employee?.first_name || 'there'}! 👋
               </h1>
+
+              {/* Orange Gradient Next Shift Card */}
+              <div style={{
+                marginBottom: '28px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+                borderRadius: '14px',
+                color: 'white',
+                boxShadow: '0 6px 16px rgba(255, 107, 107, 0.3)'
+              }}>
+                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '6px', fontWeight: '600', letterSpacing: '0.5px' }}>
+                  NEXT SHIFT
+                </div>
+                <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
+                  Tomorrow
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: '600', opacity: 0.95' }}>
+                  9:00 AM - 5:00 PM
+                </div>
+              </div>
 
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
@@ -826,8 +847,8 @@ export default function EmployeePortal_B() {
                 </button>
               </div>
 
-              {/* Schedule List */}
-              <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+              {/* Compact Schedule with Blue Outlines */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {dayOrder.map((day, index) => {
                   const shifts = currentSchedule?.[day] || []
                   const dayName = t[day as keyof typeof t] as string
@@ -850,63 +871,64 @@ export default function EmployeePortal_B() {
                     <div
                       key={day}
                       style={{
-                        padding: '20px 16px',
-                        borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
-                        textAlign: 'center',
-                        position: 'relative'
+                        padding: '14px 16px',
+                        border: '2px solid #2563EB',
+                        borderRadius: '10px',
+                        background: isToday ? 'rgba(37, 99, 235, 0.05)' : 'white',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)'
                       }}
                     >
-                      {isToday && (
+                      {/* Left: Day & Date */}
+                      <div style={{ textAlign: 'left' }}>
                         <div style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '12px',
-                          fontSize: '11px',
-                          color: '#2563EB',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          fontWeight: '600',
+                          color: '#1F2937',
+                          fontSize: '16px',
+                          marginBottom: '2px'
                         }}>
-                          Today
+                          {dayName}
+                          {isToday && (
+                            <span style={{
+                              fontSize: '10px',
+                              color: '#2563EB',
+                              fontWeight: '700',
+                              marginLeft: '8px',
+                              background: 'rgba(37, 99, 235, 0.15)',
+                              padding: '2px 6px',
+                              borderRadius: '4px'
+                            }}>
+                              TODAY
+                            </span>
+                          )}
                         </div>
-                      )}
-                      <div style={{
-                        fontWeight: '700',
-                        color: '#1F2937',
-                        fontSize: '20px',
-                        letterSpacing: '-0.3px',
-                        marginBottom: '4px'
-                      }}>
-                        {dayName}
+                        <div style={{
+                          fontSize: '13px',
+                          color: '#6B7280'
+                        }}>
+                          {dateStr}
+                        </div>
                       </div>
-                      <div style={{
-                        fontSize: '14px',
-                        color: '#9CA3AF',
-                        fontWeight: '500',
-                        marginBottom: '12px'
-                      }}>
-                        {dateStr}
-                      </div>
-                      <div>
+
+                      {/* Right: Time */}
+                      <div style={{ textAlign: 'right' }}>
                         {shifts.length === 0 ? (
                           <span style={{
-                            color: '#D1D5DB',
-                            fontSize: '16px',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px'
+                            color: '#9CA3AF',
+                            fontSize: '15px',
+                            fontWeight: '600'
                           }}>
-                            {t.off}
+                            OFF
                           </span>
                         ) : (
                           shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '8px' : '0' }}>
+                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '4px' : '0' }}>
                               <div style={{
                                 fontWeight: '600',
                                 color: '#2563EB',
-                                fontSize: '19px',
-                                letterSpacing: '-0.2px'
+                                fontSize: '16px'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </div>
