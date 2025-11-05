@@ -815,8 +815,8 @@ export default function EmployeePortal_B() {
                 </button>
               </div>
 
-              {/* Schedule List */}
-              <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+              {/* Schedule List - Card Style */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {dayOrder.map((day, index) => {
                   const shifts = currentSchedule?.[day] || []
                   const dayName = t[day as keyof typeof t] as string
@@ -839,23 +839,31 @@ export default function EmployeePortal_B() {
                     <div
                       key={day}
                       style={{
-                        padding: '20px 16px',
-                        borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
+                        padding: '18px',
+                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.08)' : 'white',
+                        borderRadius: '12px',
+                        boxShadow: isToday
+                          ? '0 4px 12px rgba(37, 99, 235, 0.15), 0 0 0 2px rgba(37, 99, 235, 0.2)'
+                          : '0 2px 8px rgba(0, 0, 0, 0.06)',
                         textAlign: 'center',
-                        position: 'relative'
+                        position: 'relative',
+                        transition: 'all 0.2s ease',
+                        border: isToday ? '2px solid rgba(37, 99, 235, 0.3)' : '1px solid rgba(0, 0, 0, 0.05)'
                       }}
                     >
                       {isToday && (
                         <div style={{
                           position: 'absolute',
-                          top: '8px',
-                          left: '12px',
-                          fontSize: '11px',
+                          top: '10px',
+                          right: '12px',
+                          fontSize: '10px',
                           color: '#2563EB',
                           fontWeight: '700',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          letterSpacing: '0.8px',
+                          background: 'rgba(37, 99, 235, 0.15)',
+                          padding: '4px 8px',
+                          borderRadius: '6px'
                         }}>
                           Today
                         </div>
@@ -863,14 +871,14 @@ export default function EmployeePortal_B() {
                       <div style={{
                         fontWeight: '700',
                         color: '#1F2937',
-                        fontSize: '20px',
+                        fontSize: '18px',
                         letterSpacing: '-0.3px',
                         marginBottom: '4px'
                       }}>
                         {dayName}
                       </div>
                       <div style={{
-                        fontSize: '14px',
+                        fontSize: '13px',
                         color: '#9CA3AF',
                         fontWeight: '500',
                         marginBottom: '12px'
@@ -881,7 +889,7 @@ export default function EmployeePortal_B() {
                         {shifts.length === 0 ? (
                           <span style={{
                             color: '#D1D5DB',
-                            fontSize: '16px',
+                            fontSize: '15px',
                             fontWeight: '600',
                             textTransform: 'uppercase',
                             letterSpacing: '1px'
@@ -894,7 +902,7 @@ export default function EmployeePortal_B() {
                               <div style={{
                                 fontWeight: '600',
                                 color: '#2563EB',
-                                fontSize: '19px',
+                                fontSize: '18px',
                                 letterSpacing: '-0.2px'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
