@@ -185,14 +185,15 @@ export default function EmployeePortal() {
 
   // ============================================================================
   // MAIN PORTAL UI
-  // PWA SAFE AREA: Uses env(safe-area-inset-top) for iPhone notch/status bar
-  // - Standard iOS safe area + 12px additional padding for breathing room
-  // - Prevents content from being hidden under notch/status bar
+  // PWA SAFE AREA: Uses env(safe-area-inset-*) for iPhone notch/status bar
+  // - Top: safe-area-inset-top + 12px for breathing room (prevents notch overlap)
+  // - Bottom: 96px + safe-area-inset-bottom (clears BottomNav + home indicator)
   // - Requires viewport-fit=cover in index.html (already set)
+  // - Requires 100dvh in index.css for gradient to reach screen edges (already set)
   // ============================================================================
   return (
     <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="flex-1 overflow-y-auto pb-24 pt-[calc(env(safe-area-inset-top,0px)+12px)] [overflow-scrolling:touch]">
+      <div className="flex-1 overflow-y-auto pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-[calc(env(safe-area-inset-top,0px)+12px)] [overflow-scrolling:touch]">
         <div className="max-w-2xl mx-auto px-4 py-3">
 
         {/* WEEKLY SCHEDULE TAB */}
