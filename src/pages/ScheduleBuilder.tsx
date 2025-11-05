@@ -203,7 +203,7 @@ export default function ScheduleBuilder() {
                 </thead>
                 <tbody>
                   {/* Employee Rows */}
-                  {employees.map((employee, empIndex) => (
+                  {employees.map((employee) => (
                     <tr
                       key={employee.id}
                       className="transition-colors hover:bg-white/40"

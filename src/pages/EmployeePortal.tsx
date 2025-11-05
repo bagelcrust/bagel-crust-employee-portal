@@ -242,7 +242,6 @@ export default function EmployeePortal_B() {
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
   const [timesheetWeek, setTimesheetWeek] = useState<'this' | 'last'>('this')
   const [language, _setLanguage] = useState<'en' | 'es'>('en')
-  const [menuOpen, setMenuOpen] = useState(false)
   const [todayScheduleData, setTodayScheduleData] = useState<any[]>([])
 
   // Get current translations
@@ -910,41 +909,27 @@ export default function EmployeePortal_B() {
           {/* TIMESHEET TAB */}
           {activeTab === 'timesheet' && timesheetData && (
             <div>
-              {/* Week Toggle */}
-              <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+              {/* Week Toggle - full width segmented control */}
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
                   onClick={() => setTimesheetWeek('this')}
-                  style={{
-                    flex: 1,
-                    padding: '10px 18px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    backgroundColor: timesheetWeek === 'this' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
-                    color: timesheetWeek === 'this' ? 'white' : '#2563EB',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    boxShadow: timesheetWeek === 'this' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
-                  }}
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+                    timesheetWeek === 'this'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  type="button"
                 >
                   {t.thisWeek}
                 </button>
                 <button
                   onClick={() => setTimesheetWeek('last')}
-                  style={{
-                    flex: 1,
-                    padding: '10px 18px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    backgroundColor: timesheetWeek === 'last' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
-                    color: timesheetWeek === 'last' ? 'white' : '#2563EB',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    boxShadow: timesheetWeek === 'last' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
-                  }}
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+                    timesheetWeek === 'last'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  type="button"
                 >
                   {t.lastWeek}
                 </button>
@@ -980,7 +965,7 @@ export default function EmployeePortal_B() {
                               color: '#9CA3AF',
                               marginTop: '2px'
                             }}>
-                              {day.date}
+                              {format(new Date(day.date), 'MMMM do')}
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
