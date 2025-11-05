@@ -879,28 +879,182 @@ export default function EmployeePortal_B() {
                       </div>
                       <div>
                         {shifts.length === 0 ? (
-                          <span style={{
-                            color: '#D1D5DB',
-                            fontSize: '16px',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px'
+                          <div style={{
+                            padding: '20px',
+                            background: 'rgba(0, 0, 0, 0.02)',
+                            borderRadius: '8px',
+                            border: '1px dashed rgba(0, 0, 0, 0.1)'
                           }}>
-                            {t.off}
-                          </span>
-                        ) : (
-                          shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '8px' : '0' }}>
-                              <div style={{
-                                fontWeight: '600',
-                                color: '#2563EB',
-                                fontSize: '19px',
-                                letterSpacing: '-0.2px'
-                              }}>
-                                {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                              </div>
+                            <span style={{
+                              color: '#D1D5DB',
+                              fontSize: '16px',
+                              fontWeight: '600',
+                              textTransform: 'uppercase',
+                              letterSpacing: '1px'
+                            }}>
+                              {t.off}
+                            </span>
+                            <div style={{
+                              fontSize: '13px',
+                              color: '#9CA3AF',
+                              marginTop: '6px'
+                            }}>
+                              Enjoy your day off!
                             </div>
-                          ))
+                          </div>
+                        ) : (
+                          shifts.map((shift: any, idx: number) => {
+                            // Calculate shift duration
+                            const start = new Date(`2000-01-01T${shift.startTime}`)
+                            const end = new Date(`2000-01-01T${shift.endTime}`)
+                            const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+
+                            return (
+                              <div key={idx} style={{
+                                marginBottom: idx < shifts.length - 1 ? '12px' : '0',
+                                padding: '16px',
+                                background: 'rgba(37, 99, 235, 0.04)',
+                                borderRadius: '10px',
+                                border: '1px solid rgba(37, 99, 235, 0.15)'
+                              }}>
+                                {/* Main time */}
+                                <div style={{
+                                  fontWeight: '700',
+                                  color: '#2563EB',
+                                  fontSize: '20px',
+                                  letterSpacing: '-0.3px',
+                                  marginBottom: '10px'
+                                }}>
+                                  {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+                                </div>
+
+                                {/* Details grid */}
+                                <div style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: '1fr 1fr',
+                                  gap: '8px',
+                                  marginTop: '12px'
+                                }}>
+                                  {/* Duration */}
+                                  <div style={{
+                                    padding: '8px 10px',
+                                    background: 'white',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(0, 0, 0, 0.05)'
+                                  }}>
+                                    <div style={{
+                                      fontSize: '11px',
+                                      color: '#9CA3AF',
+                                      fontWeight: '600',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      marginBottom: '2px'
+                                    }}>
+                                      Duration
+                                    </div>
+                                    <div style={{
+                                      fontSize: '15px',
+                                      fontWeight: '600',
+                                      color: '#1F2937'
+                                    }}>
+                                      {durationHours.toFixed(1)} hrs
+                                    </div>
+                                  </div>
+
+                                  {/* Location */}
+                                  <div style={{
+                                    padding: '8px 10px',
+                                    background: 'white',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(0, 0, 0, 0.05)'
+                                  }}>
+                                    <div style={{
+                                      fontSize: '11px',
+                                      color: '#9CA3AF',
+                                      fontWeight: '600',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      marginBottom: '2px'
+                                    }}>
+                                      Location
+                                    </div>
+                                    <div style={{
+                                      fontSize: '15px',
+                                      fontWeight: '600',
+                                      color: '#1F2937'
+                                    }}>
+                                      Main Store
+                                    </div>
+                                  </div>
+
+                                  {/* Break */}
+                                  <div style={{
+                                    padding: '8px 10px',
+                                    background: 'white',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(0, 0, 0, 0.05)'
+                                  }}>
+                                    <div style={{
+                                      fontSize: '11px',
+                                      color: '#9CA3AF',
+                                      fontWeight: '600',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      marginBottom: '2px'
+                                    }}>
+                                      Break
+                                    </div>
+                                    <div style={{
+                                      fontSize: '15px',
+                                      fontWeight: '600',
+                                      color: '#1F2937'
+                                    }}>
+                                      30 min
+                                    </div>
+                                  </div>
+
+                                  {/* Position/Role */}
+                                  <div style={{
+                                    padding: '8px 10px',
+                                    background: 'white',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(0, 0, 0, 0.05)'
+                                  }}>
+                                    <div style={{
+                                      fontSize: '11px',
+                                      color: '#9CA3AF',
+                                      fontWeight: '600',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      marginBottom: '2px'
+                                    }}>
+                                      Role
+                                    </div>
+                                    <div style={{
+                                      fontSize: '15px',
+                                      fontWeight: '600',
+                                      color: '#1F2937'
+                                    }}>
+                                      Server
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Notes section */}
+                                <div style={{
+                                  marginTop: '10px',
+                                  padding: '8px 10px',
+                                  background: 'rgba(255, 255, 255, 0.7)',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  color: '#6B7280',
+                                  fontStyle: 'italic'
+                                }}>
+                                  💡 Remember to check in 5 minutes early
+                                </div>
+                              </div>
+                            )
+                          })
                         )}
                       </div>
                     </div>
