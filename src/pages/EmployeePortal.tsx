@@ -789,6 +789,118 @@ export default function EmployeePortal_B() {
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
+              {/* Header */}
+              <h1 style={{
+                fontSize: '34px',
+                fontWeight: '700',
+                color: '#1F2937',
+                marginBottom: '24px',
+                letterSpacing: '-0.5px'
+              }}>
+                Schedule
+              </h1>
+
+              {/* Widget Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+                marginBottom: '24px'
+              }}>
+                {/* Next Shift Widget */}
+                <div style={{
+                  gridColumn: '1 / -1',
+                  padding: '20px',
+                  background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+                  borderRadius: '16px',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)'
+                }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>
+                    NEXT SHIFT
+                  </div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
+                    Tomorrow
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '600', opacity: 0.95 }}>
+                    9:00 AM - 5:00 PM
+                  </div>
+                </div>
+
+                {/* Hours Widget */}
+                <div style={{
+                  padding: '16px',
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                }}>
+                  <div style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '8px', fontWeight: '600' }}>
+                    THIS WEEK
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: '#007AFF' }}>
+                    32.5
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#8E8E93' }}>
+                    hours
+                  </div>
+                </div>
+
+                {/* Shifts Widget */}
+                <div style={{
+                  padding: '16px',
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                }}>
+                  <div style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '8px', fontWeight: '600' }}>
+                    SHIFTS
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: '#34C759' }}>
+                    5
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#8E8E93' }}>
+                    this week
+                  </div>
+                </div>
+
+                {/* Team Widget */}
+                <div style={{
+                  gridColumn: '1 / -1',
+                  padding: '16px',
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                }}>
+                  <div style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '12px', fontWeight: '600' }}>
+                    WORKING TODAY
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['Sarah', 'Mike', 'Emma', 'John'].map((name, idx) => (
+                      <div key={idx} style={{
+                        padding: '6px 12px',
+                        background: '#F2F2F7',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1F2937'
+                      }}>
+                        {name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Schedule Section */}
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: '12px'
+              }}>
+                Full Schedule
+              </h2>
+
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
