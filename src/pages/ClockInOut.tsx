@@ -169,17 +169,17 @@ export default function ClockInOut() {
   }
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-12">
+    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6">
       <div className="flex flex-col items-center w-full max-w-md">
         {/* Page Title - Makes it clear this is Clock In/Out page */}
-        <div className="mb-4 text-center">
+        <div className="mb-2 text-center">
           <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
             Clock In / Clock Out
           </h1>
         </div>
 
         {/* Clock Display - Eastern Time - Made 1.5x larger for visibility */}
-        <div className="mb-8 text-center">
+        <div className="mb-6 text-center">
           <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2">
             {currentTime || '--:--:--'}
           </div>
