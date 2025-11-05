@@ -142,7 +142,12 @@ export default function ClockInOut_C() {
       const events = await timeclockApi.getRecentEvents(10)
       const formattedEvents = events.map(event => {
         const time = new Date(event.event_timestamp)
-        const isToday = time.toDateString() === new Date().toDateString()
+
+        // Check if event is today in Eastern Time (not server's local timezone)
+        const todayEST = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' })
+        const eventDateEST = time.toLocaleDateString('en-US', { timeZone: 'America/New_York' })
+        const isToday = todayEST === eventDateEST
+
         const timeStr = time.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
@@ -154,7 +159,7 @@ export default function ClockInOut_C() {
           id: event.id,
           name: event.employee ? getDisplayName(event.employee) : 'Unknown',
           action: event.event_type === 'in' ? 'Clock In' : 'Clock Out',
-          time: isToday ? timeStr : `${time.toLocaleDateString()} ${timeStr}`
+          time: isToday ? timeStr : `${eventDateEST} ${timeStr}`
         }
       })
       setRecentEvents(formattedEvents)
