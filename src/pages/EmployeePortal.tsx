@@ -939,6 +939,189 @@ export default function EmployeePortal_B() {
                   )
                 })}
               </div>
+
+              {/* Open Shifts Section - Urgent Priority Style */}
+              <div style={{
+                marginTop: '64px',
+                paddingTop: '48px',
+                borderTop: '3px solid #D1D5DB'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h2 style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#1F2937',
+                    letterSpacing: '-0.5px'
+                  }}>
+                    Open Shifts
+                  </h2>
+                  <div style={{
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#EF4444',
+                    background: '#FEE2E2',
+                    padding: '4px 10px',
+                    borderRadius: '6px'
+                  }}>
+                    3 Available
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Urgent Shift */}
+                  <div style={{
+                    padding: '18px',
+                    background: 'white',
+                    border: '2px solid #EF4444',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '-10px',
+                      left: '16px',
+                      background: '#EF4444',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      letterSpacing: '0.5px'
+                    }}>
+                      🔥 URGENT
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '8px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937', marginBottom: '6px' }}>
+                          Tuesday, Nov 7
+                        </div>
+                        <div style={{ fontSize: '16px', color: '#EF4444', fontWeight: '600', marginBottom: '8px' }}>
+                          9:00 AM - 5:00 PM
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6B7280' }}>
+                          📍 Main Street • Starting in 2 days
+                        </div>
+                      </div>
+                      <button style={{
+                        background: '#EF4444',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Claim Now
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* High Priority Shift */}
+                  <div style={{
+                    padding: '18px',
+                    background: 'white',
+                    border: '2px solid #F59E0B',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '-10px',
+                      left: '16px',
+                      background: '#F59E0B',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      letterSpacing: '0.5px'
+                    }}>
+                      ⚡ HIGH
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '8px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937', marginBottom: '6px' }}>
+                          Thursday, Nov 9
+                        </div>
+                        <div style={{ fontSize: '16px', color: '#F59E0B', fontWeight: '600', marginBottom: '8px' }}>
+                          2:00 PM - 10:00 PM
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6B7280' }}>
+                          📍 Downtown • Starting in 4 days
+                        </div>
+                      </div>
+                      <button style={{
+                        background: '#F59E0B',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Claim Now
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Normal Priority Shift */}
+                  <div style={{
+                    padding: '18px',
+                    background: 'white',
+                    border: '2px solid #10B981',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '-10px',
+                      left: '16px',
+                      background: '#10B981',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      letterSpacing: '0.5px'
+                    }}>
+                      ✓ NORMAL
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '8px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937', marginBottom: '6px' }}>
+                          Saturday, Nov 11
+                        </div>
+                        <div style={{ fontSize: '16px', color: '#10B981', fontWeight: '600', marginBottom: '8px' }}>
+                          6:00 AM - 2:00 PM
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6B7280' }}>
+                          📍 Main Street • Starting in 6 days
+                        </div>
+                      </div>
+                      <button style={{
+                        background: '#10B981',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Claim Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
