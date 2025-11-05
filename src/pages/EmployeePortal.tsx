@@ -789,6 +789,82 @@ export default function EmployeePortal_B() {
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
+              {/* Greeting Header with Stats */}
+              <div style={{
+                marginBottom: '20px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%)',
+                borderRadius: '12px',
+                border: '1px solid rgba(37, 99, 235, 0.1)'
+              }}>
+                <div style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#1F2937',
+                  marginBottom: '8px'
+                }}>
+                  Hello, {employee?.first_name || 'Employee'}! 👋
+                </div>
+                <div style={{
+                  fontSize: '14px',
+                  color: '#6B7280',
+                  marginBottom: '16px'
+                }}>
+                  Here's your schedule overview
+                </div>
+
+                {/* Weekly Hours Summary */}
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  marginTop: '12px'
+                }}>
+                  {['this', 'next'].map((week) => {
+                    const weekSchedule = week === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
+                    let totalHours = 0
+
+                    if (weekSchedule) {
+                      Object.values(weekSchedule).forEach((shifts: any) => {
+                        shifts.forEach((shift: any) => {
+                          const start = new Date(`2000-01-01T${shift.startTime}`)
+                          const end = new Date(`2000-01-01T${shift.endTime}`)
+                          const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+                          totalHours += hours
+                        })
+                      })
+                    }
+
+                    return (
+                      <div key={week} style={{
+                        flex: 1,
+                        padding: '12px',
+                        background: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)'
+                      }}>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#9CA3AF',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          marginBottom: '4px'
+                        }}>
+                          {week === 'this' ? 'This Week' : 'Next Week'}
+                        </div>
+                        <div style={{
+                          fontSize: '22px',
+                          fontWeight: '700',
+                          color: '#2563EB'
+                        }}>
+                          {totalHours.toFixed(1)} hrs
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
