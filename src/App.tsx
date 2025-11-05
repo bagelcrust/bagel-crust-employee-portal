@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useDynamicManifest } from './hooks';
 
 /**
  * ROUTE-BASED CODE SPLITTING
@@ -11,6 +12,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
  * - Initial bundle: ~60-70% smaller
  * - Faster first page load
  * - Better caching (pages cached separately)
+ *
+ * DYNAMIC PWA MANIFEST:
+ * - Generates manifest based on current page
+ * - "Add to Home Screen" remembers which page you were on
  */
 
 // Lazy load page components
@@ -30,17 +35,26 @@ function LoadingFallback() {
   );
 }
 
+function AppContent() {
+  // Dynamically update PWA manifest based on current page
+  useDynamicManifest();
+
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/clockinout" replace />} />
+        <Route path="/clockinout" element={<ClockInOut />} />
+        <Route path="/employee-portal" element={<EmployeePortal />} />
+        <Route path="/schedule-builder" element={<ScheduleBuilder />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
 function App() {
   return (
     <Router>
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/clockinout" replace />} />
-          <Route path="/clockinout" element={<ClockInOut />} />
-          <Route path="/employee-portal" element={<EmployeePortal />} />
-          <Route path="/schedule-builder" element={<ScheduleBuilder />} />
-        </Routes>
-      </Suspense>
+      <AppContent />
     </Router>
   );
 }
