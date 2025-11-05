@@ -8,23 +8,35 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.png', 'vite.svg'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Bagel Crust Employee Portal',
         short_name: 'Bagel Crust',
         description: 'Employee scheduling, timesheets, and clock in/out system',
         theme_color: '#2563EB',
-        background_color: '#EFF6FF',
+        background_color: '#FFFFFF',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
         start_url: '/employee-portal',
         icons: [
           {
-            src: '/icon.png',
-            sizes: '300x297',
+            src: '/icon-192.png',
+            sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ],
         categories: ['business', 'productivity'],
@@ -34,14 +46,14 @@ export default defineConfig({
             short_name: 'Clock',
             description: 'Quick access to clock in or out',
             url: '/clockinout',
-            icons: [{ src: '/icon.png', sizes: '300x297' }]
+            icons: [{ src: '/icon-192.png', sizes: '192x192' }]
           },
           {
             name: 'My Schedule',
             short_name: 'Schedule',
             description: 'View your work schedule',
             url: '/employee-portal',
-            icons: [{ src: '/icon.png', sizes: '300x297' }]
+            icons: [{ src: '/icon-192.png', sizes: '192x192' }]
           }
         ]
       },
