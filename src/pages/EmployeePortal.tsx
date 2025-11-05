@@ -706,14 +706,6 @@ export default function EmployeePortal_B() {
     return `${hours}h ${minutes}m`
   }
 
-  const handleLogout = () => {
-    setIsLoggedIn(false)
-    setEmployee(null)
-    setScheduleData(null)
-    setTimesheetData(null)
-    setPin('')
-  }
-
   const handleTimeOffSubmit = async () => {
     if (!timeOffStartDate || !timeOffEndDate) {
       alert('Please select both start and end dates')
