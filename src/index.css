@@ -2,7 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global reset for proper viewport control */
+/* Global reset for proper viewport control
+ * CRITICAL: Using 100dvh (dynamic viewport height) instead of 100%
+ * - In PWA mode, 100% doesn't include iOS safe areas at bottom
+ * - This was preventing gradient background from reaching bottom edge
+ * - 100dvh includes status bar and home indicator areas
+ * - Fixed Nov 5, 2024 after 9 failed attempts
+ */
 html, body {
   margin: 0;
   padding: 0;

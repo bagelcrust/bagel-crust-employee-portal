@@ -2,6 +2,11 @@
  * EmployeeLogin - PIN-based authentication screen
  * Full-screen login interface with glassmorphism design
  * ✅ USES UNIFIED KEYPAD COMPONENT with auto-submit
+ *
+ * LAYOUT FIX (Nov 5, 2024):
+ * - Uses items-center with py-20 for equal gradient spacing top/bottom
+ * - Requires index.css to use 100dvh (not 100%) for PWA mode to work
+ * - Without dvh, PWA mode prevents container from reaching bottom edge
  */
 
 import { Keypad } from './Keypad'
@@ -28,8 +33,8 @@ export function EmployeeLogin({
   t
 }: EmployeeLoginProps) {
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 py-20" style={{border: '5px solid red'}}>
-      <div className="max-w-[400px] w-full pt-6 px-6 pb-4 bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]" style={{border: '5px solid lime'}}>
+    <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 py-20">
+      <div className="max-w-[400px] w-full pt-6 px-6 pb-4 bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-[36px] font-bold text-gray-800 mb-3 tracking-tight">
