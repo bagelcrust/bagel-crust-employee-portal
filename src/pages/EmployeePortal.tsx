@@ -14,6 +14,119 @@ import { format } from 'date-fns'
  * - Elegant gradient background
  * - PIN authentication and employee self-service functions
  * - Weekly schedule, timesheet, team schedule, and profile views
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 🔧 REFACTORING GAME PLAN - 2,013 Lines → ~300 Lines
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * PROBLEM: This file is too large and hard to maintain. Similar code is
+ * repeated, inline styles are duplicated, and debugging requires scrolling
+ * through 2000+ lines.
+ *
+ * GOAL: Break into small, reusable, testable components while maintaining
+ * exact same functionality and design.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * PHASE 1: Extract Shared Utilities (No UI changes)
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * 1. Create src/lib/translations.ts
+ *    - Move `translations` object (en/es) → ~100 lines saved
+ *
+ * 2. Create src/lib/employeeUtils.ts
+ *    - Move `formatTime()`, `formatHoursMinutes()` functions
+ *    - Move `groupScheduleByDay()`, `groupTeamScheduleByDay()`
+ *    - Move `calculateWeeklyHours()` → ~200 lines saved
+ *
+ * 3. Create src/components/GlassCard.tsx
+ *    - Reusable wrapper for repeated glass effect styles
+ *    - Props: children, padding?, style?
+ *    - Replaces ~100 lines of duplicated inline styles
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * PHASE 2: Extract UI Components (Biggest Impact)
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * 4. Create src/components/RefinedKeypad.tsx
+ *    - Move `RefinedKeypad` component out (already isolated)
+ *    - Props: onInput, onClear, disabled, translations
+ *    - ~130 lines saved
+ *
+ * 5. Create src/components/EmployeeLogin.tsx
+ *    - The entire pre-login UI (PIN entry screen)
+ *    - Props: onLogin(employee), translations, language
+ *    - Uses <RefinedKeypad /> internally
+ *    - ~150 lines saved
+ *
+ * 6. Create src/components/BottomNav.tsx
+ *    - The fixed bottom navigation bar with icons
+ *    - Props: activeTab, onTabChange, translations
+ *    - ~100 lines saved
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * PHASE 3: Extract Tab Components (Most Lines Saved)
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * 7. Create src/components/tabs/ScheduleTab.tsx
+ *    - My Schedule section + Open Shifts + Team Schedule cards
+ *    - Props: employee, scheduleData, fullTeamSchedule, translations
+ *    - ~500 lines saved
+ *
+ * 8. Create src/components/tabs/TimesheetTab.tsx
+ *    - Hours worked display (this week / last week)
+ *    - Props: timesheetData, translations
+ *    - ~120 lines saved
+ *
+ * 9. Create src/components/tabs/ProfileTab.tsx
+ *    - Employee info display (name, PIN, rate, contact)
+ *    - Props: employee, translations
+ *    - ~120 lines saved
+ *
+ * 10. Create src/components/tabs/TimeOffTab.tsx
+ *     - Time off request form + previous requests
+ *     - Props: employee, timeOffRequests, onSubmit, translations
+ *     - ~200 lines saved
+ *
+ * 11. Create src/components/tabs/TeamScheduleTab.tsx (optional)
+ *     - Full team schedule view (separate from main schedule)
+ *     - Props: fullTeamSchedule, translations
+ *     - ~150 lines saved
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * PHASE 4: Final Cleanup
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * 12. This file (EmployeePortal.tsx) becomes:
+ *     - State management (isLoggedIn, employee, activeTab, etc.)
+ *     - Data loading (loadEmployeeData)
+ *     - Conditional rendering: login screen OR main portal
+ *     - Orchestrates all the child components
+ *     - FINAL SIZE: ~250-300 lines
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * BENEFITS
+ * ───────────────────────────────────────────────────────────────────────────
+ * ✅ Easier debugging - Find code in seconds, not minutes
+ * ✅ Reusability - Use GlassCard, RefinedKeypad anywhere
+ * ✅ Testability - Test individual tabs in isolation
+ * ✅ Maintainability - Change one tab without risking others
+ * ✅ Performance - No change (React already optimizes)
+ * ✅ Design consistency - Shared components = consistent UI
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * EXECUTION ORDER (safest approach)
+ * ───────────────────────────────────────────────────────────────────────────
+ * 1. Phase 1 first (utilities) - lowest risk, no UI changes
+ * 2. Test after each phase
+ * 3. Phase 2 (components) - moderate risk, visible changes
+ * 4. Phase 3 (tabs) - one tab at a time, test after each
+ * 5. Phase 4 (cleanup) - final polish
+ *
+ * Start Date: 2025-11-05
+ * Estimated Time: 2-3 hours total (30 min per phase)
+ * Risk Level: Low (can test incrementally, no logic changes)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 // Translation strings for multi-language support
@@ -123,33 +236,33 @@ function RefinedKeypad({ onInput, onClear, disabled, t }: {
           onClick={() => onInput(num.toString())}
           disabled={disabled}
           style={{
-            padding: '18px',
+            padding: '16px',
             fontSize: '20px',
             fontWeight: '600',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            background: 'rgba(255, 255, 255, 0.9)',
+            background: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            borderRadius: '8px',
+            border: '1px solid rgba(0, 0, 0, 0.05)',
+            borderRadius: '10px',
             cursor: 'pointer',
             color: '#1F2937',
             transition: 'all 0.15s ease',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
             touchAction: 'manipulation',
             userSelect: 'none',
             WebkitTapHighlightColor: 'rgba(0,0,0,0.05)',
-            minHeight: '60px'
+            minHeight: '56px'
           }}
           onMouseEnter={(e) => {
             if (!disabled) {
               e.currentTarget.style.transform = 'translateY(-1px)'
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
             }
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'
           }}
         >
           {num}
@@ -157,39 +270,39 @@ function RefinedKeypad({ onInput, onClear, disabled, t }: {
       ))}
 
       {/* Empty space - bottom left */}
-      <div style={{ minHeight: '60px' }}></div>
+      <div style={{ minHeight: '56px' }}></div>
 
       <button
         onClick={() => onInput('0')}
         disabled={disabled}
         style={{
-          padding: '18px',
+          padding: '16px',
           fontSize: '20px',
           fontWeight: '600',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          background: 'rgba(255, 255, 255, 0.9)',
+          background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
-          border: '1px solid rgba(0, 0, 0, 0.06)',
-          borderRadius: '8px',
+          border: '1px solid rgba(0, 0, 0, 0.05)',
+          borderRadius: '10px',
           cursor: 'pointer',
           color: '#1F2937',
           transition: 'all 0.15s ease',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
           touchAction: 'manipulation',
           userSelect: 'none',
           WebkitTapHighlightColor: 'rgba(0,0,0,0.05)',
-          minHeight: '60px'
+          minHeight: '56px'
         }}
         onMouseEnter={(e) => {
           if (!disabled) {
             e.currentTarget.style.transform = 'translateY(-1px)'
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
           }
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0)'
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'
         }}
       >
         0
@@ -199,33 +312,33 @@ function RefinedKeypad({ onInput, onClear, disabled, t }: {
         onClick={onClear}
         disabled={disabled}
         style={{
-          padding: '18px',
-          fontSize: '16px',
+          padding: '16px',
+          fontSize: '14px',
           fontWeight: '600',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           background: 'rgba(239, 68, 68, 0.08)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           border: '1px solid rgba(239, 68, 68, 0.15)',
-          borderRadius: '8px',
+          borderRadius: '10px',
           cursor: 'pointer',
           color: '#DC2626',
           transition: 'all 0.15s ease',
-          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.06)',
+          boxShadow: '0 2px 8px rgba(239, 68, 68, 0.04)',
           touchAction: 'manipulation',
           userSelect: 'none',
           WebkitTapHighlightColor: 'rgba(0,0,0,0.05)',
-          minHeight: '60px'
+          minHeight: '56px'
         }}
         onMouseEnter={(e) => {
           if (!disabled) {
             e.currentTarget.style.transform = 'translateY(-1px)'
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.08)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.08)'
           }
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0)'
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.06)'
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.04)'
         }}
       >
         {t.clear}
@@ -648,20 +761,20 @@ export default function EmployeePortal_B() {
              left: 0,
              right: 0,
              bottom: 0,
-             paddingTop: '2rem'
+             paddingTop: '32px'
            }}>
         <div style={{
           maxWidth: '400px',
           width: '100%',
-          padding: '36px 24px',
+          padding: '20px',
           background: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           borderRadius: '10px',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
           border: '1px solid rgba(255, 255, 255, 0.5)'
         }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <h1 style={{
               fontSize: '28px',
               fontWeight: '700',
@@ -672,7 +785,7 @@ export default function EmployeePortal_B() {
               {t.bagelCrust}
             </h1>
             <h2 style={{
-              fontSize: '18px',
+              fontSize: '15px',
               fontWeight: '500',
               color: '#6B7280',
               letterSpacing: '-0.2px'
@@ -684,16 +797,16 @@ export default function EmployeePortal_B() {
           <p style={{
             textAlign: 'center',
             color: '#6B7280',
-            marginBottom: '24px',
-            fontSize: '15px',
-            fontWeight: '500'
+            marginBottom: '20px',
+            fontSize: '14px',
+            fontWeight: '600'
           }}>
             {t.enterPin}
           </p>
 
           {/* PIN Display */}
           <div style={{
-            height: '70px',
+            height: '60px',
             background: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
@@ -701,9 +814,9 @@ export default function EmployeePortal_B() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '24px',
-            gap: '14px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+            marginBottom: '20px',
+            gap: '16px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
             border: '1px solid rgba(0, 0, 0, 0.05)'
           }}>
             {Array.from({ length: 4 }).map((_, i) => (
@@ -715,8 +828,9 @@ export default function EmployeePortal_B() {
                   borderRadius: '50%',
                   background: i < pin.length
                     ? '#2563EB'
-                    : 'rgba(203, 213, 225, 0.5)',
-                  transition: 'all 0.2s ease'
+                    : 'rgba(203, 213, 225, 0.4)',
+                  transition: 'all 0.2s ease',
+                  boxShadow: i < pin.length ? '0 2px 8px rgba(37, 99, 235, 0.3)' : 'none'
                 }}
               />
             ))}
@@ -726,11 +840,11 @@ export default function EmployeePortal_B() {
             <div style={{
               background: 'rgba(239, 68, 68, 0.08)',
               color: '#DC2626',
-              padding: '12px 16px',
+              padding: '10px 14px',
               borderRadius: '8px',
-              marginBottom: '20px',
+              marginBottom: '16px',
               textAlign: 'center',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '500',
               border: '1px solid rgba(239, 68, 68, 0.15)'
             }}>
@@ -748,9 +862,9 @@ export default function EmployeePortal_B() {
           {loading && (
             <div style={{
               textAlign: 'center',
-              marginTop: '20px',
+              marginTop: '16px',
               color: '#6B7280',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '500'
             }}>
               {t.verifying}
@@ -776,25 +890,26 @@ export default function EmployeePortal_B() {
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-2xl mx-auto px-4 py-3">
 
-        {/* Content Area with Glass Effect */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          borderRadius: '10px',
-          padding: '20px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-          border: '1px solid rgba(255, 255, 255, 0.5)'
-        }}>
-          {/* WEEKLY SCHEDULE TAB */}
-          {activeTab === 'weeklySchedule' && (
-            <div>
+        {/* WEEKLY SCHEDULE TAB */}
+        {activeTab === 'weeklySchedule' && (
+          <>
+            {/* Card 1: Greeting + Next Shift + Schedule */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              marginBottom: '24px'
+            }}>
               {/* Clean Greeting */}
               <h1 style={{
                 fontSize: '28px',
                 fontWeight: '700',
                 color: '#1F2937',
-                marginBottom: '32px',
+                marginBottom: '16px',
                 letterSpacing: '-0.5px'
               }}>
                 Hi {employee?.first_name || 'there'}! 👋
@@ -802,7 +917,6 @@ export default function EmployeePortal_B() {
 
               {/* Orange Gradient Next Shift Card */}
               <div style={{
-                marginBottom: '24px',
                 padding: '20px',
                 background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
                 borderRadius: '14px',
@@ -819,6 +933,29 @@ export default function EmployeePortal_B() {
                   9:00 AM - 5:00 PM
                 </div>
               </div>
+            </div>
+
+            {/* Card 2: My Schedule */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              marginBottom: '24px'
+            }}>
+              {/* My Schedule Heading */}
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1F2937',
+                marginBottom: '24px',
+                letterSpacing: '-0.5px'
+              }}>
+                My Schedule
+              </h2>
 
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
@@ -940,10 +1077,340 @@ export default function EmployeePortal_B() {
                 })}
               </div>
             </div>
-          )}
 
-          {/* TEAM SCHEDULE TAB */}
-          {activeTab === 'teamSchedule' && fullTeamSchedule && (
+            {/* Card 2: Open Shifts */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              marginBottom: '24px'
+            }}>
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1F2937',
+                marginBottom: '32px',
+                letterSpacing: '-0.5px'
+              }}>
+                Open Shifts
+              </h2>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Shift 1 */}
+                  <div style={{
+                    padding: '20px',
+                    background: 'white',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '10px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#1F2937',
+                          marginBottom: '8px'
+                        }}>
+                          Tuesday, November 7
+                        </div>
+                        <div style={{
+                          fontSize: '15px',
+                          color: '#2563EB',
+                          fontWeight: '500',
+                          marginBottom: '8px'
+                        }}>
+                          9:00 AM - 5:00 PM
+                        </div>
+                        <div style={{
+                          fontSize: '14px',
+                          color: '#6B7280'
+                        }}>
+                          Main Street
+                        </div>
+                      </div>
+                      <button style={{
+                        background: '#2563EB',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Claim
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Shift 2 */}
+                  <div style={{
+                    padding: '20px',
+                    background: 'white',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '10px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#1F2937',
+                          marginBottom: '8px'
+                        }}>
+                          Thursday, November 9
+                        </div>
+                        <div style={{
+                          fontSize: '15px',
+                          color: '#2563EB',
+                          fontWeight: '500',
+                          marginBottom: '8px'
+                        }}>
+                          2:00 PM - 10:00 PM
+                        </div>
+                        <div style={{
+                          fontSize: '14px',
+                          color: '#6B7280'
+                        }}>
+                          Downtown
+                        </div>
+                      </div>
+                      <button style={{
+                        background: '#2563EB',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Claim
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Shift 3 */}
+                  <div style={{
+                    padding: '20px',
+                    background: 'white',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '10px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#1F2937',
+                          marginBottom: '8px'
+                        }}>
+                          Saturday, November 11
+                        </div>
+                        <div style={{
+                          fontSize: '15px',
+                          color: '#2563EB',
+                          fontWeight: '500',
+                          marginBottom: '8px'
+                        }}>
+                          6:00 AM - 2:00 PM
+                        </div>
+                        <div style={{
+                          fontSize: '14px',
+                          color: '#6B7280'
+                        }}>
+                          Main Street
+                        </div>
+                      </div>
+                      <button style={{
+                        background: '#2563EB',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Claim
+                      </button>
+                    </div>
+                  </div>
+                </div>
+            </div>
+
+            {/* Card 3: Team Schedule */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}>
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1F2937',
+                marginBottom: '24px',
+                letterSpacing: '-0.5px'
+              }}>
+                Team Schedule
+              </h2>
+
+              {fullTeamSchedule && (
+                <div>
+                  {/* Week Toggle */}
+                  <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
+                    <button
+                      onClick={() => setTeamScheduleWeek('this')}
+                      className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+                        teamScheduleWeek === 'this'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      type="button"
+                    >
+                      {t.thisWeek}
+                    </button>
+                    <button
+                      onClick={() => setTeamScheduleWeek('next')}
+                      className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+                        teamScheduleWeek === 'next'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      type="button"
+                    >
+                      {t.nextWeek}
+                    </button>
+                  </div>
+
+                  {/* Day Selector */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '6px',
+                    marginBottom: '16px',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none'
+                  }}>
+                    {dayOrder.map(day => {
+                      const dayName = t[day as keyof typeof t] as string
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => setSelectedTeamDay(day)}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: selectedTeamDay === day ? '#2563EB' : 'rgba(0,0,0,0.04)',
+                            color: selectedTeamDay === day ? '#fff' : '#6B7280',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {dayName.slice(0, 3)}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Team List for Selected Day */}
+                  {(() => {
+                    const currentWeekSchedule = teamScheduleWeek === 'this' ? fullTeamSchedule.thisWeek : fullTeamSchedule.nextWeek
+                    const daySchedules = currentWeekSchedule?.[selectedTeamDay] || []
+
+                    return daySchedules.length === 0 ? (
+                      <div style={{
+                        textAlign: 'center',
+                        paddingTop: '48px',
+                        paddingBottom: '48px',
+                        color: '#9CA3AF',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}>
+                        No one scheduled for this day
+                      </div>
+                    ) : (
+                      <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                        {daySchedules.map((schedule: any, index: number) => (
+                          <div
+                            key={index}
+                            style={{
+                              padding: '16px',
+                              borderBottom: index < daySchedules.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{
+                              fontWeight: '700',
+                              color: '#1F2937',
+                              fontSize: '18px',
+                              marginBottom: '6px'
+                            }}>
+                              {schedule.employee?.first_name}
+                            </div>
+                            <div style={{
+                              fontWeight: '600',
+                              color: '#2563EB',
+                              fontSize: '17px'
+                            }}>
+                              {formatTime(new Date(schedule.start_time).toTimeString().slice(0,5))} - {formatTime(new Date(schedule.end_time).toTimeString().slice(0,5))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* TEAM SCHEDULE TAB */}
+        {activeTab === 'teamSchedule' && fullTeamSchedule && (
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderRadius: '10px',
+            padding: '20px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.5)'
+          }}>
             <div>
               {/* Week Toggle */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
@@ -1054,6 +1521,7 @@ export default function EmployeePortal_B() {
                 )
               })()}
             </div>
+          </div>
           )}
 
           {/* OPEN SHIFTS TAB */}
@@ -1091,15 +1559,23 @@ export default function EmployeePortal_B() {
 
           {/* TIME OFF TAB */}
           {activeTab === 'timeOff' && (
-            <div>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}>
               {/* Request Form */}
               <div style={{ marginBottom: '24px' }}>
                 <h3 style={{
-                  fontSize: '18px',
+                  fontSize: '28px',
                   fontWeight: '700',
                   color: '#1F2937',
-                  marginBottom: '16px',
-                  textAlign: 'center'
+                  marginBottom: '24px',
+                  letterSpacing: '-0.5px'
                 }}>
                   Request Time Off
                 </h3>
@@ -1218,11 +1694,11 @@ export default function EmployeePortal_B() {
               {timeOffRequests.length > 0 && (
                 <div>
                   <h3 style={{
-                    fontSize: '16px',
+                    fontSize: '22px',
                     fontWeight: '700',
                     color: '#1F2937',
-                    marginBottom: '12px',
-                    textAlign: 'center'
+                    marginBottom: '16px',
+                    letterSpacing: '-0.5px'
                   }}>
                     Your Requests
                   </h3>
@@ -1286,7 +1762,25 @@ export default function EmployeePortal_B() {
 
           {/* TIMESHEET TAB */}
           {activeTab === 'timesheet' && timesheetData && (
-            <div>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}>
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1F2937',
+                marginBottom: '24px',
+                letterSpacing: '-0.5px'
+              }}>
+                Hours
+              </h2>
+
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
@@ -1408,13 +1902,21 @@ export default function EmployeePortal_B() {
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (
-            <div>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}>
               <h3 style={{
-                fontSize: '18px',
+                fontSize: '28px',
                 fontWeight: '700',
                 color: '#1F2937',
-                marginBottom: '16px',
-                letterSpacing: '-0.3px'
+                marginBottom: '24px',
+                letterSpacing: '-0.5px'
               }}>
                 {t.employeeInfo}
               </h3>
@@ -1527,7 +2029,6 @@ export default function EmployeePortal_B() {
             </div>
           )}
         </div>
-        </div>
       </div>
 
       {/* Bottom Navigation Bar - Background Highlight */}
@@ -1549,8 +2050,6 @@ export default function EmployeePortal_B() {
         }}>
           {[
             { key: 'weeklySchedule', label: 'Schedule' },
-            { key: 'teamSchedule', label: 'Team' },
-            { key: 'openShifts', label: 'Shifts' },
             { key: 'timeOff', label: 'Time Off' },
             { key: 'timesheet', label: 'Hours' },
             { key: 'profile', label: 'Profile' }
