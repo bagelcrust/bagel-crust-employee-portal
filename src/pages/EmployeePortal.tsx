@@ -614,75 +614,26 @@ export default function EmployeePortal_B() {
     <div style={{
       height: '100vh',
       width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
       background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      overflow: 'auto',
-      WebkitOverflowScrolling: 'touch'
+      overflow: 'hidden'
     }}>
+      {/* Scrollable Content Area */}
       <div style={{
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: '20px',
-        minHeight: '100%'
+        flex: 1,
+        overflow: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        paddingBottom: '80px'
       }}>
-        {/* Header with Glass Effect */}
         <div style={{
-          marginBottom: '16px',
-          marginTop: '16px',
-          padding: '20px',
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          borderRadius: '10px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-          border: '1px solid rgba(255, 255, 255, 0.5)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          maxWidth: '600px',
+          margin: '0 auto',
+          padding: '20px'
         }}>
-          <h2 style={{
-            fontSize: '22px',
-            fontWeight: '700',
-            color: '#1F2937',
-            letterSpacing: '-0.3px'
-          }}>
-            {employee?.first_name || ''}
-          </h2>
-          <button
-            onClick={handleLogout}
-            title={t.logout}
-            style={{
-              width: '42px',
-              height: '42px',
-              background: '#EF4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              fontSize: '20px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)'
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.4)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)'
-            }}
-          >
-            ⎋
-          </button>
-        </div>
-
-        {/* Menu Navigation with Glass Effect */}
-        <div style={{ marginBottom: '16px', position: 'relative' }}>
+          {/* Menu Navigation with Glass Effect */}
+        <div style={{ marginBottom: '16px', marginTop: '16px', position: 'relative' }}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             style={{
@@ -1204,6 +1155,73 @@ export default function EmployeePortal_B() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Bottom Footer Bar - Fixed */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+        boxShadow: '0 -2px 12px rgba(0, 0, 0, 0.08)',
+        padding: '12px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          maxWidth: '600px',
+          width: '100%',
+          margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: '700',
+            color: '#1F2937',
+            margin: 0
+          }}>
+            {employee?.first_name || ''}
+          </h2>
+          <button
+            onClick={handleLogout}
+            title={t.logout}
+            style={{
+              width: '42px',
+              height: '42px',
+              background: '#EF4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              fontSize: '20px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)'
+            }}
+          >
+            ⎋
+          </button>
         </div>
       </div>
     </div>
