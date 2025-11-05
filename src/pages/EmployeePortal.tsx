@@ -1498,7 +1498,7 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar - Underline Style */}
+      {/* Bottom Navigation Bar - Minimal */}
       <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
              paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
@@ -1535,26 +1535,26 @@ export default function EmployeePortal_B() {
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.3s ease',
                 flex: 1,
                 position: 'relative',
-                borderBottom: activeTab === key ? '3px solid #2563EB' : '3px solid transparent'
+                transform: activeTab === key ? 'scale(1.1)' : 'scale(1)'
               }}
             >
               <div style={{
                 fontSize: '24px',
-                transition: 'all 0.2s ease',
-                opacity: activeTab === key ? 1 : 0.5
+                transition: 'all 0.3s ease',
+                opacity: activeTab === key ? 1 : 0.35
               }}>
                 {icon}
               </div>
               <div style={{
-                fontSize: '10px',
+                fontSize: activeTab === key ? '11px' : '10px',
                 fontWeight: activeTab === key ? '700' : '500',
-                color: activeTab === key ? '#2563EB' : '#9CA3AF',
+                color: activeTab === key ? '#2563EB' : '#D1D5DB',
                 textAlign: 'center',
                 lineHeight: '1.2',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.3s ease'
               }}>
                 {label}
               </div>
