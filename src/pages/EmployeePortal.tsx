@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { employeeApi, scheduleApi, timeclockApi } from '../supabase/supabase'
+import { employeeApi, scheduleApi, timeclockApi, getDisplayName } from '../supabase/supabase'
 import { format } from 'date-fns'
 
 /**
@@ -617,27 +617,6 @@ export default function EmployeePortal_B() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative'
     }}>
-      {/* Design Label */}
-      <div style={{
-        position: 'fixed',
-        top: '16px',
-        left: '16px',
-        padding: '8px 14px',
-        background: 'rgba(37, 99, 235, 0.9)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        borderRadius: '8px',
-        color: 'white',
-        fontSize: '11px',
-        fontWeight: '700',
-        letterSpacing: '0.5px',
-        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
-        zIndex: 1000,
-        textTransform: 'uppercase'
-      }}>
-        Option B: Refined Glassmorphism
-      </div>
-
       <div style={{
         maxWidth: '600px',
         margin: '0 auto',
@@ -664,7 +643,7 @@ export default function EmployeePortal_B() {
             color: '#1F2937',
             letterSpacing: '-0.3px'
           }}>
-            {employee?.display_name || employee?.name}
+            {employee ? getDisplayName(employee) : ''}
           </h2>
           <button
             onClick={handleLogout}
