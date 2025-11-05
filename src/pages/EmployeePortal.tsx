@@ -729,14 +729,15 @@ export default function EmployeePortal_B() {
                         backgroundColor: isToday ? 'rgba(37, 99, 235, 0.04)' : 'transparent',
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center'
+                        alignItems: 'flex-start'
                       }}
                     >
-                      <div className="flex items-baseline gap-2">
+                      <div style={{ paddingTop: '2px' }}>
                         <div style={{
                           fontWeight: '600',
                           color: '#1F2937',
-                          fontSize: '15px'
+                          fontSize: '15px',
+                          display: 'inline-block'
                         }}>
                           {dayName}
                         </div>
@@ -744,7 +745,8 @@ export default function EmployeePortal_B() {
                           <div style={{
                             fontSize: '11px',
                             color: '#2563EB',
-                            fontWeight: '600'
+                            fontWeight: '600',
+                            marginTop: '2px'
                           }}>
                             Today
                           </div>
@@ -761,17 +763,19 @@ export default function EmployeePortal_B() {
                           </span>
                         ) : (
                           shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '4px' : '0' }}>
+                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '6px' : '0' }}>
                               <div style={{
                                 fontWeight: '600',
                                 color: '#1F2937',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                lineHeight: '1.4'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </div>
                               <div style={{
                                 fontSize: '12px',
-                                color: '#6B7280'
+                                color: '#6B7280',
+                                marginTop: '2px'
                               }}>
                                 {shift.hoursScheduled}h
                               </div>
