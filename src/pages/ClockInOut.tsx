@@ -128,7 +128,6 @@ export default function ClockInOut_B() {
       setCurrentTime(now.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
-        second: '2-digit',
         timeZone: 'America/New_York'
       }))
       setCurrentDate(now.toLocaleDateString('en-US', {
