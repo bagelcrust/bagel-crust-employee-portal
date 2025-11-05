@@ -612,20 +612,23 @@ export default function EmployeePortal_B() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
+      width: '100%',
       background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      position: 'relative'
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch'
     }}>
       <div style={{
         maxWidth: '600px',
         margin: '0 auto',
-        padding: '20px'
+        padding: '20px',
+        minHeight: '100%'
       }}>
         {/* Header with Glass Effect */}
         <div style={{
           marginBottom: '16px',
-          marginTop: '50px',
+          marginTop: '16px',
           padding: '20px',
           background: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(10px)',
@@ -643,32 +646,38 @@ export default function EmployeePortal_B() {
             color: '#1F2937',
             letterSpacing: '-0.3px'
           }}>
-            {employee ? getDisplayName(employee) : ''}
+            {employee?.first_name || ''}
           </h2>
           <button
             onClick={handleLogout}
+            title={t.logout}
             style={{
-              padding: '10px 18px',
-              background: '#2563EB',
+              width: '42px',
+              height: '42px',
+              background: '#EF4444',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
+              borderRadius: '50%',
+              fontSize: '20px',
+              fontWeight: '700',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)'
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(37, 99, 235, 0.3)'
+              e.currentTarget.style.transform = 'scale(1.05)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.4)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.2)'
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)'
             }}
           >
-            {t.logout}
+            ⎋
           </button>
         </div>
 
