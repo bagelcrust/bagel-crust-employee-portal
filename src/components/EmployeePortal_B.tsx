@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { employeeApi, scheduleApi, timeclockApi } from '../lib/supabase'
 import { format } from 'date-fns'
 
@@ -239,7 +239,7 @@ export default function EmployeePortal_B() {
   const [timesheetData, setTimesheetData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'weeklySchedule' | 'todaySchedule' | 'timesheet' | 'profile' | 'feedback'>('weeklySchedule')
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
-  const [language, setLanguage] = useState<'en' | 'es'>('en')
+  const [language, _setLanguage] = useState<'en' | 'es'>('en')
   const [menuOpen, setMenuOpen] = useState(false)
   const [todayScheduleData, setTodayScheduleData] = useState<any[]>([])
 

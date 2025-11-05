@@ -141,7 +141,7 @@ export const timeclockApi = {
     // Group by employee and check if they're clocked in
     const employeeStatus = new Map();
 
-    data?.forEach(event => {
+    data?.forEach((event: any) => {
       if (!employeeStatus.has(event.employee_id)) {
         employeeStatus.set(event.employee_id, {
           employee_id: event.employee_id,
