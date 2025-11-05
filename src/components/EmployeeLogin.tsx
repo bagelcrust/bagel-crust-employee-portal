@@ -28,8 +28,8 @@ export function EmployeeLogin({
   t
 }: EmployeeLoginProps) {
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5">
-      <div className="max-w-[400px] w-full p-6 bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
+    <div className="fixed inset-0 w-full overflow-hidden flex items-end justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pb-12 pt-[calc(env(safe-area-inset-top)+80px)]">
+      <div className="max-w-[400px] w-full p-6 bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 mb-8">
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-[28px] font-bold text-gray-800 mb-2 tracking-tight">
