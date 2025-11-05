@@ -789,6 +789,146 @@ export default function EmployeePortal_B() {
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
+              {/* Dashboard Header */}
+              <div style={{
+                marginBottom: '24px'
+              }}>
+                <h1 style={{
+                  fontSize: '34px',
+                  fontWeight: '700',
+                  color: '#1F2937',
+                  marginBottom: '4px',
+                  letterSpacing: '-0.5px',
+                  lineHeight: '41px'
+                }}>
+                  Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}
+                </h1>
+                <p style={{
+                  fontSize: '17px',
+                  color: '#6B7280',
+                  fontWeight: '400'
+                }}>
+                  {employee?.first_name || 'Employee'}
+                </p>
+              </div>
+
+              {/* Quick Actions Grid */}
+              <div style={{
+                marginBottom: '24px'
+              }}>
+                <h2 style={{
+                  fontSize: '22px',
+                  fontWeight: '600',
+                  color: '#1F2937',
+                  marginBottom: '16px'
+                }}>
+                  Quick Actions
+                </h2>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '12px'
+                }}>
+                  {[
+                    { icon: '🕐', label: 'Clock In', color: '#007AFF' },
+                    { icon: '📊', label: 'My Hours', color: '#34C759' },
+                    { icon: '👥', label: 'Team', color: '#FF9500' },
+                    { icon: '📝', label: 'Requests', color: '#AF52DE' }
+                  ].map((action, idx) => (
+                    <div key={idx} style={{
+                      padding: '16px',
+                      background: 'white',
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{
+                        fontSize: '32px',
+                        marginBottom: '8px'
+                      }}>
+                        {action.icon}
+                      </div>
+                      <div style={{
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        color: '#1F2937'
+                      }}>
+                        {action.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Week Summary Widget */}
+              <div style={{
+                marginBottom: '24px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)'
+              }}>
+                <div style={{
+                  fontSize: '15px',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  marginBottom: '12px',
+                  fontWeight: '600'
+                }}>
+                  This Week
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: '36px',
+                      fontWeight: '700',
+                      color: 'white'
+                    }}>
+                      32.5 hrs
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: 'rgba(255, 255, 255, 0.8)'
+                    }}>
+                      Scheduled hours
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '12px',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      color: 'white'
+                    }}>
+                      5
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'rgba(255, 255, 255, 0.9)'
+                    }}>
+                      Shifts
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* My Schedule Section */}
+              <h2 style={{
+                fontSize: '22px',
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: '16px'
+              }}>
+                My Schedule
+              </h2>
+
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
