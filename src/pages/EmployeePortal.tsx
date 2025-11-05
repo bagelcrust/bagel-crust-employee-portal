@@ -246,7 +246,6 @@ export default function EmployeePortal_B() {
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
   const [timesheetWeek, setTimesheetWeek] = useState<'this' | 'last'>('this')
   const [language, _setLanguage] = useState<'en' | 'es'>('en')
-  const [todayScheduleData, setTodayScheduleData] = useState<any[]>([])
   const [teamScheduleWeek, setTeamScheduleWeek] = useState<'this' | 'next'>('this')
   const [fullTeamSchedule, setFullTeamSchedule] = useState<any>(null)
   const [timeOffRequests, setTimeOffRequests] = useState<any[]>([])
@@ -335,7 +334,6 @@ export default function EmployeePortal_B() {
           thisWeek: { days: [], totalHours: 0 },
           lastWeek: { days: [], totalHours: 0 }
         })
-        setTodayScheduleData([])
         setFullTeamSchedule({
           thisWeek: {
             monday: [],
@@ -437,11 +435,6 @@ export default function EmployeePortal_B() {
         thisWeek: thisWeekHours,
         lastWeek: lastWeekHours
       })
-
-      // Load today's team schedule
-      const todaySchedules = await scheduleApi.getTodaySchedule()
-      console.log('🔍 DEBUG: Today schedules:', todaySchedules)
-      setTodayScheduleData(todaySchedules)
     } catch (error) {
       console.error('❌ Failed to load employee data:', error)
     }
