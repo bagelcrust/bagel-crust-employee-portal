@@ -4,58 +4,36 @@ import { useLocation } from 'react-router-dom'
 /**
  * DYNAMIC PWA MANIFEST HOOK
  *
- * Generates a PWA manifest dynamically based on the current page.
+ * Swaps between different static manifest files based on the current page.
  * This ensures "Add to Home Screen" opens the exact page you were on:
- * - If on /clockinout → PWA opens to clock in page
- * - If on /employee-portal → PWA opens to employee portal
- * - If on /schedule-builder → PWA opens to schedule builder
+ * - If on /clockinout → Uses manifest-clockinout.json → PWA opens to /clockinout
+ * - If on /employee-portal → Uses manifest-employee-portal.json → PWA opens to /employee-portal
+ * - If on /schedule-builder → Uses manifest-schedule-builder.json → PWA opens to /schedule-builder
  *
  * How it works:
  * 1. Detects current URL path
- * 2. Creates manifest JSON with current path as start_url
- * 3. Generates a blob URL from the manifest
- * 4. Injects/updates the manifest link in <head>
+ * 2. Selects appropriate static manifest file
+ * 3. Updates the manifest link in <head>
+ *
+ * Uses static manifest files (not blob URLs) for better browser compatibility and caching.
  */
 export function useDynamicManifest() {
   const location = useLocation()
 
   useEffect(() => {
-    // Get full URL including origin (required for PWA start_url)
-    const fullUrl = window.location.origin + location.pathname
+    // Map paths to manifest files
+    let manifestFile = '/manifest-employee-portal.json' // default
 
-    console.log('📱 PWA Manifest: Generating for path:', location.pathname)
-    console.log('📱 PWA Manifest: Full start_url:', fullUrl)
-
-    // Generate manifest based on current path
-    const manifest = {
-      name: 'Bagel Crust Employee Portal',
-      short_name: 'Bagel Crust',
-      description: 'Employee scheduling, timesheets, and portal for Bagel Crust',
-      start_url: fullUrl, // Full URL including origin
-      scope: '/',
-      display: 'standalone',
-      background_color: '#ffffff',
-      theme_color: '#2563EB',
-      orientation: 'portrait',
-      icons: [
-        {
-          src: '/icon-192.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'any maskable'
-        },
-        {
-          src: '/icon-512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'any maskable'
-        }
-      ]
+    if (location.pathname.includes('clockinout')) {
+      manifestFile = '/manifest-clockinout.json'
+    } else if (location.pathname.includes('employee-portal')) {
+      manifestFile = '/manifest-employee-portal.json'
+    } else if (location.pathname.includes('schedule-builder')) {
+      manifestFile = '/manifest-schedule-builder.json'
     }
 
-    // Convert manifest to blob URL
-    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' })
-    const manifestURL = URL.createObjectURL(manifestBlob)
+    console.log('📱 PWA Manifest: Current path:', location.pathname)
+    console.log('📱 PWA Manifest: Using manifest file:', manifestFile)
 
     // Remove old manifest link if it exists
     const oldManifestLink = document.querySelector('link[rel="manifest"]')
@@ -63,17 +41,12 @@ export function useDynamicManifest() {
       oldManifestLink.remove()
     }
 
-    // Create new manifest link
+    // Create new manifest link with selected manifest file
     const manifestLink = document.createElement('link')
     manifestLink.rel = 'manifest'
-    manifestLink.href = manifestURL
+    manifestLink.href = manifestFile
     document.head.appendChild(manifestLink)
 
-    console.log('📱 PWA Manifest: Updated manifest link in <head>')
-
-    // Cleanup: revoke blob URL when location changes
-    return () => {
-      URL.revokeObjectURL(manifestURL)
-    }
+    console.log('📱 PWA Manifest: Manifest link updated in <head>')
   }, [location.pathname])
 }
