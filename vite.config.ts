@@ -10,7 +10,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Bagel Crust Employee Portal',
+        name: 'Bagel Crust',
         short_name: 'Bagel Crust',
         description: 'Employee scheduling, timesheets, and clock in/out system',
         theme_color: '#2563EB',
@@ -18,7 +18,6 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/employee-portal',
         icons: [
           {
             src: '/icon-192.png',
