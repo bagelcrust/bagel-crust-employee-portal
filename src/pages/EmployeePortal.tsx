@@ -1532,8 +1532,8 @@ export default function EmployeePortal_B() {
                 alignItems: 'center',
                 gap: '4px',
                 padding: '10px 8px',
-                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
-                background: activeTab === key ? '#2563EB' : '#EFF6FF',
+                border: activeTab === key ? '2px solid #2563EB' : '2px solid rgba(37, 99, 235, 0.2)',
+                background: 'transparent',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 borderRadius: '10px',
@@ -1550,8 +1550,8 @@ export default function EmployeePortal_B() {
               </div>
               <div style={{
                 fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '600',
-                color: activeTab === key ? '#ffffff' : '#2563EB',
+                fontWeight: activeTab === key ? '700' : '500',
+                color: activeTab === key ? '#2563EB' : '#6B7280',
                 textAlign: 'center',
                 lineHeight: '1.2'
               }}>
