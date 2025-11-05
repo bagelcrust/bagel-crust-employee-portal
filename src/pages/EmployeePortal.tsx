@@ -1532,8 +1532,10 @@ export default function EmployeePortal_B() {
                 alignItems: 'center',
                 gap: '4px',
                 padding: '10px 8px',
-                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
-                background: activeTab === key ? '#2563EB' : '#EFF6FF',
+                border: activeTab === key ? '2px solid #3B82F6' : '2px solid #DBEAFE',
+                background: activeTab === key
+                  ? 'linear-gradient(135deg, #2563EB 0%, #3B82F6 50%, #60A5FA 100%)'
+                  : 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 borderRadius: '10px',
