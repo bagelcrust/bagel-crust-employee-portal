@@ -1,8 +1,8 @@
-# 🥯 Bagel Crust - React + Supabase
+# 🥯 Bagel Crust - React + Vite Employee Portal
 
-A clean, simple employee management system built with React, Vite, and Supabase.
+A clean, organized employee management system built with React, Vite, and Supabase.
 
-## 🎉 Why This is Better Than Next.js
+## 🎉 Why React + Vite (Not Next.js)
 
 - **10x Simpler** - Just React components, no framework magic
 - **Faster Development** - Vite hot reload is instant
@@ -12,63 +12,125 @@ A clean, simple employee management system built with React, Vite, and Supabase.
 
 ## 🚀 Current Status
 
-### ✅ What's Working Now
-- Clock In/Out with PIN (live at http://134.209.45.231:3003)
-- Dashboard showing who's currently working
-- Recent activity feed
+### ✅ Active Features
+- **Clock In/Out** - PIN-based time clock system
+- **Employee Portal** - Self-service employee interface
 - Connected to Supabase with real employee data
+- Live at: http://134.209.45.231:3003
 
 ### 📊 Live Data
 - 25 employees with PINs
 - 731 timeclock events
 - 77 posted schedules
-- 5 employees currently clocked in
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19.1 + TypeScript + Vite 7.1
 - **Styling**: Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
 - **Icons**: Lucide React
-- **Routing**: React Router
+- **Routing**: React Router DOM v7.9
 - **Dates**: date-fns
 
-## 📁 Project Structure
+## 📁 Project Structure (Clean & Organized)
 
 ```
-/react-app
+/bagelcrust/react-app/
 ├── src/
-│   ├── components/
-│   │   ├── ClockInOut.tsx    # PIN-based time clock
-│   │   └── Dashboard.tsx     # Live employee dashboard
-│   ├── lib/
-│   │   └── supabase.ts       # Supabase client & APIs
-│   ├── App.tsx               # Routes
-│   └── index.css             # Tailwind
-└── .env                      # Supabase credentials
+│   ├── pages/                      # Full-page components (routes)
+│   │   ├── ClockInOut.tsx         # Clock in/out page
+│   │   └── EmployeePortal.tsx     # Employee self-service portal
+│   ├── components/                 # Reusable UI components
+│   │   └── NumericKeypad.tsx      # Shared PIN keypad component
+│   ├── supabase/                   # Database & API layer
+│   │   └── supabase.ts            # Supabase client, types, API functions
+│   ├── assets/                     # Images, icons, static files
+│   ├── App.tsx                     # Router configuration
+│   ├── main.tsx                    # Application entry point (DO NOT MOVE)
+│   └── index.css                   # Global styles (Tailwind)
+│
+├── public/                          # Static assets (copied as-is to build)
+│   └── vite.svg                    # Favicon and static files
+│
+├── dist/                            # Build output (auto-generated, don't edit!)
+│
+├── Config Files (Required at Root)
+├── index.html                       # Vite entry point (DO NOT MOVE)
+├── vite.config.ts                   # Vite build configuration
+├── package.json                     # Dependencies & scripts (DO NOT MOVE)
+├── package-lock.json                # Locked dependency versions
+├── tsconfig.json                    # TypeScript configuration
+├── tsconfig.app.json                # TypeScript app-specific config
+├── tsconfig.node.json               # TypeScript node-specific config
+├── tailwind.config.js               # Tailwind CSS configuration
+├── postcss.config.js                # PostCSS configuration
+├── eslint.config.js                 # ESLint linting rules
+├── vercel.json                      # Vercel deployment config
+└── README.md                        # This file!
 ```
 
-## 🚀 Migration Plan from Next.js
+### 🗂️ Archived Files (Not in Active Use)
+Located in `/bagelcrust/other-files/react-app/`:
+- **archived-components/** - Old design variants (A/B/C), Dashboard, DesignComparison
+- **scripts/** - Database check scripts, migration tools
+- **docs/** - Setup guides, deployment instructions
+- **test-files/** - Test HTML files
 
-### Phase 1: Core Features (DONE ✅)
-- [x] Clock in/out
-- [x] Dashboard
-- [x] Supabase connection
+## 📖 Understanding the Structure
 
-### Phase 2: Employee Management
-- [ ] Employee list/grid
-- [ ] Add/edit employees
-- [ ] Availability management
+### What Goes Where?
 
-### Phase 3: Scheduling
-- [ ] Weekly schedule view
-- [ ] Drag-and-drop scheduling
-- [ ] Time off requests
+#### **`src/pages/`** - Full-Page Components (Routes)
+- Each file = one page/route in your app
+- Currently: ClockInOut.tsx, EmployeePortal.tsx
+- **Add new pages here** when creating features like Schedule, Reports, etc.
 
-### Phase 4: Reports
-- [ ] Timesheets
-- [ ] Payroll reports
-- [ ] Hours tracking
+#### **`src/components/`** - Reusable Components
+- Shared UI pieces used across multiple pages
+- Currently: NumericKeypad.tsx (used in multiple pages)
+- **Add reusable components here** like buttons, modals, cards, etc.
+
+#### **`src/supabase/`** - Database Layer
+- Supabase client configuration
+- API functions (employeeApi, timeclockApi, scheduleApi)
+- TypeScript types for database tables
+- **All database queries go here**
+
+#### **`src/assets/`** - Images, Fonts, etc.
+- Images, logos, icons
+- Fonts, PDFs, documents
+- Processed by Vite during build
+
+#### **`public/`** - Static Files
+- Files copied as-is to build (not processed)
+- Access in code as `/filename.svg` (not `/public/filename.svg`)
+
+#### **`dist/`** - Build Output (DON'T TOUCH!)
+- Auto-generated when you run `npm run build`
+- Gets deployed to production
+- Regenerates every build
+
+#### **Config Files at Root**
+- Required by their respective tools (Vite, TypeScript, Tailwind, ESLint)
+- Must stay at root for auto-detection
+- Industry standard location
+
+### What's Locked vs What's Flexible?
+
+**🔒 Cannot Move (Hard-Locked):**
+- `index.html` - Vite entry point
+- `src/main.tsx` - Referenced in index.html
+- `package.json` - npm standard
+- `package-lock.json` - npm standard
+
+**⚙️ Should Not Move (Convention):**
+- All config files (vite, tsconfig, tailwind, eslint, etc.)
+- Tools auto-detect them at root
+
+**✅ Totally Flexible:**
+- Everything in `src/` (except main.tsx)
+- You can rename, reorganize, move files
+- Just update the import paths!
 
 ## 💻 Development
 
@@ -76,14 +138,20 @@ A clean, simple employee management system built with React, Vite, and Supabase.
 # Install dependencies
 npm install
 
-# Start dev server
-npm run dev
+# Start dev server (uses PM2)
+pm2 restart dev-server
+pm2 logs dev-server --lines 20
 
 # Build for production
 npm run build
+
+# Preview production build
+npm run preview
 ```
 
-Access at: http://134.209.45.231:3003
+**Access URLs:**
+- Dev: http://134.209.45.231:3010
+- Production: http://134.209.45.231:3001
 
 ## 🚀 Deploy to Vercel
 

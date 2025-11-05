@@ -157,7 +157,7 @@ export default function ClockInOut_C() {
 
         return {
           id: event.id,
-          name: event.employee ? getDisplayName(event.employee) : 'Unknown',
+          name: event.employee ? event.employee.first_name : 'Unknown',
           action: event.event_type === 'in' ? 'Clock In' : 'Clock Out',
           time: isToday ? timeStr : `${eventDateEST} ${timeStr}`
         }
