@@ -282,7 +282,25 @@ export const scheduleApi = {
       throw error;
     }
     console.log('📅 This week query returned:', data?.length, 'shifts');
-    return data || [];
+
+    // Get employee details
+    if (!data || data.length === 0) return [];
+
+    const employeeIds = [...new Set(data.map(s => s.employee_id))];
+
+    const { data: employees, error: empError } = await supabase
+      .from('employees')
+      .select('*')
+      .in('id', employeeIds);
+
+    if (empError) throw empError;
+
+    const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
+
+    return data.map(shift => ({
+      ...shift,
+      employee: employeeMap.get(shift.employee_id)
+    }));
   },
 
   // Get next week's schedule
@@ -312,7 +330,25 @@ export const scheduleApi = {
 
     if (error) throw error;
     console.log('📅 Next week query returned:', data?.length, 'shifts');
-    return data || [];
+
+    // Get employee details
+    if (!data || data.length === 0) return [];
+
+    const employeeIds = [...new Set(data.map(s => s.employee_id))];
+
+    const { data: employees, error: empError } = await supabase
+      .from('employees')
+      .select('*')
+      .in('id', employeeIds);
+
+    if (empError) throw empError;
+
+    const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
+
+    return data.map(shift => ({
+      ...shift,
+      employee: employeeMap.get(shift.employee_id)
+    }));
   },
 
   // Get week schedule

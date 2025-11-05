@@ -26,8 +26,10 @@ const translations = {
     verifying: 'Verifying...',
     loadingSchedule: 'Loading schedule...',
     logout: 'Logout',
-    weeklySchedule: 'My Weekly Schedule',
-    todaySchedule: 'Team Schedule',
+    weeklySchedule: 'My Schedule',
+    teamSchedule: 'Team Schedule',
+    openShifts: 'Open Shifts',
+    timeOff: 'Time Off',
     timesheet: 'Timesheet',
     profile: 'Profile',
     feedback: 'Feedback',
@@ -65,8 +67,10 @@ const translations = {
     verifying: 'Verificando...',
     loadingSchedule: 'Cargando horario...',
     logout: 'Cerrar Sesión',
-    weeklySchedule: 'Mi Horario Semanal',
-    todaySchedule: 'Horario del Equipo',
+    weeklySchedule: 'Mi Horario',
+    teamSchedule: 'Horario del Equipo',
+    openShifts: 'Turnos Abiertos',
+    timeOff: 'Tiempo Libre',
     timesheet: 'Horas Trabajadas',
     profile: 'Perfil',
     feedback: 'Comentarios',
@@ -238,16 +242,30 @@ export default function EmployeePortal_B() {
   const [employee, setEmployee] = useState<any>(null)
   const [scheduleData, setScheduleData] = useState<any>(null)
   const [timesheetData, setTimesheetData] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<'weeklySchedule' | 'todaySchedule' | 'timesheet' | 'profile' | 'feedback'>('weeklySchedule')
+  const [activeTab, setActiveTab] = useState<'weeklySchedule' | 'teamSchedule' | 'openShifts' | 'timeOff' | 'timesheet' | 'profile'>('weeklySchedule')
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
   const [timesheetWeek, setTimesheetWeek] = useState<'this' | 'last'>('this')
   const [language, _setLanguage] = useState<'en' | 'es'>('en')
   const [todayScheduleData, setTodayScheduleData] = useState<any[]>([])
+  const [teamScheduleWeek, setTeamScheduleWeek] = useState<'this' | 'next'>('this')
+  const [fullTeamSchedule, setFullTeamSchedule] = useState<any>(null)
+  const [timeOffRequests, setTimeOffRequests] = useState<any[]>([])
+  const [timeOffStartDate, setTimeOffStartDate] = useState('')
+  const [timeOffEndDate, setTimeOffEndDate] = useState('')
+  const [timeOffReason, setTimeOffReason] = useState('')
+  const [timeOffSubmitting, setTimeOffSubmitting] = useState(false)
 
   // Get current translations
   const t = translations[language]
 
   const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+  const [selectedTeamDay, setSelectedTeamDay] = useState<string>(() => {
+    // Start with today's day
+    const today = new Date().getDay()
+    const todayIndex = today === 0 ? 6 : today - 1 // Convert Sunday=0 to index 6
+    return dayOrder[todayIndex]
+  })
 
   const handlePinInput = (digit: string) => {
     setPin(prevPin => {
@@ -318,6 +336,26 @@ export default function EmployeePortal_B() {
           lastWeek: { days: [], totalHours: 0 }
         })
         setTodayScheduleData([])
+        setFullTeamSchedule({
+          thisWeek: {
+            monday: [],
+            tuesday: [],
+            wednesday: [],
+            thursday: [],
+            friday: [],
+            saturday: [],
+            sunday: []
+          },
+          nextWeek: {
+            monday: [],
+            tuesday: [],
+            wednesday: [],
+            thursday: [],
+            friday: [],
+            saturday: [],
+            sunday: []
+          }
+        })
         setIsLoggedIn(true)
         setLoading(false)
         return
@@ -376,6 +414,14 @@ export default function EmployeePortal_B() {
         nextWeek: nextWeekByDay
       })
 
+      // Store full team schedule (all employees)
+      const fullThisWeekByDay = groupTeamScheduleByDay(thisWeekSchedules)
+      const fullNextWeekByDay = groupTeamScheduleByDay(nextWeekSchedules)
+      setFullTeamSchedule({
+        thisWeek: fullThisWeekByDay,
+        nextWeek: fullNextWeekByDay
+      })
+
       // Load timesheet data (hours worked) - fetch more to ensure we get enough for one employee
       const recentEvents = await timeclockApi.getRecentEvents(200)
       console.log('⏰ Recent events fetched:', recentEvents.length)
@@ -399,6 +445,29 @@ export default function EmployeePortal_B() {
     } catch (error) {
       console.error('❌ Failed to load employee data:', error)
     }
+  }
+
+  const groupTeamScheduleByDay = (schedules: any[]) => {
+    const grouped: any = {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+      saturday: [],
+      sunday: []
+    }
+
+    schedules.forEach(schedule => {
+      const startDate = new Date(schedule.start_time)
+      const dayOfWeek = startDate.getDay()
+      const dayName = dayOrder[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+
+      // Keep the full schedule object with employee data
+      grouped[dayName].push(schedule)
+    })
+
+    return grouped
   }
 
   const groupScheduleByDay = (schedules: any[]) => {
@@ -537,6 +606,44 @@ export default function EmployeePortal_B() {
     setScheduleData(null)
     setTimesheetData(null)
     setPin('')
+  }
+
+  const handleTimeOffSubmit = async () => {
+    if (!timeOffStartDate || !timeOffEndDate) {
+      alert('Please select both start and end dates')
+      return
+    }
+
+    const startDate = new Date(timeOffStartDate)
+    const endDate = new Date(timeOffEndDate)
+
+    if (endDate < startDate) {
+      alert('End date must be after start date')
+      return
+    }
+
+    setTimeOffSubmitting(true)
+
+    // For now, just store locally (you can add API call later)
+    const newRequest = {
+      id: Date.now(),
+      employee_id: employee.id,
+      start_date: timeOffStartDate,
+      end_date: timeOffEndDate,
+      reason: timeOffReason,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    }
+
+    setTimeOffRequests([newRequest, ...timeOffRequests])
+
+    // Clear form
+    setTimeOffStartDate('')
+    setTimeOffEndDate('')
+    setTimeOffReason('')
+    setTimeOffSubmitting(false)
+
+    alert('Time off request submitted!')
   }
 
   if (!isLoggedIn) {
@@ -683,7 +790,9 @@ export default function EmployeePortal_B() {
         }}>
           {[
             { key: 'weeklySchedule', label: t.weeklySchedule },
-            { key: 'todaySchedule', label: t.todaySchedule },
+            { key: 'teamSchedule', label: t.teamSchedule },
+            { key: 'openShifts', label: t.openShifts },
+            { key: 'timeOff', label: t.timeOff },
             { key: 'timesheet', label: t.timesheet },
             { key: 'profile', label: t.profile }
           ].map(({ key, label }) => (
@@ -750,7 +859,7 @@ export default function EmployeePortal_B() {
                 {dayOrder.map((day, index) => {
                   const shifts = currentSchedule?.[day] || []
                   const dayName = t[day as keyof typeof t] as string
-                  const isToday = new Date().getDay() === (dayOrder.indexOf(day) + 1) % 7
+                  const isToday = showWeek === 'this' && new Date().getDay() === (dayOrder.indexOf(day) + 1) % 7
 
                   // Calculate date for this day
                   const now = new Date()
@@ -763,78 +872,71 @@ export default function EmployeePortal_B() {
                   const dayDate = new Date(monday)
                   dayDate.setDate(monday.getDate() + index + weekOffset)
 
-                  const dateStr = dayDate.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    timeZone: 'America/New_York'
-                  })
+                  const dateStr = `${dayDate.getMonth() + 1}/${dayDate.getDate()}`
 
                   return (
                     <div
                       key={day}
                       style={{
-                        padding: '18px 14px',
+                        padding: '20px 16px',
                         borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.04)' : 'transparent',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start'
+                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
+                        textAlign: 'center',
+                        position: 'relative'
                       }}
                     >
-                      <div>
+                      {isToday && (
                         <div style={{
-                          fontWeight: '600',
-                          color: '#1F2937',
-                          fontSize: '15px',
-                          lineHeight: '1.5'
+                          position: 'absolute',
+                          top: '8px',
+                          left: '12px',
+                          fontSize: '11px',
+                          color: '#2563EB',
+                          fontWeight: '700',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
                         }}>
-                          {dayName}
+                          Today
                         </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: '#6B7280',
-                          marginTop: '2px'
-                        }}>
-                          {dateStr}
-                        </div>
-                        {isToday && (
-                          <div style={{
-                            fontSize: '11px',
-                            color: '#2563EB',
-                            fontWeight: '600',
-                            marginTop: '2px'
-                          }}>
-                            Today
-                          </div>
-                        )}
+                      )}
+                      <div style={{
+                        fontWeight: '700',
+                        color: '#1F2937',
+                        fontSize: '20px',
+                        letterSpacing: '-0.3px',
+                        marginBottom: '4px'
+                      }}>
+                        {dayName}
                       </div>
-                      <div style={{ textAlign: 'right' }}>
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                        marginBottom: '12px'
+                      }}>
+                        {dateStr}
+                      </div>
+                      <div>
                         {shifts.length === 0 ? (
                           <span style={{
-                            color: '#9CA3AF',
-                            fontSize: '15px',
-                            fontWeight: '500',
-                            lineHeight: '1.5'
+                            color: '#D1D5DB',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
                           }}>
                             {t.off}
                           </span>
                         ) : (
                           shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '6px' : '0' }}>
+                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '8px' : '0' }}>
                               <div style={{
                                 fontWeight: '600',
-                                color: '#1F2937',
-                                fontSize: '15px',
-                                lineHeight: '1.5'
+                                color: '#2563EB',
+                                fontSize: '19px',
+                                letterSpacing: '-0.2px'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                              </div>
-                              <div style={{
-                                fontSize: '12px',
-                                color: '#6B7280',
-                                marginTop: '2px'
-                              }}>
-                                {shift.hoursScheduled}h
                               </div>
                             </div>
                           ))
@@ -848,59 +950,342 @@ export default function EmployeePortal_B() {
           )}
 
           {/* TEAM SCHEDULE TAB */}
-          {activeTab === 'todaySchedule' && (
+          {activeTab === 'teamSchedule' && fullTeamSchedule && (
             <div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#1F2937',
+              {/* Week Toggle */}
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
+                <button
+                  onClick={() => setTeamScheduleWeek('this')}
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+                    teamScheduleWeek === 'this'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  type="button"
+                >
+                  {t.thisWeek}
+                </button>
+                <button
+                  onClick={() => setTeamScheduleWeek('next')}
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+                    teamScheduleWeek === 'next'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  type="button"
+                >
+                  {t.nextWeek}
+                </button>
+              </div>
+
+              {/* Day Selector */}
+              <div style={{
+                display: 'flex',
+                gap: '6px',
                 marginBottom: '16px',
-                letterSpacing: '-0.3px'
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
               }}>
-                Today's Team Schedule
-              </h3>
-              {todayScheduleData.length === 0 ? (
+                {dayOrder.map(day => {
+                  const dayName = t[day as keyof typeof t] as string
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedTeamDay(day)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        whiteSpace: 'nowrap',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: selectedTeamDay === day ? '#2563EB' : 'rgba(0,0,0,0.04)',
+                        color: selectedTeamDay === day ? '#fff' : '#6B7280',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {dayName.slice(0, 3)}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Team List for Selected Day */}
+              {(() => {
+                const currentWeekSchedule = teamScheduleWeek === 'this' ? fullTeamSchedule.thisWeek : fullTeamSchedule.nextWeek
+                const daySchedules = currentWeekSchedule?.[selectedTeamDay] || []
+
+                return daySchedules.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    paddingTop: '48px',
+                    paddingBottom: '48px',
+                    color: '#9CA3AF',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}>
+                    No one scheduled for this day
+                  </div>
+                ) : (
+                  <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                    {daySchedules.map((schedule: any, index: number) => (
+                      <div
+                        key={index}
+                        style={{
+                          padding: '16px',
+                          borderBottom: index < daySchedules.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{
+                          fontWeight: '700',
+                          color: '#1F2937',
+                          fontSize: '18px',
+                          marginBottom: '6px'
+                        }}>
+                          {schedule.employee?.first_name}
+                        </div>
+                        <div style={{
+                          fontWeight: '600',
+                          color: '#2563EB',
+                          fontSize: '17px'
+                        }}>
+                          {formatTime(new Date(schedule.start_time).toTimeString().slice(0,5))} - {formatTime(new Date(schedule.end_time).toTimeString().slice(0,5))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* OPEN SHIFTS TAB */}
+          {activeTab === 'openShifts' && (
+            <div>
+              <div style={{
+                textAlign: 'center',
+                paddingTop: '48px',
+                paddingBottom: '48px'
+              }}>
                 <div style={{
-                  textAlign: 'center',
-                  paddingTop: '48px',
-                  paddingBottom: '48px',
+                  fontSize: '40px',
+                  marginBottom: '12px'
+                }}>
+                  📋
+                </div>
+                <div style={{
+                  color: '#6B7280',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  marginBottom: '8px'
+                }}>
+                  Open Shifts
+                </div>
+                <div style={{
                   color: '#9CA3AF',
                   fontSize: '14px',
                   fontWeight: '500'
                 }}>
-                  {t.noOneScheduledToday}
+                  Coming soon! You'll be able to pick up available shifts here.
                 </div>
-              ) : (
-                <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
-                  {todayScheduleData.map((schedule: any, index: number) => (
-                    <div
-                      key={index}
-                      style={{
-                        padding: '14px',
-                        borderBottom: index < todayScheduleData.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none'
-                      }}
-                    >
-                      <div style={{
-                        fontWeight: '600',
-                        color: '#1F2937',
-                        fontSize: '15px',
-                        marginBottom: '4px'
-                      }}>
-                        {schedule.employee?.first_name} {schedule.employee?.last_name || ''}
-                      </div>
-                      <div style={{
-                        fontSize: '13px',
-                        color: '#6B7280'
-                      }}>
-                        <span style={{ fontWeight: '500' }}>
-                          {formatTime(new Date(schedule.start_time).toTimeString().slice(0,5))} - {formatTime(new Date(schedule.end_time).toTimeString().slice(0,5))}
-                        </span>
-                        <span style={{ marginLeft: '12px' }}>
-                          {((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / (1000 * 60 * 60)).toFixed(1)}h
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* TIME OFF TAB */}
+          {activeTab === 'timeOff' && (
+            <div>
+              {/* Request Form */}
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  color: '#1F2937',
+                  marginBottom: '16px',
+                  textAlign: 'center'
+                }}>
+                  Request Time Off
+                </h3>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={timeOffStartDate}
+                    onChange={(e) => setTimeOffStartDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      fontSize: '16px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(0, 0, 0, 0.1)',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      color: '#1F2937',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={timeOffEndDate}
+                    onChange={(e) => setTimeOffEndDate(e.target.value)}
+                    min={timeOffStartDate || new Date().toISOString().split('T')[0]}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      fontSize: '16px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(0, 0, 0, 0.1)',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      color: '#1F2937',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    Reason (Optional)
+                  </label>
+                  <textarea
+                    value={timeOffReason}
+                    onChange={(e) => setTimeOffReason(e.target.value)}
+                    placeholder="E.g., Vacation, doctor's appointment..."
+                    rows={3}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      fontSize: '16px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(0, 0, 0, 0.1)',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      color: '#1F2937',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={handleTimeOffSubmit}
+                  disabled={timeOffSubmitting || !timeOffStartDate || !timeOffEndDate}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: timeOffSubmitting || !timeOffStartDate || !timeOffEndDate
+                      ? '#D1D5DB'
+                      : '#2563EB',
+                    color: '#fff',
+                    cursor: timeOffSubmitting || !timeOffStartDate || !timeOffEndDate
+                      ? 'not-allowed'
+                      : 'pointer',
+                    transition: 'all 0.15s ease',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  {timeOffSubmitting ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+
+              {/* Previous Requests */}
+              {timeOffRequests.length > 0 && (
+                <div>
+                  <h3 style={{
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    color: '#1F2937',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}>
+                    Your Requests
+                  </h3>
+                  <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                    {timeOffRequests.map((request, index) => {
+                      const startDate = new Date(request.start_date)
+                      const endDate = new Date(request.end_date)
+                      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+                      return (
+                        <div
+                          key={request.id}
+                          style={{
+                            padding: '16px',
+                            borderBottom: index < timeOffRequests.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div style={{
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            color: '#1F2937',
+                            marginBottom: '4px'
+                          }}>
+                            {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </div>
+                          <div style={{
+                            fontSize: '13px',
+                            color: '#6B7280',
+                            marginBottom: '6px'
+                          }}>
+                            {days} day{days !== 1 ? 's' : ''}
+                          </div>
+                          {request.reason && (
+                            <div style={{
+                              fontSize: '14px',
+                              color: '#9CA3AF',
+                              fontStyle: 'italic',
+                              marginBottom: '6px'
+                            }}>
+                              {request.reason}
+                            </div>
+                          )}
+                          <div style={{
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: request.status === 'pending' ? '#F59E0B' : request.status === 'approved' ? '#10B981' : '#EF4444',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {request.status}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>
