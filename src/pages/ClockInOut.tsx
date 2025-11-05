@@ -219,8 +219,8 @@ export default function ClockInOut_B() {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="flex flex-col items-center p-5">
+    <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-12 px-5">
+      <div className="flex flex-col items-center w-full max-w-md">
           {/* Clock Display */}
           <div style={{ marginBottom: '32px', textAlign: 'center' }}>
             <div style={{

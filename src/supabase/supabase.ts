@@ -39,10 +39,10 @@ export interface TimeEntry {
 export interface Shift {
   id: number;
   employee_id: string;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
+  start_time: string; // Full timestamp (e.g., "2025-10-19 02:00:00+00")
+  end_time: string;   // Full timestamp (e.g., "2025-10-19 07:00:00+00")
   location: string;
+  role: string | null;
 }
 
 // Helper to get display name
