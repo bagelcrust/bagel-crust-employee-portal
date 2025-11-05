@@ -732,12 +732,12 @@ export default function EmployeePortal_B() {
                         alignItems: 'flex-start'
                       }}
                     >
-                      <div style={{ paddingTop: '2px' }}>
+                      <div>
                         <div style={{
                           fontWeight: '600',
                           color: '#1F2937',
                           fontSize: '15px',
-                          display: 'inline-block'
+                          lineHeight: '1.5'
                         }}>
                           {dayName}
                         </div>
@@ -756,8 +756,9 @@ export default function EmployeePortal_B() {
                         {shifts.length === 0 ? (
                           <span style={{
                             color: '#9CA3AF',
-                            fontSize: '14px',
-                            fontWeight: '500'
+                            fontSize: '15px',
+                            fontWeight: '500',
+                            lineHeight: '1.5'
                           }}>
                             {t.off}
                           </span>
@@ -767,8 +768,8 @@ export default function EmployeePortal_B() {
                               <div style={{
                                 fontWeight: '600',
                                 color: '#1F2937',
-                                fontSize: '14px',
-                                lineHeight: '1.4'
+                                fontSize: '15px',
+                                lineHeight: '1.5'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </div>
