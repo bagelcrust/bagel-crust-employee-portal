@@ -939,6 +939,130 @@ export default function EmployeePortal_B() {
                   )
                 })}
               </div>
+
+              {/* Open Shifts Section - Compact List Style */}
+              <div style={{
+                marginTop: '64px',
+                paddingTop: '48px',
+                borderTop: '3px solid #D1D5DB'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  color: '#1F2937',
+                  marginBottom: '16px',
+                  letterSpacing: '-0.5px'
+                }}>
+                  Open Shifts
+                </h2>
+                <div style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  border: '1px solid #E5E7EB',
+                  overflow: 'hidden'
+                }}>
+                  {/* Shift 1 */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #F3F4F6'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1F2937',
+                        marginBottom: '2px'
+                      }}>
+                        Tue 11/7 • 9:00 AM - 5:00 PM
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                        📍 Main Street
+                      </div>
+                    </div>
+                    <button style={{
+                      background: '#EFF6FF',
+                      color: '#2563EB',
+                      border: 'none',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}>
+                      Claim
+                    </button>
+                  </div>
+
+                  {/* Shift 2 */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #F3F4F6'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1F2937',
+                        marginBottom: '2px'
+                      }}>
+                        Thu 11/9 • 2:00 PM - 10:00 PM
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                        📍 Downtown
+                      </div>
+                    </div>
+                    <button style={{
+                      background: '#EFF6FF',
+                      color: '#2563EB',
+                      border: 'none',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}>
+                      Claim
+                    </button>
+                  </div>
+
+                  {/* Shift 3 */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 16px'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1F2937',
+                        marginBottom: '2px'
+                      }}>
+                        Sat 11/11 • 6:00 AM - 2:00 PM
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                        📍 Main Street
+                      </div>
+                    </div>
+                    <button style={{
+                      background: '#EFF6FF',
+                      color: '#2563EB',
+                      border: 'none',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}>
+                      Claim
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
