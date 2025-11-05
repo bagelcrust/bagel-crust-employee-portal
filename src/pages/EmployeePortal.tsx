@@ -687,61 +687,25 @@ export default function EmployeePortal_B() {
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
-              {/* Week Toggle */}
-              <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+              {/* Week Toggle - matches tab button size */}
+              <div className="flex gap-2 mb-5">
                 <button
                   onClick={() => setShowWeek('this')}
-                  style={{
-                    flex: 1,
-                    padding: '10px 18px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    backgroundColor: showWeek === 'this' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
-                    color: showWeek === 'this' ? 'white' : '#2563EB',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    boxShadow: showWeek === 'this' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (showWeek !== 'this') {
-                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.12)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (showWeek !== 'this') {
-                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.08)'
-                    }
-                  }}
+                  className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    showWeek === 'this'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                  }`}
                 >
                   {t.thisWeek}
                 </button>
                 <button
                   onClick={() => setShowWeek('next')}
-                  style={{
-                    flex: 1,
-                    padding: '10px 18px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    backgroundColor: showWeek === 'next' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
-                    color: showWeek === 'next' ? 'white' : '#2563EB',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    boxShadow: showWeek === 'next' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (showWeek !== 'next') {
-                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.12)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (showWeek !== 'next') {
-                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.08)'
-                    }
-                  }}
+                  className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    showWeek === 'next'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                  }`}
                 >
                   {t.nextWeek}
                 </button>
