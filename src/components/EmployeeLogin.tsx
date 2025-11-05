@@ -38,6 +38,7 @@ export function EmployeeLogin({
           <h2 className="text-[15px] font-medium text-gray-500 tracking-tight">
             {t.employeePortal}
           </h2>
+          <div className="text-[10px] text-gray-400 mt-1">v2.0</div>
         </div>
 
         <p className="text-center text-gray-500 mb-5 text-sm font-semibold">
