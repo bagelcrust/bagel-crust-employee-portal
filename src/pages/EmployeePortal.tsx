@@ -889,18 +889,60 @@ export default function EmployeePortal_B() {
                             {t.off}
                           </span>
                         ) : (
-                          shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '8px' : '0' }}>
-                              <div style={{
-                                fontWeight: '600',
-                                color: '#2563EB',
-                                fontSize: '19px',
-                                letterSpacing: '-0.2px'
-                              }}>
-                                {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+                          shifts.map((shift: any, idx: number) => {
+                            // Calculate shift duration and position for timeline
+                            const start = new Date(`2000-01-01T${shift.startTime}`)
+                            const end = new Date(`2000-01-01T${shift.endTime}`)
+                            const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+
+                            // Timeline positioning (assuming 24-hour day, starting at 6am)
+                            const startHour = start.getHours() + start.getMinutes() / 60
+                            const timelineStart = ((startHour - 6) / 18) * 100 // 6am to midnight (18 hours)
+                            const timelineWidth = (durationHours / 18) * 100
+
+                            return (
+                              <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '12px' : '0' }}>
+                                {/* Time text */}
+                                <div style={{
+                                  fontWeight: '600',
+                                  color: '#2563EB',
+                                  fontSize: '17px',
+                                  letterSpacing: '-0.2px',
+                                  marginBottom: '8px'
+                                }}>
+                                  {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+                                </div>
+                                {/* Timeline bar */}
+                                <div style={{
+                                  position: 'relative',
+                                  height: '8px',
+                                  background: '#E5E7EB',
+                                  borderRadius: '4px',
+                                  overflow: 'hidden'
+                                }}>
+                                  <div style={{
+                                    position: 'absolute',
+                                    left: `${Math.max(0, Math.min(100, timelineStart))}%`,
+                                    width: `${Math.max(0, Math.min(100 - timelineStart, timelineWidth))}%`,
+                                    height: '100%',
+                                    background: 'linear-gradient(90deg, #3B82F6 0%, #2563EB 100%)',
+                                    borderRadius: '4px',
+                                    boxShadow: '0 2px 4px rgba(37, 99, 235, 0.3)'
+                                  }} />
+                                </div>
+                                {/* Duration label */}
+                                <div style={{
+                                  fontSize: '12px',
+                                  color: '#9CA3AF',
+                                  fontWeight: '500',
+                                  marginTop: '4px',
+                                  textAlign: 'right'
+                                }}>
+                                  {durationHours.toFixed(1)} hrs
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            )
+                          })
                         )}
                       </div>
                     </div>
