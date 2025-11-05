@@ -789,89 +789,16 @@ export default function EmployeePortal_B() {
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
-              {/* Search/AI Assistant Interface */}
-              <div style={{
-                marginBottom: '24px'
-              }}>
-                <h1 style={{
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  color: '#1F2937',
-                  marginBottom: '16px',
-                  letterSpacing: '-0.5px'
-                }}>
-                  Hi {employee?.first_name || 'there'}! 👋
-                </h1>
-
-                {/* Search Bar */}
-                <div style={{
-                  position: 'relative',
-                  marginBottom: '20px'
-                }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '16px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '20px',
-                    color: '#9CA3AF'
-                  }}>
-                    🔍
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search or ask me anything..."
-                    style={{
-                      width: '100%',
-                      padding: '16px 16px 16px 48px',
-                      fontSize: '17px',
-                      border: 'none',
-                      borderRadius: '12px',
-                      background: 'white',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {/* AI Suggestions */}
-                <div style={{
-                  display: 'flex',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                  marginBottom: '24px'
-                }}>
-                  {[
-                    'When do I work next?',
-                    'My hours this week',
-                    'Request time off',
-                    'Swap shifts'
-                  ].map((suggestion, idx) => (
-                    <button key={idx} style={{
-                      padding: '8px 16px',
-                      background: 'rgba(0, 122, 255, 0.1)',
-                      border: '1px solid rgba(0, 122, 255, 0.2)',
-                      borderRadius: '20px',
-                      color: '#007AFF',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}>
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Schedule Section */}
-              <h2 style={{
-                fontSize: '22px',
-                fontWeight: '600',
+              {/* Clean Greeting */}
+              <h1 style={{
+                fontSize: '28px',
+                fontWeight: '700',
                 color: '#1F2937',
-                marginBottom: '16px'
+                marginBottom: '32px',
+                letterSpacing: '-0.5px'
               }}>
-                Your Schedule
-              </h2>
+                Hi {employee?.first_name || 'there'}! 👋
+              </h1>
 
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
