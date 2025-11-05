@@ -16,6 +16,69 @@ interface ScheduleTabProps {
 
 const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 
+/**
+ * Finds the next upcoming shift from schedule data
+ * Searches through current day (future shifts only), rest of this week, and next week
+ */
+function getNextShift(scheduleData: any) {
+  if (!scheduleData) return null
+
+  const now = new Date()
+  const currentTime = now.getHours() * 60 + now.getMinutes() // minutes since midnight
+  const currentDayOfWeek = now.getDay() // 0 = Sunday, 1 = Monday, etc.
+
+  // Convert to our day order (Monday = 0)
+  const currentDayIndex = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1
+
+  // Calculate Monday of this week
+  const mondayOfThisWeek = new Date(now)
+  const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek
+  mondayOfThisWeek.setDate(now.getDate() + mondayOffset)
+  mondayOfThisWeek.setHours(0, 0, 0, 0)
+
+  // Check this week starting from today
+  for (let i = currentDayIndex; i < 7; i++) {
+    const day = dayOrder[i]
+    const shifts = scheduleData.thisWeek?.[day] || []
+
+    for (const shift of shifts) {
+      const [startHour, startMin] = shift.startTime.split(':').map(Number)
+      const shiftStartMinutes = startHour * 60 + startMin
+
+      // If today, only consider shifts that haven't started yet
+      if (i === currentDayIndex) {
+        if (shiftStartMinutes > currentTime) {
+          const shiftDate = new Date(mondayOfThisWeek)
+          shiftDate.setDate(mondayOfThisWeek.getDate() + i)
+          return { day, shift, date: shiftDate, isToday: true }
+        }
+      } else {
+        // Future day this week - return first shift
+        const shiftDate = new Date(mondayOfThisWeek)
+        shiftDate.setDate(mondayOfThisWeek.getDate() + i)
+        return { day, shift, date: shiftDate, isToday: false }
+      }
+    }
+  }
+
+  // Check next week
+  const mondayOfNextWeek = new Date(mondayOfThisWeek)
+  mondayOfNextWeek.setDate(mondayOfThisWeek.getDate() + 7)
+
+  for (let i = 0; i < 7; i++) {
+    const day = dayOrder[i]
+    const shifts = scheduleData.nextWeek?.[day] || []
+
+    if (shifts.length > 0) {
+      const shiftDate = new Date(mondayOfNextWeek)
+      shiftDate.setDate(mondayOfNextWeek.getDate() + i)
+      return { day, shift: shifts[0], date: shiftDate, isToday: false }
+    }
+  }
+
+  return null
+}
+
 export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: ScheduleTabProps) {
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
   const [teamScheduleWeek, setTeamScheduleWeek] = useState<'this' | 'next'>('this')
@@ -36,18 +99,59 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
           Hi {employee?.first_name || 'there'}! 👋
         </h1>
 
-        {/* Orange Gradient Next Shift Card */}
-        <div className="p-5 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E53] rounded-[14px] text-white shadow-[0_6px_16px_rgba(255,107,107,0.3)]">
-          <div className="text-xs opacity-90 mb-1.5 font-semibold tracking-wide">
-            NEXT SHIFT
-          </div>
-          <div className="text-[22px] font-bold mb-1">
-            Tomorrow
-          </div>
-          <div className="text-lg font-semibold opacity-95">
-            9:00 AM - 5:00 PM
-          </div>
-        </div>
+        {/* Orange Gradient Next Shift Card - Connected to Supabase */}
+        {(() => {
+          const nextShift = getNextShift(scheduleData)
+
+          if (!nextShift) {
+            return (
+              <div className="p-5 bg-gradient-to-br from-gray-400 to-gray-500 rounded-[14px] text-white shadow-[0_6px_16px_rgba(0,0,0,0.15)]">
+                <div className="text-xs opacity-90 mb-1.5 font-semibold tracking-wide">
+                  NEXT SHIFT
+                </div>
+                <div className="text-[22px] font-bold mb-1">
+                  No upcoming shifts
+                </div>
+              </div>
+            )
+          }
+
+          const { day, shift, date, isToday } = nextShift
+
+          // Format the day label
+          let dayLabel: string
+          const tomorrow = new Date()
+          tomorrow.setDate(tomorrow.getDate() + 1)
+          tomorrow.setHours(0, 0, 0, 0)
+
+          const shiftDateOnly = new Date(date)
+          shiftDateOnly.setHours(0, 0, 0, 0)
+
+          if (isToday) {
+            dayLabel = 'Today'
+          } else if (shiftDateOnly.getTime() === tomorrow.getTime()) {
+            dayLabel = 'Tomorrow'
+          } else {
+            // Format as "Monday, Nov 6"
+            const dayName = t[day as keyof typeof t] as string
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            dayLabel = `${dayName}, ${monthNames[date.getMonth()]} ${date.getDate()}`
+          }
+
+          return (
+            <div className="p-5 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E53] rounded-[14px] text-white shadow-[0_6px_16px_rgba(255,107,107,0.3)]">
+              <div className="text-xs opacity-90 mb-1.5 font-semibold tracking-wide">
+                NEXT SHIFT
+              </div>
+              <div className="text-[22px] font-bold mb-1">
+                {dayLabel}
+              </div>
+              <div className="text-lg font-semibold opacity-95">
+                {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Card 2: My Schedule */}
