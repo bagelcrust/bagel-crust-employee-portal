@@ -29,8 +29,8 @@ const navItems = [
  */
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 pb-[calc(8px+env(safe-area-inset-bottom,0px))] bg-white/98 backdrop-blur-md border-t border-black/6 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-      <div className="flex justify-around max-w-[600px] mx-auto pt-2 px-3">
+    <div className="fixed bottom-0 left-0 right-0 z-50 pb-[calc(4px+env(safe-area-inset-bottom,0px))] bg-white/98 backdrop-blur-md border-t border-black/6 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+      <div className="flex justify-around max-w-[600px] mx-auto pt-1 px-3">
         {navItems.map(({ key, label, Icon }) => {
           const isActive = activeTab === key
           const iconColor = isActive ? '#2563EB' : '#9CA3AF'

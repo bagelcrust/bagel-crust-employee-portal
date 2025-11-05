@@ -187,19 +187,7 @@ export default function EmployeePortal() {
   // MAIN PORTAL UI
   // ============================================================================
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50 pt-2">
-      {/* Portal Header - Makes it clear this is Employee Portal */}
-      <div className="bg-white/70 backdrop-blur-md border-b border-white/80 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-4 text-center">
-          <h1 className="text-[24px] font-bold text-slate-900 tracking-tight">
-            Employee Portal
-          </h1>
-          <p className="text-[13px] text-slate-500 font-medium mt-1">
-            Employee Portal Only • Not for Clock In/Out
-          </p>
-        </div>
-      </div>
-
+    <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
       <div className="flex-1 overflow-y-auto pb-24 [overflow-scrolling:touch]">
         <div className="max-w-2xl mx-auto px-4 py-3">
 
