@@ -18,13 +18,30 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/employee-portal',
         icons: [
           {
             src: '/icon.png',
             sizes: '300x297',
             type: 'image/png',
             purpose: 'any maskable'
+          }
+        ],
+        categories: ['business', 'productivity'],
+        shortcuts: [
+          {
+            name: 'Clock In/Out',
+            short_name: 'Clock',
+            description: 'Quick access to clock in or out',
+            url: '/clockinout',
+            icons: [{ src: '/icon.png', sizes: '300x297' }]
+          },
+          {
+            name: 'My Schedule',
+            short_name: 'Schedule',
+            description: 'View your work schedule',
+            url: '/employee-portal',
+            icons: [{ src: '/icon.png', sizes: '300x297' }]
           }
         ]
       },
