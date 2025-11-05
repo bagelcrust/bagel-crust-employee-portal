@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useDynamicManifest } from './hooks';
 
 /**
  * ROUTE-BASED CODE SPLITTING
@@ -12,10 +13,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
  * - Faster first page load
  * - Better caching (pages cached separately)
  *
- * DYNAMIC PWA MANIFEST:
- * - Manifest is set in index.html BEFORE React loads
- * - Detects URL path and sets appropriate manifest file
- * - "Add to Home Screen" remembers which page you were on
+ * DYNAMIC PWA MANIFEST (Two-Phase Approach):
+ * Phase 1: Inline script in index.html sets manifest on initial page load
+ * Phase 2: React hook updates manifest when navigating between pages
+ *
+ * This ensures manifest is always correct whether you:
+ * - Directly navigate to a URL (inline script handles it)
+ * - Navigate within the SPA (React hook handles it)
  */
 
 // Lazy load page components
@@ -35,9 +39,16 @@ function LoadingFallback() {
   );
 }
 
+function ManifestUpdater() {
+  // Update manifest whenever route changes (React Router navigation)
+  useDynamicManifest();
+  return null;
+}
+
 function App() {
   return (
     <Router>
+      <ManifestUpdater />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Navigate to="/clockinout" replace />} />

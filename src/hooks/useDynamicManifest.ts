@@ -32,21 +32,23 @@ export function useDynamicManifest() {
       manifestFile = '/manifest-schedule-builder.json'
     }
 
-    console.log('📱 PWA Manifest: Current path:', location.pathname)
-    console.log('📱 PWA Manifest: Using manifest file:', manifestFile)
+    console.log('🔄 React: Route changed to:', location.pathname)
+    console.log('🔄 React: Updating manifest to:', manifestFile)
 
-    // Remove old manifest link if it exists
-    const oldManifestLink = document.querySelector('link[rel="manifest"]')
-    if (oldManifestLink) {
-      oldManifestLink.remove()
+    // Find existing manifest link
+    const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement
+
+    if (manifestLink) {
+      // Update existing manifest link
+      manifestLink.href = manifestFile
+      console.log('✅ React: Updated existing manifest link')
+    } else {
+      // Create new one if somehow missing
+      const newLink = document.createElement('link')
+      newLink.rel = 'manifest'
+      newLink.href = manifestFile
+      document.head.appendChild(newLink)
+      console.log('✅ React: Created new manifest link')
     }
-
-    // Create new manifest link with selected manifest file
-    const manifestLink = document.createElement('link')
-    manifestLink.rel = 'manifest'
-    manifestLink.href = manifestFile
-    document.head.appendChild(manifestLink)
-
-    console.log('📱 PWA Manifest: Manifest link updated in <head>')
   }, [location.pathname])
 }
