@@ -1,4 +1,5 @@
 {
+  "_comment": "PWA MANIFEST FIX: To have multiple PWAs from the same domain, each manifest MUST have: (1) Unique 'id' property to identify the app separately, (2) Matching 'scope' and 'start_url' to create non-overlapping boundaries. Without these, the browser treats all PWAs as the same app. The 'id' property is supported in Chrome 96+ and allows the browser to distinguish between /clockinout, /employee-portal, and /schedule-builder as separate installable apps.",
   "id": "/schedule-builder",
   "name": "Bagel Crust - Schedule Builder",
   "short_name": "Schedule",
