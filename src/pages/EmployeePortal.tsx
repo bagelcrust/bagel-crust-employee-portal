@@ -392,13 +392,28 @@ export default function EmployeePortal_B() {
     }
 
     schedules.forEach(schedule => {
-      const date = new Date(schedule.schedule_date + 'T12:00:00')
-      const dayName = dayOrder[date.getDay() === 0 ? 6 : date.getDay() - 1]
+      // Parse the timestamp to get the date and time
+      const startDate = new Date(schedule.start_time)
+      const endDate = new Date(schedule.end_time)
+
+      // Get day of week (0 = Sunday, 1 = Monday, etc.)
+      const dayOfWeek = startDate.getDay()
+      const dayName = dayOrder[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+
+      // Calculate hours scheduled
+      const hoursScheduled = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)
+
+      // Format times as HH:MM
+      const formatTimeString = (date: Date) => {
+        const hours = date.getHours().toString().padStart(2, '0')
+        const minutes = date.getMinutes().toString().padStart(2, '0')
+        return `${hours}:${minutes}`
+      }
 
       grouped[dayName].push({
-        startTime: schedule.shift_start_time_est,
-        endTime: schedule.shift_end_time_est,
-        hoursScheduled: schedule.hours_scheduled,
+        startTime: formatTimeString(startDate),
+        endTime: formatTimeString(endDate),
+        hoursScheduled: hoursScheduled.toFixed(1),
         location: schedule.location
       })
     })
@@ -485,7 +500,7 @@ export default function EmployeePortal_B() {
 
   if (!isLoggedIn) {
     return (
-      <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-20 px-5">
+      <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-8 px-5">
         <div style={{
           maxWidth: '400px',
           width: '100%',
@@ -886,17 +901,17 @@ export default function EmployeePortal_B() {
                         fontSize: '15px',
                         marginBottom: '4px'
                       }}>
-                        {schedule.core_employees?.display_name || schedule.core_employees?.name}
+                        {schedule.employee?.first_name} {schedule.employee?.last_name || ''}
                       </div>
                       <div style={{
                         fontSize: '13px',
                         color: '#6B7280'
                       }}>
                         <span style={{ fontWeight: '500' }}>
-                          {formatTime(schedule.shift_start_time_est)} - {formatTime(schedule.shift_end_time_est)}
+                          {formatTime(new Date(schedule.start_time).toTimeString().slice(0,5))} - {formatTime(new Date(schedule.end_time).toTimeString().slice(0,5))}
                         </span>
                         <span style={{ marginLeft: '12px' }}>
-                          {schedule.hours_scheduled}h
+                          {((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / (1000 * 60 * 60)).toFixed(1)}h
                         </span>
                       </div>
                     </div>

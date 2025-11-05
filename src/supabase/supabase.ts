@@ -207,12 +207,15 @@ export const timeclockApi = {
 export const scheduleApi = {
   // Get today's schedule
   async getTodaySchedule() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+    const todayEnd = new Date(today.setHours(23, 59, 59, 999)).toISOString();
 
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
-      .eq('shift_date', today)
+      .gte('start_time', todayStart)
+      .lte('start_time', todayEnd)
       .order('start_time');
 
     if (error) throw error;
@@ -242,16 +245,17 @@ export const scheduleApi = {
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
 
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
 
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
-      .gte('shift_date', startOfWeek.toISOString().split('T')[0])
-      .lte('shift_date', endOfWeek.toISOString().split('T')[0])
-      .order('shift_date')
+      .gte('start_time', startOfWeek.toISOString())
+      .lte('start_time', endOfWeek.toISOString())
       .order('start_time');
 
     if (error) throw error;
@@ -263,16 +267,17 @@ export const scheduleApi = {
     const today = new Date();
     const startOfNextWeek = new Date(today);
     startOfNextWeek.setDate(today.getDate() - today.getDay() + 7);
+    startOfNextWeek.setHours(0, 0, 0, 0);
 
     const endOfNextWeek = new Date(startOfNextWeek);
     endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
+    endOfNextWeek.setHours(23, 59, 59, 999);
 
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
-      .gte('shift_date', startOfNextWeek.toISOString().split('T')[0])
-      .lte('shift_date', endOfNextWeek.toISOString().split('T')[0])
-      .order('shift_date')
+      .gte('start_time', startOfNextWeek.toISOString())
+      .lte('start_time', endOfNextWeek.toISOString())
       .order('start_time');
 
     if (error) throw error;
@@ -281,12 +286,16 @@ export const scheduleApi = {
 
   // Get week schedule
   async getWeekSchedule(startDate: string, endDate: string) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
-      .gte('shift_date', startDate)
-      .lte('shift_date', endDate)
-      .order('shift_date')
+      .gte('start_time', start.toISOString())
+      .lte('start_time', end.toISOString())
       .order('start_time');
 
     if (error) throw error;
