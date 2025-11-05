@@ -483,23 +483,9 @@ export default function EmployeePortal_B() {
     setPin('')
   }
 
-  // PIN Login Screen - Refined Glassmorphism
-  // PIN LOGIN SCREEN - Static, centered, no scroll
-  // position: fixed with overflow: hidden ensures no scrollbar
-  // Padding on inner container only (not on 100vh container)
   if (!isLoggedIn) {
     return (
-      <div style={{
-        height: '100vh',
-        width: '100%',
-        background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        position: 'fixed',
-        overflow: 'hidden'
-      }}>
+      <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-5">
         <div style={{
           maxWidth: '400px',
           width: '100%',
@@ -611,38 +597,13 @@ export default function EmployeePortal_B() {
     )
   }
 
-  // Main Portal View - Refined Glassmorphism
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
-  // APP SHELL ARCHITECTURE:
-  // - Outer container: Fixed background (100vh, overflow: hidden) - Never scrolls
-  //   - paddingTop uses env(safe-area-inset-top) to prevent header from going under iOS notch/URL bar
-  // - Inner container: Scrollable content area (flex: 1, overflow: auto) - Only this scrolls
-  // - Fixed footer: Position fixed at bottom, outside scroll area
-  // This prevents "scrolling poster" effect where background moves with content
   return (
-    <div style={{
-      height: '100vh',
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      overflow: 'hidden',
-      paddingTop: 'env(safe-area-inset-top, 20px)'
-    }}>
-      {/* Scrollable Content Area - paddingBottom creates safe area from mobile UI */}
-      <div style={{
-        flex: 1,
-        overflow: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        paddingBottom: '100px'
-      }}>
-        <div style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          padding: '20px'
-        }}>
+    <div className="h-screen w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
+         style={{ paddingTop: 'env(safe-area-inset-top, 20px)' }}>
+      <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="max-w-2xl mx-auto p-5">
           {/* Menu Navigation with Glass Effect */}
         <div style={{ marginBottom: '16px', marginTop: '16px', position: 'relative' }}>
           <button
@@ -1170,38 +1131,10 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Footer Bar - Fixed with safe area padding */}
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        borderTop: '1px solid rgba(0, 0, 0, 0.08)',
-        boxShadow: '0 -2px 12px rgba(0, 0, 0, 0.08)',
-        padding: '12px 20px',
-        paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 1000
-      }}>
-        <div style={{
-          maxWidth: '600px',
-          width: '100%',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: '700',
-            color: '#1F2937',
-            margin: 0
-          }}>
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-5 py-3 flex items-center justify-center z-50 shadow-lg"
+           style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="max-w-2xl w-full flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-800 m-0">
             {employee?.first_name || ''}
           </h2>
           <button
