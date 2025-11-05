@@ -764,33 +764,75 @@ export default function EmployeePortal_B() {
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
   return (
-    <div className="w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
+    <div className="w-full overflow-hidden flex flex-col"
          style={{
            position: 'fixed',
            top: 0,
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '8px'
+           background: '#F2F2F7'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-2xl mx-auto">
 
-        {/* Content Area with Glass Effect */}
+        {/* iOS-Style Content Area */}
         <div style={{
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          borderRadius: '10px',
-          padding: '20px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-          border: '1px solid rgba(255, 255, 255, 0.5)'
+          background: 'transparent'
         }}>
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
-              {/* Week Toggle - full width segmented control */}
-              <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
+              {/* Large iOS-style Header */}
+              <div style={{
+                padding: '48px 20px 20px 20px'
+              }}>
+                <h1 style={{
+                  fontSize: '34px',
+                  fontWeight: '700',
+                  color: '#000000',
+                  marginBottom: '16px',
+                  letterSpacing: '-0.5px',
+                  lineHeight: '41px'
+                }}>
+                  Schedule
+                </h1>
+
+                {/* Pill-style Tab Buttons */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  marginBottom: '20px'
+                }}>
+                  {[
+                    { label: 'Schedule', active: true },
+                    { label: 'Timesheet', active: false },
+                    { label: 'Time Off', active: false }
+                  ].map((tab, idx) => (
+                    <button
+                      key={idx}
+                      style={{
+                        padding: '10px 18px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        background: tab.active ? '#007AFF' : '#FFFFFF',
+                        color: tab.active ? '#FFFFFF' : '#000000',
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Week Toggle - iOS style segmented control */}
+              <div style={{ padding: '0 20px 16px 20px' }}>
+                <div className="flex bg-white rounded-lg p-1 mb-4 w-full shadow-sm">
                 <button
                   onClick={() => setShowWeek('this')}
                   className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
@@ -815,8 +857,15 @@ export default function EmployeePortal_B() {
                 </button>
               </div>
 
-              {/* Schedule List */}
-              <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+              </div>
+
+              {/* iOS-Style Schedule Cards */}
+              <div style={{
+                padding: '0 20px 20px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
                 {dayOrder.map((day, index) => {
                   const shifts = currentSchedule?.[day] || []
                   const dayName = t[day as keyof typeof t] as string
@@ -839,62 +888,69 @@ export default function EmployeePortal_B() {
                     <div
                       key={day}
                       style={{
-                        padding: '20px 16px',
-                        borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
-                        textAlign: 'center',
-                        position: 'relative'
+                        padding: '16px',
+                        background: '#FFFFFF',
+                        borderRadius: '12px',
+                        boxShadow: isToday
+                          ? '0 2px 8px rgba(0, 122, 255, 0.2)'
+                          : '0 1px 3px rgba(0, 0, 0, 0.08)',
+                        border: isToday ? '2px solid #007AFF' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
                       }}
                     >
-                      {isToday && (
+                      {/* Left: Day & Date */}
+                      <div style={{ textAlign: 'left' }}>
                         <div style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '12px',
-                          fontSize: '11px',
-                          color: '#2563EB',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          fontWeight: '600',
+                          color: isToday ? '#007AFF' : '#000000',
+                          fontSize: '17px',
+                          marginBottom: '2px'
                         }}>
-                          Today
+                          {dayName}
+                          {isToday && (
+                            <span style={{
+                              fontSize: '11px',
+                              color: '#007AFF',
+                              fontWeight: '700',
+                              marginLeft: '8px',
+                              background: 'rgba(0, 122, 255, 0.1)',
+                              padding: '2px 6px',
+                              borderRadius: '4px'
+                            }}>
+                              Today
+                            </span>
+                          )}
                         </div>
-                      )}
-                      <div style={{
-                        fontWeight: '700',
-                        color: '#1F2937',
-                        fontSize: '20px',
-                        letterSpacing: '-0.3px',
-                        marginBottom: '4px'
-                      }}>
-                        {dayName}
+                        <div style={{
+                          fontSize: '13px',
+                          color: '#8E8E93',
+                          fontWeight: '400'
+                        }}>
+                          {dateStr}
+                        </div>
                       </div>
-                      <div style={{
-                        fontSize: '14px',
-                        color: '#9CA3AF',
-                        fontWeight: '500',
-                        marginBottom: '12px'
-                      }}>
-                        {dateStr}
-                      </div>
-                      <div>
+
+                      {/* Right: Time or OFF */}
+                      <div style={{ textAlign: 'right' }}>
                         {shifts.length === 0 ? (
                           <span style={{
-                            color: '#D1D5DB',
-                            fontSize: '16px',
+                            color: '#C7C7CC',
+                            fontSize: '15px',
                             fontWeight: '600',
                             textTransform: 'uppercase',
-                            letterSpacing: '1px'
+                            letterSpacing: '0.5px'
                           }}>
-                            {t.off}
+                            OFF
                           </span>
                         ) : (
                           shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '8px' : '0' }}>
+                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '4px' : '0' }}>
                               <div style={{
                                 fontWeight: '600',
-                                color: '#2563EB',
-                                fontSize: '19px',
+                                color: '#007AFF',
+                                fontSize: '17px',
                                 letterSpacing: '-0.2px'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
