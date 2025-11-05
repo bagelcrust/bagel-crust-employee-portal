@@ -816,7 +816,7 @@ export default function EmployeePortal_B() {
                 <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
                   Tomorrow
                 </div>
-                <div style={{ fontSize: '18px', fontWeight: '600', opacity: 0.95' }}>
+                <div style={{ fontSize: '18px', fontWeight: '600', opacity: 0.95 }}>
                   9:00 AM - 5:00 PM
                 </div>
               </div>
@@ -1531,22 +1531,22 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar - Background Highlight */}
+      {/* Bottom Navigation Bar - iOS Blue Style */}
       <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
-             paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
-             background: 'rgba(255, 255, 255, 0.98)',
-             backdropFilter: 'blur(10px)',
-             WebkitBackdropFilter: 'blur(10px)',
-             borderTop: '1px solid rgba(0, 0, 0, 0.06)',
-             boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.03)'
+             paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))',
+             background: 'linear-gradient(180deg, rgba(242, 242, 247, 0.92) 0%, rgba(242, 242, 247, 0.98) 100%)',
+             backdropFilter: 'blur(40px)',
+             WebkitBackdropFilter: 'blur(40px)',
+             borderTop: '1px solid rgba(142, 142, 147, 0.2)',
+             boxShadow: '0 -3px 35px rgba(0, 0, 0, 0.12), 0 -1px 15px rgba(0, 0, 0, 0.04)'
            }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-around',
           maxWidth: '600px',
           margin: '0 auto',
-          padding: '8px 12px 0'
+          padding: '0.625rem 0.375rem 0.25rem 0.375rem'
         }}>
           {[
             { key: 'weeklySchedule', icon: '📅', label: 'Schedule' },
@@ -1563,31 +1563,37 @@ export default function EmployeePortal_B() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '10px 8px',
+                gap: '0.1875rem',
+                padding: '0.5rem 0.125rem 0.25rem 0.125rem',
                 border: 'none',
-                background: activeTab === key ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
+                background: activeTab === key ? 'rgba(0, 122, 255, 0.15)' : 'transparent',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
                 flex: 1,
                 position: 'relative',
-                borderRadius: '12px'
+                borderRadius: '1rem',
+                margin: '0.125rem 0.0625rem',
+                minHeight: '3.25rem',
+                WebkitTapHighlightColor: 'transparent'
               }}
             >
               <div style={{
-                fontSize: '24px',
-                transition: 'all 0.2s ease',
+                fontSize: '22px',
+                transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
                 opacity: activeTab === key ? 1 : 0.5
               }}>
                 {icon}
               </div>
               <div style={{
-                fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '500',
-                color: activeTab === key ? '#2563EB' : '#9CA3AF',
+                fontSize: '0.625rem',
+                fontWeight: activeTab === key ? '600' : '500',
+                color: activeTab === key ? '#007AFF' : '#8E8E93',
                 textAlign: 'center',
-                lineHeight: '1.2',
-                transition: 'all 0.2s ease'
+                lineHeight: '1.1',
+                transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
+                opacity: activeTab === key ? 1 : 0.9,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+                letterSpacing: '0.015em'
               }}>
                 {label}
               </div>
