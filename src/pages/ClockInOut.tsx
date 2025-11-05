@@ -229,9 +229,8 @@ export default function ClockInOut_B() {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        minHeight: '100vh',
-        paddingTop: '96px',
-        paddingBottom: '32px',
+        paddingTop: '40px',
+        paddingBottom: '120px',
         paddingLeft: '32px',
         paddingRight: '32px'
       }}>
@@ -241,7 +240,7 @@ export default function ClockInOut_B() {
           alignItems: 'center'
         }}>
           {/* Clock Display */}
-          <div style={{ marginBottom: '28px', textAlign: 'center' }}>
+          <div style={{ marginBottom: '32px', textAlign: 'center' }}>
             <div style={{
               fontSize: '38px',
               fontWeight: '600',
