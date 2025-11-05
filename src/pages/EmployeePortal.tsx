@@ -789,6 +789,69 @@ export default function EmployeePortal_B() {
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
+              {/* Quick Actions Bar */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '16px'
+              }}>
+                <button
+                  style={{
+                    flex: 1,
+                    padding: '14px 16px',
+                    background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: '600',
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(37, 99, 235, 0.35)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.25)'
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>🕐</span>
+                  Quick Clock In
+                </button>
+                <button
+                  style={{
+                    padding: '14px 16px',
+                    background: 'white',
+                    color: '#6B7280',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    borderRadius: '10px',
+                    fontWeight: '600',
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+                    transition: 'all 0.2s ease',
+                    minWidth: '52px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.08)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.05)'
+                  }}
+                >
+                  📊
+                </button>
+              </div>
+
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
@@ -839,63 +902,68 @@ export default function EmployeePortal_B() {
                     <div
                       key={day}
                       style={{
-                        padding: '20px 16px',
-                        borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
-                        textAlign: 'center',
+                        padding: '12px 16px',
+                        borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.06)' : 'none',
+                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.06)' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
                         position: 'relative'
                       }}
                     >
-                      {isToday && (
+                      {/* Day name and date - left side */}
+                      <div style={{ minWidth: '100px' }}>
                         <div style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '12px',
-                          fontSize: '11px',
-                          color: '#2563EB',
                           fontWeight: '700',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          color: isToday ? '#2563EB' : '#1F2937',
+                          fontSize: '16px',
+                          letterSpacing: '-0.2px',
+                          marginBottom: '2px'
                         }}>
-                          Today
+                          {dayName}
+                          {isToday && (
+                            <span style={{
+                              fontSize: '10px',
+                              color: '#2563EB',
+                              fontWeight: '700',
+                              marginLeft: '6px',
+                              background: 'rgba(37, 99, 235, 0.1)',
+                              padding: '2px 6px',
+                              borderRadius: '4px'
+                            }}>
+                              Today
+                            </span>
+                          )}
                         </div>
-                      )}
-                      <div style={{
-                        fontWeight: '700',
-                        color: '#1F2937',
-                        fontSize: '20px',
-                        letterSpacing: '-0.3px',
-                        marginBottom: '4px'
-                      }}>
-                        {dayName}
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#9CA3AF',
+                          fontWeight: '500'
+                        }}>
+                          {dateStr}
+                        </div>
                       </div>
-                      <div style={{
-                        fontSize: '14px',
-                        color: '#9CA3AF',
-                        fontWeight: '500',
-                        marginBottom: '12px'
-                      }}>
-                        {dateStr}
-                      </div>
-                      <div>
+
+                      {/* Shift times - right side */}
+                      <div style={{ flex: 1, textAlign: 'right' }}>
                         {shifts.length === 0 ? (
                           <span style={{
                             color: '#D1D5DB',
-                            fontSize: '16px',
+                            fontSize: '14px',
                             fontWeight: '600',
                             textTransform: 'uppercase',
-                            letterSpacing: '1px'
+                            letterSpacing: '0.5px'
                           }}>
                             {t.off}
                           </span>
                         ) : (
                           shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '8px' : '0' }}>
+                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '4px' : '0' }}>
                               <div style={{
                                 fontWeight: '600',
                                 color: '#2563EB',
-                                fontSize: '19px',
-                                letterSpacing: '-0.2px'
+                                fontSize: '16px',
+                                letterSpacing: '-0.1px'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </div>
