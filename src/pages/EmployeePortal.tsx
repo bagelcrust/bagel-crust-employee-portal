@@ -800,6 +800,26 @@ export default function EmployeePortal_B() {
                 Hi {employee?.first_name || 'there'}! 👋
               </h1>
 
+              {/* Orange Gradient Next Shift Card */}
+              <div style={{
+                marginBottom: '24px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+                borderRadius: '14px',
+                color: 'white',
+                boxShadow: '0 6px 16px rgba(255, 107, 107, 0.3)'
+              }}>
+                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '6px', fontWeight: '600', letterSpacing: '0.5px' }}>
+                  NEXT SHIFT
+                </div>
+                <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
+                  Tomorrow
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: '600', opacity: 0.95 }}>
+                  9:00 AM - 5:00 PM
+                </div>
+              </div>
+
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
@@ -826,7 +846,7 @@ export default function EmployeePortal_B() {
                 </button>
               </div>
 
-              {/* Compact Schedule with Blue Outlines */}
+              {/* Compact Schedule */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {dayOrder.map((day, index) => {
                   const shifts = currentSchedule?.[day] || []
@@ -851,7 +871,7 @@ export default function EmployeePortal_B() {
                       key={day}
                       style={{
                         padding: '14px 16px',
-                        border: '2px solid #2563EB',
+                        border: isToday ? '2px solid #2563EB' : '1px solid #E5E7EB',
                         borderRadius: '10px',
                         background: isToday ? 'rgba(37, 99, 235, 0.05)' : 'white',
                         display: 'flex',
@@ -1528,50 +1548,78 @@ export default function EmployeePortal_B() {
           padding: '8px 12px 0'
         }}>
           {[
-            { key: 'weeklySchedule', icon: '📅', label: 'Schedule' },
-            { key: 'teamSchedule', icon: '👥', label: 'Team' },
-            { key: 'openShifts', icon: '📋', label: 'Shifts' },
-            { key: 'timeOff', icon: '🏖️', label: 'Time Off' },
-            { key: 'timesheet', icon: '⏰', label: 'Hours' },
-            { key: 'profile', icon: '👤', label: 'Profile' }
-          ].map(({ key, icon, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key as any)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '10px 8px',
-                border: 'none',
-                background: activeTab === key ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                flex: 1,
-                position: 'relative',
-                borderRadius: '12px'
-              }}
-            >
-              <div style={{
-                fontSize: '24px',
-                transition: 'all 0.2s ease',
-                opacity: activeTab === key ? 1 : 0.5
-              }}>
-                {icon}
-              </div>
-              <div style={{
-                fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '500',
-                color: activeTab === key ? '#2563EB' : '#9CA3AF',
-                textAlign: 'center',
-                lineHeight: '1.2',
-                transition: 'all 0.2s ease'
-              }}>
-                {label}
-              </div>
-            </button>
-          ))}
+            { key: 'weeklySchedule', label: 'Schedule' },
+            { key: 'teamSchedule', label: 'Team' },
+            { key: 'openShifts', label: 'Shifts' },
+            { key: 'timeOff', label: 'Time Off' },
+            { key: 'timesheet', label: 'Hours' },
+            { key: 'profile', label: 'Profile' }
+          ].map(({ key, label }) => {
+            const isActive = activeTab === key
+            const iconColor = isActive ? '#2563EB' : '#9CA3AF'
+
+            // Minimal line icons as SVG
+            const getIcon = () => {
+              const iconProps = { width: 24, height: 24, stroke: iconColor, strokeWidth: 2, fill: 'none' }
+
+              switch(key) {
+                case 'weeklySchedule':
+                  return <svg {...iconProps} viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="8"/><line x1="15" y1="4" x2="15" y2="8"/></svg>
+                case 'teamSchedule':
+                  return <svg {...iconProps} viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="18" cy="9" r="3"/><path d="M20 21v-1.5a3 3 0 0 0-3-3h-1"/></svg>
+                case 'openShifts':
+                  return <svg {...iconProps} viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+                case 'timeOff':
+                  return <svg {...iconProps} viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                case 'timesheet':
+                  return <svg {...iconProps} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                case 'profile':
+                  return <svg {...iconProps} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                default:
+                  return null
+              }
+            }
+
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key as any)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '10px 8px',
+                  border: 'none',
+                  background: isActive ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  flex: 1,
+                  position: 'relative',
+                  borderRadius: '12px'
+                }}
+              >
+                <div style={{
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {getIcon()}
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  fontWeight: isActive ? '700' : '500',
+                  color: iconColor,
+                  textAlign: 'center',
+                  lineHeight: '1.2',
+                  transition: 'all 0.2s ease'
+                }}>
+                  {label}
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
