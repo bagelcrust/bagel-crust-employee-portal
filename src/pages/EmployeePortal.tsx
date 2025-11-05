@@ -771,42 +771,77 @@ export default function EmployeePortal_B() {
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '20px'
+           paddingTop: '8px'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto px-4 py-5">
-          {/* Horizontal Tab Navigation */}
-        <div className="flex gap-2 mb-4 overflow-x-auto" style={{
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {[
-            { key: 'weeklySchedule', label: t.weeklySchedule },
-            { key: 'teamSchedule', label: t.teamSchedule },
-            { key: 'openShifts', label: t.openShifts },
-            { key: 'timeOff', label: t.timeOff },
-            { key: 'timesheet', label: t.timesheet },
-            { key: 'profile', label: t.profile }
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key as any)}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
-                activeTab === key
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white/90 text-gray-700 hover:bg-white'
-              }`}
-              style={{
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                border: activeTab === key ? 'none' : '1px solid rgba(0,0,0,0.06)'
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          {/* Primary Tab - My Schedule */}
+          <button
+            onClick={() => setActiveTab('weeklySchedule')}
+            style={{
+              width: '100%',
+              padding: '16px',
+              borderRadius: '12px',
+              border: 'none',
+              background: activeTab === 'weeklySchedule' ? '#2563EB' : 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              boxShadow: activeTab === 'weeklySchedule' ? '0 4px 16px rgba(37, 99, 235, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              marginBottom: '12px',
+              fontSize: '18px',
+              fontWeight: '700',
+              color: activeTab === 'weeklySchedule' ? '#fff' : '#1F2937'
+            }}
+          >
+            📅 My Schedule
+          </button>
+
+          {/* Secondary Tabs */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '16px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
+            {[
+              { key: 'teamSchedule', label: 'Team', icon: '👥' },
+              { key: 'openShifts', label: 'Shifts', icon: '📋' },
+              { key: 'timeOff', label: 'Time Off', icon: '🏖️' },
+              { key: 'timesheet', label: 'Hours', icon: '⏰' },
+              { key: 'profile', label: 'Me', icon: '👤' }
+            ].map(({ key, label, icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key as any)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '20px',
+                  border: activeTab === key ? 'none' : '1px solid rgba(0,0,0,0.06)',
+                  background: activeTab === key ? '#2563EB' : 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  boxShadow: activeTab === key ? '0 2px 8px rgba(37, 99, 235, 0.3)' : '0 1px 4px rgba(0, 0, 0, 0.04)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: activeTab === key ? '#fff' : '#6B7280',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
 
         {/* Content Area with Glass Effect */}
         <div style={{
