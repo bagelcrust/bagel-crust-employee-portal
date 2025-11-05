@@ -642,7 +642,7 @@ export default function EmployeePortal_B() {
            paddingTop: '20px'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto px-4 py-5">
           {/* Horizontal Tab Navigation */}
         <div className="flex gap-2 mb-3 overflow-x-auto" style={{
           WebkitOverflowScrolling: 'touch',
@@ -680,7 +680,7 @@ export default function EmployeePortal_B() {
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           borderRadius: '10px',
-          padding: '18px',
+          padding: '20px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
           border: '1px solid rgba(255, 255, 255, 0.5)'
         }}>
@@ -724,7 +724,7 @@ export default function EmployeePortal_B() {
                     <div
                       key={day}
                       style={{
-                        padding: '14px',
+                        padding: '18px 14px',
                         borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
                         backgroundColor: isToday ? 'rgba(37, 99, 235, 0.04)' : 'transparent',
                         display: 'flex',
