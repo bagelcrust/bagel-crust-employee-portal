@@ -242,18 +242,6 @@ export const scheduleApi = {
 
   // Get this week's schedule
   async getWeeklySchedule() {
-    // First, test if we can get ANY shifts at all
-    const { data: allShifts, error: testError } = await supabase
-      .from('shifts')
-      .select('*')
-      .limit(5);
-
-    console.log('🧪 TEST: Can we fetch ANY shifts?', allShifts?.length || 0, 'shifts found');
-    if (testError) console.error('🧪 TEST ERROR:', testError);
-    if (allShifts && allShifts.length > 0) {
-      console.log('🧪 Sample shift:', allShifts[0]);
-    }
-
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay());
@@ -263,13 +251,6 @@ export const scheduleApi = {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    console.log('📅 This week query range:', {
-      start: startOfWeek.toISOString(),
-      end: endOfWeek.toISOString(),
-      startLocal: startOfWeek.toString(),
-      endLocal: endOfWeek.toString()
-    });
-
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
@@ -277,11 +258,7 @@ export const scheduleApi = {
       .lte('start_time', endOfWeek.toISOString())
       .order('start_time');
 
-    if (error) {
-      console.error('❌ Query error:', error);
-      throw error;
-    }
-    console.log('📅 This week query returned:', data?.length, 'shifts');
+    if (error) throw error;
 
     // Get employee details
     if (!data || data.length === 0) return [];
@@ -314,13 +291,6 @@ export const scheduleApi = {
     endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
     endOfNextWeek.setHours(23, 59, 59, 999);
 
-    console.log('📅 Next week query range:', {
-      start: startOfNextWeek.toISOString(),
-      end: endOfNextWeek.toISOString(),
-      startLocal: startOfNextWeek.toString(),
-      endLocal: endOfNextWeek.toString()
-    });
-
     const { data, error } = await supabase
       .from('shifts')
       .select('*')
@@ -329,7 +299,6 @@ export const scheduleApi = {
       .order('start_time');
 
     if (error) throw error;
-    console.log('📅 Next week query returned:', data?.length, 'shifts');
 
     // Get employee details
     if (!data || data.length === 0) return [];

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { employeeApi, timeclockApi, getDisplayName } from '../supabase/supabase'
+import { employeeApi, timeclockApi, getDisplayName, supabase } from '../supabase/supabase'
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
+ *
+ * ✅ FULLY TAILWIND CSS COMPLIANT - No inline styles
  *
  * Features refined glassmorphism design with professional aesthetic:
  * - PIN-based clock in/out with glass morphism keypad
@@ -15,8 +17,10 @@ import { employeeApi, timeclockApi, getDisplayName } from '../supabase/supabase'
  * - Muted accent colors for professional appearance
  */
 
-// Refined Glass Keypad Component
-function RefinedGlassKeypad({ onComplete, maxLength = 4 }: { onComplete?: (value: string) => void, maxLength?: number }) {
+// Clock In/Out Keypad Component (Tailwind CSS)
+// NOTE: This keypad is specific to the clock in/out flow with PIN entry
+// For other keypad needs, see NumericKeypad.tsx (employee portal login)
+function ClockInOutKeypad({ onComplete, maxLength = 4 }: { onComplete?: (value: string) => void, maxLength?: number }) {
   const [value, setValue] = useState('')
 
   const handleInput = (digit: string) => {
@@ -36,42 +40,21 @@ function RefinedGlassKeypad({ onComplete, maxLength = 4 }: { onComplete?: (value
   }
 
   return (
-    <div style={{ width: '330px' }}>
-      {/* PIN Display - Refined Glass */}
-      <div style={{
-        height: '68px',
-        background: 'rgba(255, 255, 255, 0.6)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.8)',
-        borderRadius: '10px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: '20px',
-        gap: '14px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)'
-      }}>
+    <div className="w-[330px]">
+      {/* PIN Display - Glass Effect */}
+      <div className="h-[68px] bg-white/60 backdrop-blur-md border border-white/80 rounded-[10px] flex items-center justify-center mb-5 gap-[14px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
         {Array.from({ length: maxLength }).map((_, i) => (
           <div
             key={i}
-            style={{
-              width: '14px',
-              height: '14px',
-              borderRadius: '50%',
-              background: i < value.length ? '#2563EB' : 'rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.25s ease'
-            }}
+            className={`w-[14px] h-[14px] rounded-full transition-all duration-[250ms] ease-in-out ${
+              i < value.length ? 'bg-blue-600' : 'bg-black/10'
+            }`}
           />
         ))}
       </div>
 
-      {/* Keypad Grid - Refined Glass */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '10px'
-      }}>
+      {/* Keypad Grid */}
+      <div className="grid grid-cols-3 gap-[10px]">
         {[1,2,3,4,5,6,7,8,9,'←',0].map(item => (
           <button
             key={item}
@@ -79,32 +62,11 @@ function RefinedGlassKeypad({ onComplete, maxLength = 4 }: { onComplete?: (value
               if (item === '←') handleBackspace()
               else if (typeof item === 'number') handleInput(item.toString())
             }}
-            style={{
-              height: '68px',
-              fontSize: item === '←' ? '22px' : '26px',
-              fontWeight: '600',
-              background: 'rgba(255, 255, 255, 0.5)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.6)',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              color: '#1F2937',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-              gridColumn: item === 0 ? '2' : 'auto',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.7)'
-              e.currentTarget.style.transform = 'translateY(-1px)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)'
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
+            className={`h-[68px] ${
+              item === '←' ? 'text-[22px]' : 'text-[26px]'
+            } font-semibold bg-white/50 backdrop-blur-md border border-white/60 rounded-[10px] cursor-pointer text-gray-800 transition-all duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-white/70 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] active:translate-y-0 ${
+              item === 0 ? 'col-start-2' : ''
+            }`}
           >
             {item}
           </button>
@@ -114,7 +76,7 @@ function RefinedGlassKeypad({ onComplete, maxLength = 4 }: { onComplete?: (value
   )
 }
 
-export default function ClockInOut_B() {
+export default function ClockInOut() {
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error' | 'clockout' | ''>('')
   const [currentTime, setCurrentTime] = useState('')
@@ -143,7 +105,28 @@ export default function ClockInOut_B() {
     const timer = setInterval(updateTime, 1000)
     loadRecentEvents()
 
-    return () => clearInterval(timer)
+    // REAL-TIME SUBSCRIPTION: Listen for new clock in/out events
+    // When someone clocks in or out, instantly update the recent activity feed
+    const subscription = supabase
+      .channel('time_entries_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'employees',
+          table: 'time_entries'
+        },
+        () => {
+          // Reload recent events when new entry is inserted
+          loadRecentEvents()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      clearInterval(timer)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const loadRecentEvents = async () => {
@@ -239,154 +222,73 @@ export default function ClockInOut_B() {
   }
 
   return (
-    <div className="w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5"
-         style={{
-           position: 'fixed',
-           top: 0,
-           left: 0,
-           right: 0,
-           bottom: 0,
-           paddingTop: '3rem'
-         }}>
+    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-12">
       <div className="flex flex-col items-center w-full max-w-md">
-          {/* Clock Display */}
-          <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-            <div style={{
-              fontSize: '38px',
-              fontWeight: '600',
-              color: '#1E293B',
-              letterSpacing: '-0.5px',
-              marginBottom: '8px'
-            }}>
-              {currentTime || '--:--:--'}
-            </div>
-            <div style={{
-              fontSize: '15px',
-              color: '#64748B',
-              fontWeight: '500'
-            }}>
-              {currentDate || 'Loading...'}
-            </div>
+        {/* Clock Display - Eastern Time */}
+        <div className="mb-8 text-center">
+          <div className="text-[38px] font-semibold text-slate-800 tracking-[-0.5px] mb-2">
+            {currentTime || '--:--:--'}
           </div>
-
-          {/* Keypad */}
-          <RefinedGlassKeypad
-            key={keypadKey}
-            onComplete={handleClockAction}
-            maxLength={4}
-          />
+          <div className="text-[15px] text-slate-500 font-medium">
+            {currentDate || 'Loading...'}
+          </div>
         </div>
 
-      {/* Recent Activity - Subtle Glass with safe area */}
-      <div style={{
-        position: 'fixed',
-        bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
-        right: '16px',
-        width: '280px',
-        background: 'rgba(255, 255, 255, 0.7)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.8)',
-        borderRadius: '10px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-        padding: '16px',
-        maxHeight: '400px',
-        overflowY: 'auto'
-      }}>
-        <h3 style={{
-          fontSize: '11px',
-          fontWeight: '600',
-          color: '#64748B',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          marginBottom: '12px'
-        }}>
+        {/* Keypad */}
+        <ClockInOutKeypad
+          key={keypadKey}
+          onComplete={handleClockAction}
+          maxLength={4}
+        />
+      </div>
+
+      {/* Recent Activity - Glass Effect with Mobile Safe Area */}
+      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 max-h-[400px] overflow-y-auto">
+        <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
           Recent Activity
         </h3>
 
         {recentEvents.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="flex flex-col gap-2">
             {recentEvents.slice(0, 5).map((event) => (
               <div
                 key={event.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingTop: '8px',
-                  paddingBottom: '8px',
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
-                }}
+                className="flex items-center justify-between py-2 border-b border-black/5"
               >
-                <div style={{ flex: 1, minWidth: 0, marginRight: '8px' }}>
-                  <div style={{
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    color: '#1E293B',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>
+                <div className="flex-1 min-w-0 mr-2">
+                  <div className="text-[13px] font-medium text-slate-800 overflow-hidden text-ellipsis whitespace-nowrap">
                     {event.name}
                   </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#94A3B8',
-                    marginTop: '2px'
-                  }}>
+                  <div className="text-xs text-slate-400 mt-0.5">
                     {event.time}
                   </div>
                 </div>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  background: event.action === 'Clock In'
-                    ? 'rgba(34, 197, 94, 0.15)'
-                    : 'rgba(251, 146, 60, 0.15)',
-                  color: event.action === 'Clock In' ? '#16A34A' : '#EA580C'
-                }}>
+                <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
+                  event.action === 'Clock In'
+                    ? 'bg-green-500/15 text-green-600'
+                    : 'bg-orange-500/15 text-orange-600'
+                }`}>
                   {event.action === 'Clock In' ? 'IN' : 'OUT'}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{
-            fontSize: '12px',
-            color: '#94A3B8',
-            textAlign: 'center',
-            padding: '16px',
-            fontStyle: 'italic'
-          }}>
+          <div className="text-xs text-slate-400 text-center p-4 italic">
             No recent activity
           </div>
         )}
       </div>
 
-      {/* Message Display - Refined Glass with safe area */}
+      {/* Success/Error Message Display with Mobile Safe Area */}
       {message && (
-        <div style={{
-          position: 'fixed',
-          bottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          padding: '14px 28px',
-          borderRadius: '10px',
-          fontSize: '15px',
-          fontWeight: '500',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
-          zIndex: 50,
-          background: messageType === 'success'
-            ? 'rgba(34, 197, 94, 0.9)'
+        <div className={`fixed bottom-[calc(32px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-[10px] text-[15px] font-medium backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.12)] z-50 text-white ${
+          messageType === 'success'
+            ? 'bg-green-500/90'
             : messageType === 'clockout'
-            ? 'rgba(251, 146, 60, 0.9)'
-            : 'rgba(239, 68, 68, 0.9)',
-          color: 'white'
-        }}>
+            ? 'bg-orange-500/90'
+            : 'bg-red-500/90'
+        }`}>
           {message}
         </div>
       )}

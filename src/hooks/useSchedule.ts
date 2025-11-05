@@ -1,0 +1,138 @@
+import { useQuery } from '@tanstack/react-query'
+import { scheduleApi } from '../supabase/supabase'
+
+/**
+ * Helper to group schedule by day of week
+ * Used for "My Schedule" view (filtered to one employee)
+ */
+function groupScheduleByDay(schedules: any[]) {
+  const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+  const grouped: any = {
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: []
+  }
+
+  schedules.forEach(schedule => {
+    const startDate = new Date(schedule.start_time)
+    const endDate = new Date(schedule.end_time)
+    const dayOfWeek = startDate.getDay()
+    const dayName = dayOrder[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+
+    // Calculate hours scheduled
+    const hoursScheduled = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)
+
+    // Format times as HH:MM
+    const formatTimeString = (date: Date) => {
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${hours}:${minutes}`
+    }
+
+    grouped[dayName].push({
+      startTime: formatTimeString(startDate),
+      endTime: formatTimeString(endDate),
+      hoursScheduled: hoursScheduled.toFixed(1),
+      location: schedule.location
+    })
+  })
+
+  return grouped
+}
+
+/**
+ * Hook to fetch employee's personal schedule
+ * Returns this week and next week, grouped by day
+ */
+export function useEmployeeSchedule(employeeId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['employee-schedule', employeeId],
+    queryFn: async () => {
+      if (!employeeId) throw new Error('Employee ID required')
+
+      // Fetch both weeks in parallel
+      const [thisWeekSchedules, nextWeekSchedules] = await Promise.all([
+        scheduleApi.getWeeklySchedule(),
+        scheduleApi.getNextWeekSchedule()
+      ])
+
+      // Filter for this employee only
+      const myThisWeekSchedule = thisWeekSchedules.filter(s => s.employee_id === employeeId)
+      const myNextWeekSchedule = nextWeekSchedules.filter(s => s.employee_id === employeeId)
+
+      // Group by day
+      const thisWeekByDay = groupScheduleByDay(myThisWeekSchedule)
+      const nextWeekByDay = groupScheduleByDay(myNextWeekSchedule)
+
+      return {
+        thisWeek: thisWeekByDay,
+        nextWeek: nextWeekByDay
+      }
+    },
+    enabled: !!employeeId && enabled,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000 // Keep in cache for 10 minutes
+  })
+}
+
+/**
+ * Helper to group team schedule by day (keeps full schedule objects with employee data)
+ */
+function groupTeamScheduleByDay(schedules: any[]) {
+  const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+  const grouped: any = {
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: []
+  }
+
+  schedules.forEach(schedule => {
+    const startDate = new Date(schedule.start_time)
+    const dayOfWeek = startDate.getDay()
+    const dayName = dayOrder[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+
+    // Keep the full schedule object with employee data
+    grouped[dayName].push(schedule)
+  })
+
+  return grouped
+}
+
+/**
+ * Hook to fetch full team schedule
+ * Returns all employees' schedules for this week and next week
+ */
+export function useTeamSchedule(enabled = true) {
+  return useQuery({
+    queryKey: ['team-schedule'],
+    queryFn: async () => {
+      // Fetch both weeks in parallel
+      const [thisWeekSchedules, nextWeekSchedules] = await Promise.all([
+        scheduleApi.getWeeklySchedule(),
+        scheduleApi.getNextWeekSchedule()
+      ])
+
+      // Group by day (includes all employees)
+      const fullThisWeekByDay = groupTeamScheduleByDay(thisWeekSchedules)
+      const fullNextWeekByDay = groupTeamScheduleByDay(nextWeekSchedules)
+
+      return {
+        thisWeek: fullThisWeekByDay,
+        nextWeek: fullNextWeekByDay
+      }
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000 // Keep in cache for 10 minutes
+  })
+}
