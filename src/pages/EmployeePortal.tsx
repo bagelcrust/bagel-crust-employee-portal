@@ -1531,15 +1531,15 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar - iOS Blue Style */}
+      {/* Bottom Navigation Bar - Dark Teal Style */}
       <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
              paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))',
-             background: 'linear-gradient(180deg, rgba(242, 242, 247, 0.92) 0%, rgba(242, 242, 247, 0.98) 100%)',
+             background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
              backdropFilter: 'blur(40px)',
              WebkitBackdropFilter: 'blur(40px)',
-             borderTop: '1px solid rgba(142, 142, 147, 0.2)',
-             boxShadow: '0 -3px 35px rgba(0, 0, 0, 0.12), 0 -1px 15px rgba(0, 0, 0, 0.04)'
+             borderTop: '1px solid rgba(148, 163, 184, 0.15)',
+             boxShadow: '0 -3px 35px rgba(0, 0, 0, 0.4), 0 -1px 15px rgba(0, 0, 0, 0.2), 0 0 40px rgba(20, 184, 166, 0.03)'
            }}>
         <div style={{
           display: 'flex',
@@ -1566,7 +1566,7 @@ export default function EmployeePortal_B() {
                 gap: '0.1875rem',
                 padding: '0.5rem 0.125rem 0.25rem 0.125rem',
                 border: 'none',
-                background: activeTab === key ? 'rgba(0, 122, 255, 0.15)' : 'transparent',
+                background: activeTab === key ? 'rgba(20, 184, 166, 0.2)' : 'transparent',
                 cursor: 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
                 flex: 1,
@@ -1574,26 +1574,29 @@ export default function EmployeePortal_B() {
                 borderRadius: '1rem',
                 margin: '0.125rem 0.0625rem',
                 minHeight: '3.25rem',
-                WebkitTapHighlightColor: 'transparent'
+                WebkitTapHighlightColor: 'transparent',
+                boxShadow: activeTab === key ? '0 0 20px rgba(20, 184, 166, 0.3), inset 0 0 20px rgba(20, 184, 166, 0.1)' : 'none'
               }}
             >
               <div style={{
                 fontSize: '22px',
                 transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
-                opacity: activeTab === key ? 1 : 0.5
+                opacity: activeTab === key ? 1 : 0.5,
+                filter: activeTab === key ? 'drop-shadow(0 0 8px rgba(20, 184, 166, 0.6))' : 'none'
               }}>
                 {icon}
               </div>
               <div style={{
                 fontSize: '0.625rem',
                 fontWeight: activeTab === key ? '600' : '500',
-                color: activeTab === key ? '#007AFF' : '#8E8E93',
+                color: activeTab === key ? '#14B8A6' : '#94A3B8',
                 textAlign: 'center',
                 lineHeight: '1.1',
                 transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
-                opacity: activeTab === key ? 1 : 0.9,
+                opacity: activeTab === key ? 1 : 0.8,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                letterSpacing: '0.015em'
+                letterSpacing: '0.015em',
+                textShadow: activeTab === key ? '0 0 10px rgba(20, 184, 166, 0.5)' : 'none'
               }}>
                 {label}
               </div>
