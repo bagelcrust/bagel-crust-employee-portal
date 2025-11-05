@@ -3,29 +3,22 @@
 @tailwind utilities;
 
 /* Global reset for proper viewport control */
-html {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  background: #E3F2FD;
-}
-
-body {
+html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  background: linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%) fixed;
-  background-size: cover;
 }
 
 #root {
   width: 100%;
   height: 100%;
-  background: transparent;
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+  overscroll-behavior-y: contain;
 }

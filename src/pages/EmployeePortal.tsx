@@ -510,11 +510,14 @@ export default function EmployeePortal_B() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-8 px-5"
+      <div className="w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5"
            style={{
-             minHeight: '100dvh',
-             paddingTop: 'max(2rem, env(safe-area-inset-top, 0px))',
-             paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+             position: 'fixed',
+             top: 0,
+             left: 0,
+             right: 0,
+             bottom: 0,
+             paddingTop: '2rem'
            }}>
         <div style={{
           maxWidth: '400px',
@@ -630,10 +633,14 @@ export default function EmployeePortal_B() {
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
   return (
-    <div className="min-h-screen w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
+    <div className="w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
          style={{
-           minHeight: '100dvh',
-           paddingTop: 'env(safe-area-inset-top, 20px)'
+           position: 'fixed',
+           top: 0,
+           left: 0,
+           right: 0,
+           bottom: 0,
+           paddingTop: '20px'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-2xl mx-auto p-5">

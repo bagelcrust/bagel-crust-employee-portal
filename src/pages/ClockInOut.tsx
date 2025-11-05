@@ -219,11 +219,14 @@ export default function ClockInOut_B() {
   }
 
   return (
-    <div className="min-h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-12 px-5"
+    <div className="w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5"
          style={{
-           minHeight: '100dvh',
-           paddingTop: 'max(3rem, env(safe-area-inset-top, 0px))',
-           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+           position: 'fixed',
+           top: 0,
+           left: 0,
+           right: 0,
+           bottom: 0,
+           paddingTop: '3rem'
          }}>
       <div className="flex flex-col items-center w-full max-w-md">
           {/* Clock Display */}
