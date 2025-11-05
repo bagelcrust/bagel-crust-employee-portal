@@ -1498,22 +1498,22 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 shadow-lg"
+      {/* Bottom Navigation Bar - Dot Indicators */}
+      <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
-             paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-             background: 'rgba(255, 255, 255, 0.95)',
+             paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+             background: 'rgba(255, 255, 255, 0.98)',
              backdropFilter: 'blur(10px)',
              WebkitBackdropFilter: 'blur(10px)',
-             borderTop: '2px solid #60A5FA'
+             borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+             boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.04)'
            }}>
         <div style={{
           display: 'flex',
-          gap: '6px',
-          alignItems: 'center',
+          justifyContent: 'space-around',
           maxWidth: '600px',
           margin: '0 auto',
-          padding: '12px 8px 8px'
+          padding: '12px 16px 4px'
         }}>
           {[
             { key: 'weeklySchedule', icon: '📅', label: 'Schedule' },
@@ -1530,33 +1530,45 @@ export default function EmployeePortal_B() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '10px 8px',
-                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
-                background: activeTab === key ? '#2563EB' : '#EFF6FF',
+                gap: '8px',
+                padding: '6px 8px',
+                border: 'none',
+                background: 'transparent',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                borderRadius: '10px',
-                minWidth: '60px',
-                flex: 1
+                transition: 'all 0.2s ease',
+                flex: 1,
+                position: 'relative'
               }}
             >
               <div style={{
-                fontSize: '24px',
-                transform: activeTab === key ? 'scale(1.1)' : 'scale(1)',
-                transition: 'transform 0.15s ease'
+                fontSize: '26px',
+                transition: 'all 0.2s ease',
+                opacity: activeTab === key ? 1 : 0.4,
+                transform: activeTab === key ? 'scale(1)' : 'scale(0.9)'
               }}>
                 {icon}
               </div>
               <div style={{
-                fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '600',
-                color: activeTab === key ? '#ffffff' : '#2563EB',
-                textAlign: 'center',
-                lineHeight: '1.2'
-              }}>
-                {label}
-              </div>
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: activeTab === key ? '#2563EB' : '#D1D5DB',
+                transition: 'all 0.2s ease',
+                transform: activeTab === key ? 'scale(1.3)' : 'scale(1)',
+                boxShadow: activeTab === key ? '0 0 8px rgba(37, 99, 235, 0.6)' : 'none'
+              }} />
+              {activeTab === key && (
+                <div style={{
+                  fontSize: '9px',
+                  fontWeight: '600',
+                  color: '#2563EB',
+                  textAlign: 'center',
+                  lineHeight: '1',
+                  marginTop: '-4px'
+                }}>
+                  {label}
+                </div>
+              )}
             </button>
           ))}
         </div>
