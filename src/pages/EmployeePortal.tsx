@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { employeeApi, scheduleApi, timeclockApi, getDisplayName } from '../supabase/supabase'
+import { employeeApi, scheduleApi, timeclockApi } from '../supabase/supabase'
 import { format } from 'date-fns'
 
 /**
@@ -1155,6 +1155,7 @@ export default function EmployeePortal_B() {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
 
