@@ -153,84 +153,140 @@ npm run preview
 - Dev: http://134.209.45.231:3010
 - Production: http://134.209.45.231:3001
 
-## 🚀 Deploy to Vercel
+## 📝 Adding New Features (Step-by-Step)
 
-1. **Push to GitHub**:
-   ```bash
-   cd /bagelcrust/react-app
-   git init
-   git add .
-   git commit -m "React app with Supabase"
-   gh repo create bagel-crust-react --public --source=. --remote=origin --push
-   ```
+### Example: Add a New Schedule Page
 
-2. **Deploy on Vercel**:
-   - Import from GitHub
-   - Framework: Vite
-   - Environment variables from `.env`
-
-## 🔑 Test PINs
-
-- 1234 - Elvia
-- 2345 - Sophia
-- 3456 - Noah
-- (All employees have 4-digit PINs)
-
-## 📝 Adding Features
-
-### Example: Add Employee List Page
-
-1. Create component:
+**Step 1:** Create the page component
 ```tsx
-// src/components/EmployeeList.tsx
+// src/pages/Schedule.tsx
 import { useEffect, useState } from 'react';
-import { employeeApi } from '../lib/supabase';
+import { scheduleApi } from '../supabase/supabase';
 
-export default function EmployeeList() {
-  const [employees, setEmployees] = useState([]);
+export default function Schedule() {
+  const [schedule, setSchedule] = useState([]);
 
   useEffect(() => {
-    employeeApi.getAll().then(setEmployees);
+    scheduleApi.getTodaySchedule().then(setSchedule);
   }, []);
 
   return (
-    <div>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Today's Schedule</h1>
       {/* Your UI */}
     </div>
   );
 }
 ```
 
-2. Add route in App.tsx:
+**Step 2:** Add route in App.tsx
 ```tsx
-<Route path="/employees" element={<EmployeeList />} />
+import Schedule from './pages/Schedule';
+
+// Inside <Routes>:
+<Route path="/schedule" element={<Schedule />} />
 ```
 
-That's it! No API routes, no server logic, just components.
+**Step 3:** Test it!
+- Navigate to http://134.209.45.231:3010/schedule
+- That's it! No API routes, no server logic needed.
 
-## 🎯 Why We're Moving Away from Next.js
+### Example: Add a Reusable Button Component
 
-**Next.js Problems:**
-- Too complex for internal tools
-- Unnecessary SSR overhead
-- API routes when Supabase has APIs
-- Build complexity
-- Framework lock-in
+**Step 1:** Create the component
+```tsx
+// src/components/Button.tsx
+interface ButtonProps {
+  onClick: () => void;
+  children: React.ReactNode;
+}
 
-**React + Supabase Solution:**
-- Simple components
-- Direct database queries
-- Real-time subscriptions built-in
-- Fast Vite builds
-- Complete freedom
+export default function Button({ onClick, children }: ButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-4 py-2 bg-blue-500 text-white rounded"
+    >
+      {children}
+    </button>
+  );
+}
+```
 
-## 🔮 Next Steps
+**Step 2:** Use it in any page
+```tsx
+import Button from '../components/Button';
 
-1. **Finish migrating all employee features**
-2. **Add Supabase Auth** (optional, PIN system works)
-3. **Deploy to Vercel**
-4. **Shut down PM2/Next.js server forever!**
+<Button onClick={() => alert('Clicked!')}>
+  Click Me
+</Button>
+```
+
+## 🎯 Migration Progress from Next.js
+
+### ✅ Phase 1: Core Features (COMPLETE)
+- [x] Clock In/Out with PIN authentication
+- [x] Employee Portal
+- [x] Supabase connection
+- [x] Clean project structure
+
+### 🚧 Phase 2: Employee Management (In Progress)
+- [ ] Employee list/grid view
+- [ ] Add/edit employees
+- [ ] Availability management
+- [ ] Employee profiles
+
+### 📅 Phase 3: Scheduling (Planned)
+- [ ] Weekly schedule view
+- [ ] Schedule builder
+- [ ] Time off requests
+- [ ] Shift swapping
+
+### 📊 Phase 4: Reports (Planned)
+- [ ] Timesheets
+- [ ] Payroll reports
+- [ ] Hours tracking
+- [ ] Analytics dashboard
+
+## 🚀 Deployment
+
+**Current Setup:**
+- Dev server: PM2 on port 3010
+- Production: Planning Vercel deployment
+
+**To deploy to Vercel:**
+1. Push to GitHub: `./push-to-github.sh`
+2. Connect repo to Vercel
+3. Set environment variables from `.env`
+4. Deploy!
+
+## 🔑 Test Employee PINs
+
+- 1234 - Elvia
+- 2345 - Sophia
+- 3456 - Noah
+- (All 25 employees have 4-digit PINs)
+
+## ❓ Common Questions
+
+**Q: Where do I add a new page?**
+A: Create a `.tsx` file in `src/pages/`, then add a route in `App.tsx`
+
+**Q: Where do I put reusable components?**
+A: In `src/components/` - things like buttons, modals, cards, etc.
+
+**Q: How do I query the database?**
+A: Use the API functions in `src/supabase/supabase.ts` (employeeApi, timeclockApi, scheduleApi)
+
+**Q: Can I rename files?**
+A: Yes! Everything except `index.html`, `src/main.tsx`, `package.json` can be renamed. Just update imports.
+
+**Q: Where are the old design variants?**
+A: Archived in `/bagelcrust/other-files/react-app/archived-components/`
+
+**Q: Why config files at root?**
+A: Industry standard - tools auto-detect them there. Moving them requires extra configuration.
 
 ---
 
-**This is the future of Bagel Crust. Simple, fast, and maintainable.**
+**🥯 Clean, simple, and maintainable. The future of Bagel Crust employee management.**

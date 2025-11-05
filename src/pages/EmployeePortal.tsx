@@ -1,19 +1,19 @@
 import { useState } from 'react'
-import { employeeApi, scheduleApi, timeclockApi } from '../lib/supabase'
+import { employeeApi, scheduleApi, timeclockApi } from '../supabase/supabase'
 import { format } from 'date-fns'
 
 /**
- * EMPLOYEE PORTAL - OPTION C: FLAT MINIMAL DESIGN
+ * EMPLOYEE PORTAL - Mobile-First Design with Refined Glassmorphism
  *
- * A phone-optimized interface with flat, geometric Material Design aesthetic.
- * Features PIN authentication and employee self-service functions:
- * - View weekly schedule
- * - Check timesheet/hours worked
- * - See team schedule
- * - Employee profile
- *
- * Design: Flat white backgrounds, 2px solid borders, zero border radius,
- * high contrast black/white with gray accents, no blur effects or gradients
+ * A sophisticated, professional employee self-service portal with:
+ * - Subtle glass effects (90% opacity, 10px blur)
+ * - Moderate border radius (8-10px) for modern, refined appearance
+ * - Refined shadows (0 4px 12-16px rgba(0,0,0,0.06-0.08))
+ * - Muted accent colors (#2563EB blue) for professional look
+ * - Minimal hover effects (1-2px transforms)
+ * - Elegant gradient background
+ * - PIN authentication and employee self-service functions
+ * - Weekly schedule, timesheet, team schedule, and profile views
  */
 
 // Translation strings for multi-language support
@@ -98,8 +98,8 @@ const translations = {
   }
 }
 
-// Flat Minimal Keypad Component
-function FlatKeypad({ onInput, onClear, disabled, t }: {
+// Refined Glassmorphism Keypad Component
+function RefinedKeypad({ onInput, onClear, disabled, t }: {
   onInput: (digit: string) => void,
   onClear: () => void,
   disabled?: boolean,
@@ -109,7 +109,7 @@ function FlatKeypad({ onInput, onClear, disabled, t }: {
     <div style={{
       display: 'grid',
       gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: '8px',
+      gap: '10px',
       maxWidth: '320px',
       margin: '0 auto'
     }}>
@@ -119,30 +119,33 @@ function FlatKeypad({ onInput, onClear, disabled, t }: {
           onClick={() => onInput(num.toString())}
           disabled={disabled}
           style={{
-            padding: '22px',
-            fontSize: '26px',
+            padding: '18px',
+            fontSize: '20px',
             fontWeight: '600',
-            background: '#FFFFFF',
-            border: '2px solid #000000',
-            borderRadius: '0px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid rgba(0, 0, 0, 0.06)',
+            borderRadius: '8px',
             cursor: 'pointer',
-            color: '#000000',
-            transition: 'all 0.15s',
+            color: '#1F2937',
+            transition: 'all 0.15s ease',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
             touchAction: 'manipulation',
             userSelect: 'none',
-            WebkitTapHighlightColor: 'transparent',
-            minHeight: '70px',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            WebkitTapHighlightColor: 'rgba(0,0,0,0.05)',
+            minHeight: '60px'
           }}
           onMouseEnter={(e) => {
             if (!disabled) {
-              e.currentTarget.style.background = '#000000'
-              e.currentTarget.style.color = '#FFFFFF'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#FFFFFF'
-            e.currentTarget.style.color = '#000000'
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
           }}
         >
           {num}
@@ -150,36 +153,39 @@ function FlatKeypad({ onInput, onClear, disabled, t }: {
       ))}
 
       {/* Empty space - bottom left */}
-      <div style={{ minHeight: '70px' }}></div>
+      <div style={{ minHeight: '60px' }}></div>
 
       <button
         onClick={() => onInput('0')}
         disabled={disabled}
         style={{
-          padding: '22px',
-          fontSize: '26px',
+          padding: '18px',
+          fontSize: '20px',
           fontWeight: '600',
-          background: '#FFFFFF',
-          border: '2px solid #000000',
-          borderRadius: '0px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(0, 0, 0, 0.06)',
+          borderRadius: '8px',
           cursor: 'pointer',
-          color: '#000000',
-          transition: 'all 0.15s',
+          color: '#1F2937',
+          transition: 'all 0.15s ease',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
           touchAction: 'manipulation',
           userSelect: 'none',
-          WebkitTapHighlightColor: 'transparent',
-          minHeight: '70px',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          WebkitTapHighlightColor: 'rgba(0,0,0,0.05)',
+          minHeight: '60px'
         }}
         onMouseEnter={(e) => {
           if (!disabled) {
-            e.currentTarget.style.background = '#000000'
-            e.currentTarget.style.color = '#FFFFFF'
+            e.currentTarget.style.transform = 'translateY(-1px)'
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
           }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#FFFFFF'
-          e.currentTarget.style.color = '#000000'
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
         }}
       >
         0
@@ -189,32 +195,33 @@ function FlatKeypad({ onInput, onClear, disabled, t }: {
         onClick={onClear}
         disabled={disabled}
         style={{
-          padding: '22px',
+          padding: '18px',
           fontSize: '16px',
-          fontWeight: '700',
-          background: '#FFFFFF',
-          border: '2px solid #DC2626',
-          borderRadius: '0px',
+          fontWeight: '600',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          background: 'rgba(239, 68, 68, 0.08)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(239, 68, 68, 0.15)',
+          borderRadius: '8px',
           cursor: 'pointer',
           color: '#DC2626',
-          transition: 'all 0.15s',
+          transition: 'all 0.15s ease',
+          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.06)',
           touchAction: 'manipulation',
           userSelect: 'none',
-          WebkitTapHighlightColor: 'transparent',
-          minHeight: '70px',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
+          WebkitTapHighlightColor: 'rgba(0,0,0,0.05)',
+          minHeight: '60px'
         }}
         onMouseEnter={(e) => {
           if (!disabled) {
-            e.currentTarget.style.background = '#DC2626'
-            e.currentTarget.style.color = '#FFFFFF'
+            e.currentTarget.style.transform = 'translateY(-1px)'
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.08)'
           }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#FFFFFF'
-          e.currentTarget.style.color = '#DC2626'
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.06)'
         }}
       >
         {t.clear}
@@ -223,7 +230,7 @@ function FlatKeypad({ onInput, onClear, disabled, t }: {
   )
 }
 
-export default function EmployeePortal_C() {
+export default function EmployeePortal_B() {
   const [pin, setPin] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -476,50 +483,35 @@ export default function EmployeePortal_C() {
     setPin('')
   }
 
-  // PIN Login Screen - FLAT MINIMAL DESIGN
+  // PIN Login Screen - Refined Glassmorphism
   if (!isLoggedIn) {
     return (
       <div style={{
         minHeight: '100vh',
-        background: '#F5F5F5',
+        background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '16px',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        padding: '20px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        position: 'relative'
       }}>
-        {/* Design Label */}
-        <div style={{
-          position: 'fixed',
-          top: '16px',
-          left: '16px',
-          padding: '8px 16px',
-          background: '#000000',
-          color: '#FFFFFF',
-          border: '2px solid #000000',
-          borderRadius: '0px',
-          fontSize: '11px',
-          fontWeight: '700',
-          letterSpacing: '0.5px',
-          textTransform: 'uppercase',
-          zIndex: 1000
-        }}>
-          OPTION C: FLAT MINIMAL
-        </div>
-
         <div style={{
           maxWidth: '400px',
           width: '100%',
-          padding: '40px 20px',
-          background: '#FFFFFF',
-          border: '2px solid #000000',
-          borderRadius: '0px'
+          padding: '36px 24px',
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderRadius: '10px',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+          border: '1px solid rgba(255, 255, 255, 0.5)'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h1 style={{
-              fontSize: '32px',
+              fontSize: '28px',
               fontWeight: '700',
-              color: '#000000',
+              color: '#1F2937',
               marginBottom: '8px',
               letterSpacing: '-0.5px'
             }}>
@@ -528,7 +520,8 @@ export default function EmployeePortal_C() {
             <h2 style={{
               fontSize: '18px',
               fontWeight: '500',
-              color: '#666666'
+              color: '#6B7280',
+              letterSpacing: '-0.2px'
             }}>
               {t.employeePortal}
             </h2>
@@ -536,37 +529,40 @@ export default function EmployeePortal_C() {
 
           <p style={{
             textAlign: 'center',
-            color: '#666666',
+            color: '#6B7280',
             marginBottom: '24px',
-            fontSize: '14px',
-            fontWeight: '500',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            fontSize: '15px',
+            fontWeight: '500'
           }}>
             {t.enterPin}
           </p>
 
           {/* PIN Display */}
           <div style={{
-            height: '80px',
-            background: '#FFFFFF',
-            border: '2px solid #000000',
-            borderRadius: '0px',
+            height: '70px',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '30px',
-            gap: '16px'
+            marginBottom: '24px',
+            gap: '14px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+            border: '1px solid rgba(0, 0, 0, 0.05)'
           }}>
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
                 style={{
-                  width: '18px',
-                  height: '18px',
-                  borderRadius: '0px',
-                  background: i < pin.length ? '#000000' : '#E5E5E5',
-                  transition: 'background 0.2s'
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '50%',
+                  background: i < pin.length
+                    ? '#2563EB'
+                    : 'rgba(203, 213, 225, 0.5)',
+                  transition: 'all 0.2s ease'
                 }}
               />
             ))}
@@ -574,21 +570,21 @@ export default function EmployeePortal_C() {
 
           {loginError && (
             <div style={{
-              background: '#FEE2E2',
+              background: 'rgba(239, 68, 68, 0.08)',
               color: '#DC2626',
               padding: '12px 16px',
-              borderRadius: '0px',
-              marginBottom: '16px',
+              borderRadius: '8px',
+              marginBottom: '20px',
               textAlign: 'center',
-              border: '2px solid #DC2626',
               fontSize: '14px',
-              fontWeight: '600'
+              fontWeight: '500',
+              border: '1px solid rgba(239, 68, 68, 0.15)'
             }}>
               {loginError}
             </div>
           )}
 
-          <FlatKeypad
+          <RefinedKeypad
             onInput={handlePinInput}
             onClear={handlePinClear}
             disabled={loading}
@@ -598,12 +594,10 @@ export default function EmployeePortal_C() {
           {loading && (
             <div style={{
               textAlign: 'center',
-              marginTop: '24px',
-              color: '#666666',
+              marginTop: '20px',
+              color: '#6B7280',
               fontSize: '14px',
-              fontWeight: '500',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              fontWeight: '500'
             }}>
               {t.verifying}
             </div>
@@ -613,32 +607,35 @@ export default function EmployeePortal_C() {
     )
   }
 
-  // Main Portal View - FLAT MINIMAL DESIGN
+  // Main Portal View - Refined Glassmorphism
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#F5F5F5',
-      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      position: 'relative'
     }}>
       {/* Design Label */}
       <div style={{
         position: 'fixed',
         top: '16px',
         left: '16px',
-        padding: '8px 16px',
-        background: '#000000',
-        color: '#FFFFFF',
-        border: '2px solid #000000',
-        borderRadius: '0px',
+        padding: '8px 14px',
+        background: 'rgba(37, 99, 235, 0.9)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderRadius: '8px',
+        color: 'white',
         fontSize: '11px',
         fontWeight: '700',
         letterSpacing: '0.5px',
-        textTransform: 'uppercase',
-        zIndex: 1000
+        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+        zIndex: 1000,
+        textTransform: 'uppercase'
       }}>
-        OPTION C: FLAT MINIMAL
+        Option B: Refined Glassmorphism
       </div>
 
       <div style={{
@@ -646,81 +643,85 @@ export default function EmployeePortal_C() {
         margin: '0 auto',
         padding: '20px'
       }}>
-        {/* Header */}
+        {/* Header with Glass Effect */}
         <div style={{
-          marginBottom: '20px',
+          marginBottom: '16px',
+          marginTop: '50px',
           padding: '20px',
-          background: '#FFFFFF',
-          border: '2px solid #000000',
-          borderRadius: '0px',
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderRadius: '10px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+          border: '1px solid rgba(255, 255, 255, 0.5)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <h2 style={{
-            fontSize: '24px',
+            fontSize: '22px',
             fontWeight: '700',
-            color: '#000000',
-            margin: 0
+            color: '#1F2937',
+            letterSpacing: '-0.3px'
           }}>
             {employee?.display_name || employee?.name}
           </h2>
           <button
             onClick={handleLogout}
             style={{
-              padding: '10px 20px',
-              background: '#000000',
-              color: '#FFFFFF',
-              border: '2px solid #000000',
-              borderRadius: '0px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              transition: 'all 0.15s',
+              padding: '10px 18px',
+              background: '#2563EB',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
               fontSize: '14px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#FFFFFF'
-              e.currentTarget.style.color = '#000000'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(37, 99, 235, 0.3)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#000000'
-              e.currentTarget.style.color = '#FFFFFF'
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.2)'
             }}
           >
             {t.logout}
           </button>
         </div>
 
-        {/* Menu Navigation */}
-        <div style={{ marginBottom: '20px', position: 'relative' }}>
+        {/* Menu Navigation with Glass Effect */}
+        <div style={{ marginBottom: '16px', position: 'relative' }}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             style={{
               width: '100%',
-              padding: '16px 20px',
-              fontSize: '16px',
-              fontWeight: '700',
-              background: '#FFFFFF',
-              border: '2px solid #000000',
-              borderRadius: '0px',
+              padding: '14px 18px',
+              fontSize: '15px',
+              fontWeight: '600',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(0, 0, 0, 0.06)',
+              borderRadius: '10px',
               cursor: 'pointer',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              color: '#000000',
-              transition: 'all 0.15s',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              color: '#1F2937',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+              transition: 'all 0.15s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#000000'
-              e.currentTarget.style.color = '#FFFFFF'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#FFFFFF'
-              e.currentTarget.style.color = '#000000'
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
             }}
           >
             <span>
@@ -730,7 +731,7 @@ export default function EmployeePortal_C() {
               {activeTab === 'profile' && t.profile}
               {activeTab === 'feedback' && t.feedback}
             </span>
-            <span style={{ fontSize: '12px' }}>{menuOpen ? '▲' : '▼'}</span>
+            <span style={{ fontSize: '11px', color: '#6B7280' }}>{menuOpen ? '▲' : '▼'}</span>
           </button>
 
           {menuOpen && (
@@ -739,12 +740,15 @@ export default function EmployeePortal_C() {
               top: '100%',
               left: 0,
               right: 0,
-              marginTop: '8px',
-              background: '#FFFFFF',
-              border: '2px solid #000000',
-              borderRadius: '0px',
+              marginTop: '6px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '10px',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
               overflow: 'hidden',
-              zIndex: 1000
+              zIndex: 1000,
+              border: '1px solid rgba(0, 0, 0, 0.06)'
             }}>
               {['weeklySchedule', 'todaySchedule', 'timesheet', 'profile'].map((tab, index) => (
                 <button
@@ -755,27 +759,25 @@ export default function EmployeePortal_C() {
                   }}
                   style={{
                     width: '100%',
-                    padding: '14px 20px',
-                    fontSize: '15px',
+                    padding: '12px 18px',
+                    fontSize: '14px',
                     border: 'none',
-                    borderBottom: index < 3 ? '1px solid #E5E5E5' : 'none',
-                    backgroundColor: activeTab === tab ? '#000000' : '#FFFFFF',
-                    color: activeTab === tab ? '#FFFFFF' : '#000000',
-                    fontWeight: activeTab === tab ? '700' : '600',
+                    borderBottom: index < 3 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                    backgroundColor: activeTab === tab ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+                    color: activeTab === tab ? '#2563EB' : '#1F2937',
+                    fontWeight: activeTab === tab ? '600' : '500',
                     cursor: 'pointer',
                     textAlign: 'left',
-                    transition: 'all 0.15s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={(e) => {
                     if (activeTab !== tab) {
-                      e.currentTarget.style.backgroundColor = '#F5F5F5'
+                      e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.02)'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (activeTab !== tab) {
-                      e.currentTarget.style.backgroundColor = '#FFFFFF'
+                      e.currentTarget.style.backgroundColor = 'transparent'
                     }
                   }}
                 >
@@ -786,42 +788,44 @@ export default function EmployeePortal_C() {
           )}
         </div>
 
-        {/* Content Area */}
+        {/* Content Area with Glass Effect */}
         <div style={{
-          background: '#FFFFFF',
-          border: '2px solid #000000',
-          borderRadius: '0px',
-          padding: '24px'
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderRadius: '10px',
+          padding: '22px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+          border: '1px solid rgba(255, 255, 255, 0.5)'
         }}>
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
               {/* Week Toggle */}
-              <div style={{ marginBottom: '24px', display: 'flex', gap: '12px' }}>
+              <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
                 <button
                   onClick={() => setShowWeek('this')}
                   style={{
                     flex: 1,
-                    padding: '12px 20px',
-                    border: '2px solid #000000',
-                    borderRadius: '0px',
-                    backgroundColor: showWeek === 'this' ? '#000000' : '#FFFFFF',
-                    color: showWeek === 'this' ? '#FFFFFF' : '#000000',
-                    fontWeight: '700',
+                    padding: '10px 18px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    backgroundColor: showWeek === 'this' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
+                    color: showWeek === 'this' ? 'white' : '#2563EB',
+                    fontWeight: '600',
+                    fontSize: '14px',
                     cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    fontSize: '14px'
+                    transition: 'all 0.15s ease',
+                    boxShadow: showWeek === 'this' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
                   }}
                   onMouseEnter={(e) => {
                     if (showWeek !== 'this') {
-                      e.currentTarget.style.backgroundColor = '#F5F5F5'
+                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.12)'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (showWeek !== 'this') {
-                      e.currentTarget.style.backgroundColor = '#FFFFFF'
+                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.08)'
                     }
                   }}
                 >
@@ -831,26 +835,25 @@ export default function EmployeePortal_C() {
                   onClick={() => setShowWeek('next')}
                   style={{
                     flex: 1,
-                    padding: '12px 20px',
-                    border: '2px solid #000000',
-                    borderRadius: '0px',
-                    backgroundColor: showWeek === 'next' ? '#000000' : '#FFFFFF',
-                    color: showWeek === 'next' ? '#FFFFFF' : '#000000',
-                    fontWeight: '700',
+                    padding: '10px 18px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    backgroundColor: showWeek === 'next' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
+                    color: showWeek === 'next' ? 'white' : '#2563EB',
+                    fontWeight: '600',
+                    fontSize: '14px',
                     cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    fontSize: '14px'
+                    transition: 'all 0.15s ease',
+                    boxShadow: showWeek === 'next' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
                   }}
                   onMouseEnter={(e) => {
                     if (showWeek !== 'next') {
-                      e.currentTarget.style.backgroundColor = '#F5F5F5'
+                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.12)'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (showWeek !== 'next') {
-                      e.currentTarget.style.backgroundColor = '#FFFFFF'
+                      e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.08)'
                     }
                   }}
                 >
@@ -859,7 +862,7 @@ export default function EmployeePortal_C() {
               </div>
 
               {/* Schedule List */}
-              <div style={{ border: '2px solid #000000', borderRadius: '0px', overflow: 'hidden' }}>
+              <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
                 {dayOrder.map((day, index) => {
                   const shifts = currentSchedule?.[day] || []
                   const dayName = t[day as keyof typeof t] as string
@@ -869,9 +872,9 @@ export default function EmployeePortal_C() {
                     <div
                       key={day}
                       style={{
-                        padding: '16px',
-                        borderBottom: index < 6 ? '2px solid #E5E5E5' : 'none',
-                        backgroundColor: isToday ? '#F5F5F5' : '#FFFFFF',
+                        padding: '14px',
+                        borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.04)' : 'transparent',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center'
@@ -879,22 +882,18 @@ export default function EmployeePortal_C() {
                     >
                       <div>
                         <div style={{
-                          fontWeight: '700',
-                          color: '#000000',
+                          fontWeight: '600',
+                          color: '#1F2937',
                           fontSize: '15px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          marginBottom: '2px'
                         }}>
                           {dayName}
                         </div>
                         {isToday && (
                           <div style={{
                             fontSize: '11px',
-                            color: '#666666',
-                            marginTop: '4px',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
+                            color: '#2563EB',
+                            fontWeight: '600'
                           }}>
                             Today
                           </div>
@@ -903,11 +902,9 @@ export default function EmployeePortal_C() {
                       <div style={{ textAlign: 'right' }}>
                         {shifts.length === 0 ? (
                           <span style={{
-                            color: '#999999',
-                            fontWeight: '700',
+                            color: '#9CA3AF',
                             fontSize: '14px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
+                            fontWeight: '500'
                           }}>
                             {t.off}
                           </span>
@@ -915,16 +912,16 @@ export default function EmployeePortal_C() {
                           shifts.map((shift: any, idx: number) => (
                             <div key={idx}>
                               <div style={{
-                                fontWeight: '700',
-                                color: '#000000',
-                                fontSize: '15px'
+                                fontWeight: '600',
+                                color: '#1F2937',
+                                fontSize: '14px'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </div>
                               <div style={{
                                 fontSize: '13px',
-                                color: '#666666',
-                                fontWeight: '600'
+                                color: '#6B7280',
+                                marginTop: '2px'
                               }}>
                                 {shift.hoursScheduled}h
                               </div>
@@ -943,51 +940,48 @@ export default function EmployeePortal_C() {
           {activeTab === 'todaySchedule' && (
             <div>
               <h3 style={{
-                fontSize: '20px',
+                fontSize: '18px',
                 fontWeight: '700',
-                color: '#000000',
+                color: '#1F2937',
                 marginBottom: '16px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                letterSpacing: '-0.3px'
               }}>
                 Today's Team Schedule
               </h3>
               {todayScheduleData.length === 0 ? (
                 <div style={{
                   textAlign: 'center',
-                  padding: '48px 0',
-                  color: '#999999',
+                  paddingTop: '48px',
+                  paddingBottom: '48px',
+                  color: '#9CA3AF',
                   fontSize: '14px',
                   fontWeight: '500'
                 }}>
                   {t.noOneScheduledToday}
                 </div>
               ) : (
-                <div style={{ border: '2px solid #000000', borderRadius: '0px', overflow: 'hidden' }}>
+                <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
                   {todayScheduleData.map((schedule: any, index: number) => (
                     <div
                       key={index}
                       style={{
-                        padding: '16px',
-                        borderBottom: index < todayScheduleData.length - 1 ? '2px solid #E5E5E5' : 'none'
+                        padding: '14px',
+                        borderBottom: index < todayScheduleData.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none'
                       }}
                     >
                       <div style={{
-                        fontWeight: '700',
-                        color: '#000000',
-                        marginBottom: '4px',
+                        fontWeight: '600',
+                        color: '#1F2937',
                         fontSize: '15px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        marginBottom: '4px'
                       }}>
                         {schedule.core_employees?.display_name || schedule.core_employees?.name}
                       </div>
                       <div style={{
                         fontSize: '13px',
-                        color: '#666666',
-                        fontWeight: '600'
+                        color: '#6B7280'
                       }}>
-                        <span style={{ fontWeight: '700' }}>
+                        <span style={{ fontWeight: '500' }}>
                           {formatTime(schedule.shift_start_time_est)} - {formatTime(schedule.shift_end_time_est)}
                         </span>
                         <span style={{ marginLeft: '12px' }}>
@@ -1005,48 +999,39 @@ export default function EmployeePortal_C() {
           {activeTab === 'timesheet' && timesheetData && (
             <div>
               <h3 style={{
-                fontSize: '20px',
+                fontSize: '18px',
                 fontWeight: '700',
-                color: '#000000',
+                color: '#1F2937',
                 marginBottom: '16px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                letterSpacing: '-0.3px'
               }}>
                 {t.timesheet}
               </h3>
 
               {timesheetData.days && timesheetData.days.length > 0 ? (
                 <div>
-                  <div style={{
-                    border: '2px solid #000000',
-                    borderRadius: '0px',
-                    overflow: 'hidden',
-                    marginBottom: '16px'
-                  }}>
+                  <div style={{ borderRadius: '8px', overflow: 'hidden', marginBottom: '14px' }}>
                     {timesheetData.days.map((day: any, idx: number) => (
                       <div
                         key={idx}
                         style={{
-                          padding: '16px',
-                          borderBottom: idx < timesheetData.days.length - 1 ? '2px solid #E5E5E5' : 'none',
+                          padding: '14px',
+                          borderBottom: idx < timesheetData.days.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
                           display: 'flex',
                           justifyContent: 'space-between'
                         }}
                       >
                         <div>
                           <div style={{
-                            fontWeight: '700',
-                            color: '#000000',
-                            fontSize: '15px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
+                            fontWeight: '600',
+                            color: '#1F2937',
+                            fontSize: '15px'
                           }}>
                             {day.day_name}
                           </div>
                           <div style={{
-                            fontSize: '12px',
-                            color: '#999999',
-                            fontWeight: '500',
+                            fontSize: '13px',
+                            color: '#9CA3AF',
                             marginTop: '2px'
                           }}>
                             {day.date}
@@ -1054,16 +1039,16 @@ export default function EmployeePortal_C() {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{
-                            fontWeight: '700',
-                            color: '#000000',
+                            fontWeight: '600',
+                            color: '#1F2937',
                             fontSize: '15px'
                           }}>
                             {formatHoursMinutes(day.hours_worked)}
                           </div>
                           <div style={{
                             fontSize: '13px',
-                            color: '#666666',
-                            fontWeight: '600'
+                            color: '#6B7280',
+                            marginTop: '2px'
                           }}>
                             {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
                           </div>
@@ -1073,26 +1058,24 @@ export default function EmployeePortal_C() {
                   </div>
 
                   <div style={{
-                    padding: '16px',
-                    background: '#000000',
-                    color: '#FFFFFF',
-                    border: '2px solid #000000',
-                    borderRadius: '0px',
+                    padding: '14px',
+                    background: 'rgba(37, 99, 235, 0.06)',
+                    borderRadius: '8px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
                     <span style={{
-                      fontWeight: '700',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      fontSize: '14px'
+                      fontWeight: '600',
+                      color: '#1F2937',
+                      fontSize: '15px'
                     }}>
                       {t.total}
                     </span>
                     <span style={{
                       fontSize: '20px',
-                      fontWeight: '700'
+                      fontWeight: '700',
+                      color: '#2563EB'
                     }}>
                       {formatHoursMinutes(timesheetData.totalHours)}
                     </span>
@@ -1101,8 +1084,9 @@ export default function EmployeePortal_C() {
               ) : (
                 <div style={{
                   textAlign: 'center',
-                  padding: '48px 0',
-                  color: '#999999',
+                  paddingTop: '48px',
+                  paddingBottom: '48px',
+                  color: '#9CA3AF',
                   fontSize: '14px',
                   fontWeight: '500'
                 }}>
@@ -1116,51 +1100,46 @@ export default function EmployeePortal_C() {
           {activeTab === 'profile' && (
             <div>
               <h3 style={{
-                fontSize: '20px',
+                fontSize: '18px',
                 fontWeight: '700',
-                color: '#000000',
+                color: '#1F2937',
                 marginBottom: '16px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                letterSpacing: '-0.3px'
               }}>
                 {t.employeeInfo}
               </h3>
 
-              <div style={{ border: '2px solid #000000', borderRadius: '0px', overflow: 'hidden' }}>
-                <div style={{ padding: '16px', borderBottom: '2px solid #E5E5E5' }}>
+              <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '14px', borderBottom: '1px solid rgba(0, 0, 0, 0.04)' }}>
                   <div style={{
-                    fontSize: '12px',
-                    color: '#666666',
+                    fontSize: '13px',
+                    color: '#6B7280',
                     marginBottom: '4px',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    fontWeight: '500'
                   }}>
                     {t.name}
                   </div>
                   <div style={{
-                    fontWeight: '700',
-                    color: '#000000',
+                    fontWeight: '600',
+                    color: '#1F2937',
                     fontSize: '15px'
                   }}>
                     {employee?.display_name || employee?.name}
                   </div>
                 </div>
 
-                <div style={{ padding: '16px', borderBottom: '2px solid #E5E5E5' }}>
+                <div style={{ padding: '14px', borderBottom: '1px solid rgba(0, 0, 0, 0.04)' }}>
                   <div style={{
-                    fontSize: '12px',
-                    color: '#666666',
+                    fontSize: '13px',
+                    color: '#6B7280',
                     marginBottom: '4px',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    fontWeight: '500'
                   }}>
                     PIN
                   </div>
                   <div style={{
-                    fontWeight: '700',
-                    color: '#000000',
+                    fontWeight: '600',
+                    color: '#1F2937',
                     fontSize: '15px'
                   }}>
                     {employee?.pin || '****'}
@@ -1168,20 +1147,18 @@ export default function EmployeePortal_C() {
                 </div>
 
                 {employee?.hourly_rate && (
-                  <div style={{ padding: '16px', borderBottom: '2px solid #E5E5E5' }}>
+                  <div style={{ padding: '14px', borderBottom: '1px solid rgba(0, 0, 0, 0.04)' }}>
                     <div style={{
-                      fontSize: '12px',
-                      color: '#666666',
+                      fontSize: '13px',
+                      color: '#6B7280',
                       marginBottom: '4px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
+                      fontWeight: '500'
                     }}>
                       {t.hourlyRate}
                     </div>
                     <div style={{
-                      fontWeight: '700',
-                      color: '#000000',
+                      fontWeight: '600',
+                      color: '#1F2937',
                       fontSize: '15px'
                     }}>
                       ${employee.hourly_rate}/hr
@@ -1190,22 +1167,20 @@ export default function EmployeePortal_C() {
                 )}
 
                 {employee?.phone_number && (
-                  <div style={{ padding: '16px', borderBottom: '2px solid #E5E5E5' }}>
+                  <div style={{ padding: '14px', borderBottom: '1px solid rgba(0, 0, 0, 0.04)' }}>
                     <div style={{
-                      fontSize: '12px',
-                      color: '#666666',
+                      fontSize: '13px',
+                      color: '#6B7280',
                       marginBottom: '4px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
+                      fontWeight: '500'
                     }}>
                       {t.phoneNumber}
                     </div>
                     <a
                       href={`tel:${employee.phone_number}`}
                       style={{
-                        fontWeight: '700',
-                        color: '#000000',
+                        fontWeight: '600',
+                        color: '#2563EB',
                         fontSize: '15px',
                         textDecoration: 'none'
                       }}
@@ -1216,22 +1191,20 @@ export default function EmployeePortal_C() {
                 )}
 
                 {employee?.email && (
-                  <div style={{ padding: '16px' }}>
+                  <div style={{ padding: '14px' }}>
                     <div style={{
-                      fontSize: '12px',
-                      color: '#666666',
+                      fontSize: '13px',
+                      color: '#6B7280',
                       marginBottom: '4px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
+                      fontWeight: '500'
                     }}>
                       {t.email}
                     </div>
                     <a
                       href={`mailto:${employee.email}`}
                       style={{
-                        fontWeight: '700',
-                        color: '#000000',
+                        fontWeight: '600',
+                        color: '#2563EB',
                         fontSize: '15px',
                         textDecoration: 'none'
                       }}

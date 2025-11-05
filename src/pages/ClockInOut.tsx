@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { employeeApi, timeclockApi, getDisplayName } from '../lib/supabase'
+import { employeeApi, timeclockApi, getDisplayName } from '../supabase/supabase'
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
