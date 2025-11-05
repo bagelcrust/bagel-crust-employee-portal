@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   useEmployeeAuth,
   useEmployeeSchedule,
@@ -105,6 +105,11 @@ export default function EmployeePortal() {
 
   // Get current translations
   const t = translations[language]
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Bagel Crust - Employee Portal'
+  }, [])
 
   // ============================================================================
   // EVENT HANDLERS - Simplified with hooks

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, Filter, Wrench, Send } from 'lucide-react'
 
 /**
@@ -54,6 +54,11 @@ export default function ScheduleBuilder() {
   const [dateRange] = useState('Nov 3, 2025 - Nov 9, 2025')
   const [filterCount] = useState(4)
   const [publishCount] = useState(0)
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Bagel Crust - Schedule Builder'
+  }, [])
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">

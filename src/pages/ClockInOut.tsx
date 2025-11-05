@@ -29,6 +29,9 @@ export default function ClockInOut() {
   const [keypadKey, setKeypadKey] = useState(0)
 
   useEffect(() => {
+    // Set page title for clock terminal
+    document.title = 'Bagel Crust - Clock In/Out'
+
     const updateTime = () => {
       const now = new Date()
       setCurrentTime(now.toLocaleTimeString('en-US', {
