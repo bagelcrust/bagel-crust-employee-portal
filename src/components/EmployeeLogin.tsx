@@ -32,13 +32,12 @@ export function EmployeeLogin({
       <div className="max-w-[400px] w-full p-6 bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 mb-8">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-[28px] font-bold text-gray-800 mb-2 tracking-tight">
+          <h1 className="text-[36px] font-bold text-gray-800 mb-3 tracking-tight">
             {t.bagelCrust}
           </h1>
-          <h2 className="text-[15px] font-medium text-gray-500 tracking-tight">
+          <h2 className="text-[20px] font-medium text-gray-500 tracking-tight">
             {t.employeePortal}
           </h2>
-          <div className="text-[10px] text-gray-400 mt-1">v2.0</div>
         </div>
 
         <p className="text-center text-gray-500 mb-5 text-sm font-semibold">
