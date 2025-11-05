@@ -939,6 +939,170 @@ export default function EmployeePortal_B() {
                   )
                 })}
               </div>
+
+              {/* Open Shifts Section - Card Grid Style */}
+              <div style={{
+                marginTop: '64px',
+                paddingTop: '48px',
+                borderTop: '3px solid #D1D5DB'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  color: '#1F2937',
+                  marginBottom: '16px',
+                  letterSpacing: '-0.5px'
+                }}>
+                  Open Shifts
+                </h2>
+                <div style={{
+                  display: 'flex',
+                  gap: '16px',
+                  overflowX: 'auto',
+                  paddingBottom: '12px'
+                }}>
+                  {/* Card 1 */}
+                  <div style={{
+                    minWidth: '280px',
+                    padding: '24px',
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                    borderRadius: '16px',
+                    color: 'white',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      fontSize: '28px',
+                      fontWeight: '700',
+                      marginBottom: '8px'
+                    }}>
+                      Tue, Nov 7
+                    </div>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: '600',
+                      marginBottom: '16px',
+                      opacity: 0.95
+                    }}>
+                      9:00 AM - 5:00 PM
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      marginBottom: '20px',
+                      opacity: 0.9
+                    }}>
+                      📍 Main Street
+                    </div>
+                    <button style={{
+                      background: 'white',
+                      color: '#2563EB',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}>
+                      Claim Shift
+                    </button>
+                  </div>
+
+                  {/* Card 2 */}
+                  <div style={{
+                    minWidth: '280px',
+                    padding: '24px',
+                    background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                    borderRadius: '16px',
+                    color: 'white',
+                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      fontSize: '28px',
+                      fontWeight: '700',
+                      marginBottom: '8px'
+                    }}>
+                      Thu, Nov 9
+                    </div>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: '600',
+                      marginBottom: '16px',
+                      opacity: 0.95
+                    }}>
+                      2:00 PM - 10:00 PM
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      marginBottom: '20px',
+                      opacity: 0.9
+                    }}>
+                      📍 Downtown
+                    </div>
+                    <button style={{
+                      background: 'white',
+                      color: '#7C3AED',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}>
+                      Claim Shift
+                    </button>
+                  </div>
+
+                  {/* Card 3 */}
+                  <div style={{
+                    minWidth: '280px',
+                    padding: '24px',
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    borderRadius: '16px',
+                    color: 'white',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      fontSize: '28px',
+                      fontWeight: '700',
+                      marginBottom: '8px'
+                    }}>
+                      Sat, Nov 11
+                    </div>
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: '600',
+                      marginBottom: '16px',
+                      opacity: 0.95
+                    }}>
+                      6:00 AM - 2:00 PM
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      marginBottom: '20px',
+                      opacity: 0.9
+                    }}>
+                      📍 Main Street
+                    </div>
+                    <button style={{
+                      background: 'white',
+                      color: '#059669',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}>
+                      Claim Shift
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
