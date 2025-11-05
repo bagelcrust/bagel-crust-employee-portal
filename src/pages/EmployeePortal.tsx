@@ -1498,14 +1498,14 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar */}
+      {/* Bottom Navigation Bar - Expanding Width */}
       <div className="fixed bottom-0 left-0 right-0 z-50 shadow-lg"
            style={{
              paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
              background: 'rgba(255, 255, 255, 0.95)',
              backdropFilter: 'blur(10px)',
              WebkitBackdropFilter: 'blur(10px)',
-             borderTop: '2px solid #60A5FA'
+             borderTop: '1px solid rgba(0, 0, 0, 0.06)'
            }}>
         <div style={{
           display: 'flex',
@@ -1528,32 +1528,36 @@ export default function EmployeePortal_B() {
               onClick={() => setActiveTab(key as any)}
               style={{
                 display: 'flex',
-                flexDirection: 'column',
+                flexDirection: activeTab === key ? 'row' : 'column',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '10px 8px',
-                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
-                background: activeTab === key ? '#2563EB' : '#EFF6FF',
+                justifyContent: 'center',
+                gap: activeTab === key ? '8px' : '4px',
+                padding: activeTab === key ? '12px 16px' : '10px 6px',
+                border: activeTab === key ? '2px solid #2563EB' : '1px solid #E5E7EB',
+                background: activeTab === key ? '#2563EB' : 'rgba(255, 255, 255, 0.5)',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                borderRadius: '10px',
-                minWidth: '60px',
-                flex: 1
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                borderRadius: '12px',
+                flex: activeTab === key ? 2 : 1,
+                minWidth: activeTab === key ? '120px' : '45px',
+                boxShadow: activeTab === key ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none'
               }}
             >
               <div style={{
-                fontSize: '24px',
-                transform: activeTab === key ? 'scale(1.1)' : 'scale(1)',
-                transition: 'transform 0.15s ease'
+                fontSize: activeTab === key ? '22px' : '20px',
+                transition: 'font-size 0.3s ease'
               }}>
                 {icon}
               </div>
               <div style={{
-                fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '600',
-                color: activeTab === key ? '#ffffff' : '#2563EB',
+                fontSize: activeTab === key ? '12px' : '9px',
+                fontWeight: activeTab === key ? '700' : '500',
+                color: activeTab === key ? '#ffffff' : '#9CA3AF',
                 textAlign: 'center',
-                lineHeight: '1.2'
+                lineHeight: '1.2',
+                transition: 'all 0.3s ease',
+                overflow: 'hidden',
+                whiteSpace: activeTab === key ? 'nowrap' : 'normal'
               }}>
                 {label}
               </div>
