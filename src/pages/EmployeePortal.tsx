@@ -1499,11 +1499,17 @@ export default function EmployeePortal_B() {
       </div>
 
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 z-50 shadow-lg"
-           style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 shadow-lg"
+           style={{
+             paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+             background: 'rgba(255, 255, 255, 0.95)',
+             backdropFilter: 'blur(10px)',
+             WebkitBackdropFilter: 'blur(10px)',
+             borderTop: '2px solid #60A5FA'
+           }}>
         <div style={{
           display: 'flex',
-          justifyContent: 'space-around',
+          gap: '6px',
           alignItems: 'center',
           maxWidth: '600px',
           margin: '0 auto',
@@ -1525,13 +1531,14 @@ export default function EmployeePortal_B() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '4px',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'transparent',
+                padding: '10px 8px',
+                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
+                background: activeTab === key ? '#2563EB' : '#EFF6FF',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                borderRadius: '8px',
-                minWidth: '60px'
+                borderRadius: '10px',
+                minWidth: '60px',
+                flex: 1
               }}
             >
               <div style={{
@@ -1543,8 +1550,8 @@ export default function EmployeePortal_B() {
               </div>
               <div style={{
                 fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '500',
-                color: activeTab === key ? '#2563EB' : '#6B7280',
+                fontWeight: activeTab === key ? '700' : '600',
+                color: activeTab === key ? '#ffffff' : '#2563EB',
                 textAlign: 'center',
                 lineHeight: '1.2'
               }}>
