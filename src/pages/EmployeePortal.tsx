@@ -184,12 +184,31 @@ export default function EmployeePortal() {
   }
 
   // ============================================================================
-  // MAIN PORTAL UI
-  // PWA SAFE AREA: Uses env(safe-area-inset-*) for iPhone notch/status bar
-  // - Top: safe-area-inset-top + 12px for breathing room (prevents notch overlap)
-  // - Bottom: 96px + safe-area-inset-bottom (clears BottomNav + home indicator)
+  // MAIN PORTAL UI - PWA LAYOUT (Nov 5, 2024)
+  // ============================================================================
+  //
+  // CRITICAL PWA SAFE AREA HANDLING:
+  // This component requires careful spacing to work properly in iOS PWA mode.
+  //
+  // TOP SPACING (prevents content under notch/status bar):
+  // - Uses env(safe-area-inset-top) to detect iPhone notch height automatically
+  // - Adds 12px breathing room beyond the safe area
+  // - iPhone X/11/12/13: ~44px + 12px = 56px
+  // - iPhone 14/15 Pro: ~47px + 12px = 59px
+  // - Older iPhones: 0px + 12px = 12px
+  //
+  // BOTTOM SPACING (prevents content under navigation):
+  // - Uses 96px base to clear BottomNav component height
+  // - Adds env(safe-area-inset-bottom) for iPhone home indicator
+  // - Without this, gradient won't reach bottom edge in PWA mode
+  //
+  // GRADIENT BACKGROUND FIX:
+  // - Removed duplicate "Employee Portal" header that was blocking gradient
+  // - Background gradient now extends from top notch to bottom home indicator
+  // - Requires index.css to use 100dvh (not 100%) - see index.css for details
   // - Requires viewport-fit=cover in index.html (already set)
-  // - Requires 100dvh in index.css for gradient to reach screen edges (already set)
+  //
+  // DO NOT REMOVE SAFE AREA INSETS - PWA will break on iPhone!
   // ============================================================================
   return (
     <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">

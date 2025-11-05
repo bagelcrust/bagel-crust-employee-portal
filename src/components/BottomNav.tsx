@@ -1,6 +1,12 @@
 /**
  * BottomNav - Fixed bottom navigation bar
  * Mobile-optimized tab navigation with Lucide icons
+ *
+ * PWA SPACING FIX (Nov 5, 2024):
+ * - Reduced pt-2 → pt-1 to move icons closer to bottom
+ * - Reduced pb-[calc(8px+...)] → pb-[calc(4px+...)] for tighter spacing
+ * - Uses env(safe-area-inset-bottom) to account for iPhone home indicator
+ * - Parent container (EmployeePortal) handles content clearance with 96px padding
  */
 
 import { Calendar, Clock, User, MapPin } from 'lucide-react'
