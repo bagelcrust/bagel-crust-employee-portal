@@ -240,7 +240,9 @@ export default function EmployeePortal_B() {
   const [timesheetData, setTimesheetData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'weeklySchedule' | 'todaySchedule' | 'timesheet' | 'profile' | 'feedback'>('weeklySchedule')
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
+  const [timesheetWeek, setTimesheetWeek] = useState<'this' | 'last'>('this')
   const [language, _setLanguage] = useState<'en' | 'es'>('en')
+  const [menuOpen, setMenuOpen] = useState(false)
   const [todayScheduleData, setTodayScheduleData] = useState<any[]>([])
 
   // Get current translations
@@ -312,7 +314,10 @@ export default function EmployeePortal_B() {
             sunday: []
           }
         })
-        setTimesheetData({ days: [], totalHours: 0 })
+        setTimesheetData({
+          thisWeek: { days: [], totalHours: 0 },
+          lastWeek: { days: [], totalHours: 0 }
+        })
         setTodayScheduleData([])
         setIsLoggedIn(true)
         setLoading(false)
@@ -372,13 +377,21 @@ export default function EmployeePortal_B() {
         nextWeek: nextWeekByDay
       })
 
-      // Load timesheet data (hours worked)
-      const recentEvents = await timeclockApi.getRecentEvents(50)
-      const myEvents = recentEvents.filter(e => e.employee_id === employeeId)
+      // Load timesheet data (hours worked) - fetch more to ensure we get enough for one employee
+      const recentEvents = await timeclockApi.getRecentEvents(200)
+      console.log('⏰ Recent events fetched:', recentEvents.length)
+      console.log('⏰ Employee ID:', employeeId)
 
-      // Calculate hours worked this week
-      const thisWeekHours = calculateWeeklyHours(myEvents)
-      setTimesheetData(thisWeekHours)
+      const myEvents = recentEvents.filter(e => e.employee_id === employeeId)
+      console.log('⏰ My events:', myEvents.length)
+
+      // Calculate hours worked this week and last week
+      const thisWeekHours = calculateWeeklyHours(myEvents, 0)
+      const lastWeekHours = calculateWeeklyHours(myEvents, -1)
+      setTimesheetData({
+        thisWeek: thisWeekHours,
+        lastWeek: lastWeekHours
+      })
 
       // Load today's team schedule
       const todaySchedules = await scheduleApi.getTodaySchedule()
@@ -430,52 +443,72 @@ export default function EmployeePortal_B() {
     return grouped
   }
 
-  const calculateWeeklyHours = (events: any[]) => {
+  const calculateWeeklyHours = (events: any[], weekOffset: number = 0) => {
     // Group events by day and calculate hours
+    // Week starts on Monday (not Sunday)
     const today = new Date()
+    const dayOfWeek = today.getDay()
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Sunday = 6 days from Monday
+
     const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - today.getDay())
+    weekStart.setDate(today.getDate() - daysFromMonday + (weekOffset * 7))
     weekStart.setHours(0, 0, 0, 0)
 
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekStart.getDate() + 7)
 
+    // Filter events for this week using event_timestamp
     const thisWeekEvents = events.filter(e => {
-      const eventDate = new Date(e.event_date)
+      const eventDate = new Date(e.event_timestamp)
       return eventDate >= weekStart && eventDate < weekEnd
     })
 
-    // Pair clock in/out events and calculate hours
+    console.log('📊 Calculating hours from events:', thisWeekEvents.length)
+    console.log('📊 This week date range:', weekStart, 'to', weekEnd)
+    console.log('📊 Events detail:', thisWeekEvents)
+
+    // Sort all events chronologically
+    const sortedEvents = thisWeekEvents.sort((a, b) =>
+      new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
+    )
+
+    // Calculate daily hours by pairing consecutive IN/OUT events (handles overnight shifts)
     const dailyHours: any[] = []
     let totalHours = 0
+    let clockIn: any = null
 
-    // Process events to match in/out pairs
-    const processedDates = new Set()
-
-    thisWeekEvents.forEach(event => {
-      if (processedDates.has(event.event_date)) return
-
-      const dayEvents = thisWeekEvents.filter(e => e.event_date === event.event_date)
-      const clockIn = dayEvents.find(e => e.event_type === 'in')
-      const clockOut = dayEvents.find(e => e.event_type === 'out')
-
-      if (clockIn && clockOut) {
-        const inTime = new Date(`${clockIn.event_date} ${clockIn.event_time_est}`)
-        const outTime = new Date(`${clockOut.event_date} ${clockOut.event_time_est}`)
+    sortedEvents.forEach(event => {
+      if (event.event_type === 'in') {
+        clockIn = event
+      } else if (event.event_type === 'out' && clockIn) {
+        const inTime = new Date(clockIn.event_timestamp)
+        const outTime = new Date(event.event_timestamp)
         const hours = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
 
+        // Skip impossible shifts (over 16 hours = likely missing clock out/in)
+        if (hours > 16) {
+          console.warn('⚠️ Skipping impossible shift:', hours.toFixed(2), 'hours from', inTime, 'to', outTime)
+          clockIn = null
+          return
+        }
+
+        // Use the clock-in date as the reference date
+        const dateKey = inTime.toISOString().split('T')[0]
+
         dailyHours.push({
-          date: event.event_date,
-          day_name: format(new Date(event.event_date), 'EEEE'),
-          clock_in: clockIn.event_time_est,
-          clock_out: clockOut.event_time_est,
+          date: dateKey,
+          day_name: format(inTime, 'EEEE'),
+          clock_in: inTime.toTimeString().slice(0, 5), // HH:MM
+          clock_out: outTime.toTimeString().slice(0, 5), // HH:MM
           hours_worked: hours.toFixed(2)
         })
 
         totalHours += hours
-        processedDates.add(event.event_date)
+        clockIn = null // Reset for next pair
       }
     })
+
+    console.log('📊 Calculated daily hours:', dailyHours)
 
     return {
       days: dailyHours,
@@ -877,101 +910,136 @@ export default function EmployeePortal_B() {
           {/* TIMESHEET TAB */}
           {activeTab === 'timesheet' && timesheetData && (
             <div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#1F2937',
-                marginBottom: '16px',
-                letterSpacing: '-0.3px'
-              }}>
-                {t.timesheet}
-              </h3>
-
-              {timesheetData.days && timesheetData.days.length > 0 ? (
-                <div>
-                  <div style={{ borderRadius: '8px', overflow: 'hidden', marginBottom: '14px' }}>
-                    {timesheetData.days.map((day: any, idx: number) => (
-                      <div
-                        key={idx}
-                        style={{
-                          padding: '14px',
-                          borderBottom: idx < timesheetData.days.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                          display: 'flex',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        <div>
-                          <div style={{
-                            fontWeight: '600',
-                            color: '#1F2937',
-                            fontSize: '15px'
-                          }}>
-                            {day.day_name}
-                          </div>
-                          <div style={{
-                            fontSize: '13px',
-                            color: '#9CA3AF',
-                            marginTop: '2px'
-                          }}>
-                            {day.date}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{
-                            fontWeight: '600',
-                            color: '#1F2937',
-                            fontSize: '15px'
-                          }}>
-                            {formatHoursMinutes(day.hours_worked)}
-                          </div>
-                          <div style={{
-                            fontSize: '13px',
-                            color: '#6B7280',
-                            marginTop: '2px'
-                          }}>
-                            {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{
-                    padding: '14px',
-                    background: 'rgba(37, 99, 235, 0.06)',
+              {/* Week Toggle */}
+              <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setTimesheetWeek('this')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 18px',
+                    border: 'none',
                     borderRadius: '8px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{
-                      fontWeight: '600',
-                      color: '#1F2937',
-                      fontSize: '15px'
+                    backgroundColor: timesheetWeek === 'this' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
+                    color: timesheetWeek === 'this' ? 'white' : '#2563EB',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: timesheetWeek === 'this' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
+                  }}
+                >
+                  {t.thisWeek}
+                </button>
+                <button
+                  onClick={() => setTimesheetWeek('last')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 18px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    backgroundColor: timesheetWeek === 'last' ? '#2563EB' : 'rgba(37, 99, 235, 0.08)',
+                    color: timesheetWeek === 'last' ? 'white' : '#2563EB',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: timesheetWeek === 'last' ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
+                  }}
+                >
+                  {t.lastWeek}
+                </button>
+              </div>
+
+              {(() => {
+                const currentWeekData = timesheetWeek === 'this' ? timesheetData.thisWeek : timesheetData.lastWeek
+                const hasHours = currentWeekData.days && currentWeekData.days.length > 0
+
+                return hasHours ? (
+                  <div>
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', marginBottom: '14px' }}>
+                      {currentWeekData.days.map((day: any, idx: number) => (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '14px',
+                            borderBottom: idx < currentWeekData.days.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                            display: 'flex',
+                            justifyContent: 'space-between'
+                          }}
+                        >
+                          <div>
+                            <div style={{
+                              fontWeight: '600',
+                              color: '#1F2937',
+                              fontSize: '15px'
+                            }}>
+                              {day.day_name}
+                            </div>
+                            <div style={{
+                              fontSize: '13px',
+                              color: '#9CA3AF',
+                              marginTop: '2px'
+                            }}>
+                              {day.date}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{
+                              fontWeight: '600',
+                              color: '#1F2937',
+                              fontSize: '15px'
+                            }}>
+                              {formatHoursMinutes(day.hours_worked)}
+                            </div>
+                            <div style={{
+                              fontSize: '13px',
+                              color: '#6B7280',
+                              marginTop: '2px'
+                            }}>
+                              {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{
+                      padding: '14px',
+                      background: 'rgba(37, 99, 235, 0.06)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}>
-                      {t.total}
-                    </span>
-                    <span style={{
-                      fontSize: '20px',
-                      fontWeight: '700',
-                      color: '#2563EB'
-                    }}>
-                      {formatHoursMinutes(timesheetData.totalHours)}
-                    </span>
+                      <span style={{
+                        fontWeight: '600',
+                        color: '#1F2937',
+                        fontSize: '15px'
+                      }}>
+                        {t.total}
+                      </span>
+                      <span style={{
+                        fontSize: '20px',
+                        fontWeight: '700',
+                        color: '#2563EB'
+                      }}>
+                        {formatHoursMinutes(currentWeekData.totalHours)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div style={{
-                  textAlign: 'center',
-                  paddingTop: '48px',
-                  paddingBottom: '48px',
-                  color: '#9CA3AF',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}>
-                  {t.noHoursThisWeek}
-                </div>
-              )}
+                ) : (
+                  <div style={{
+                    textAlign: 'center',
+                    paddingTop: '48px',
+                    paddingBottom: '48px',
+                    color: '#9CA3AF',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}>
+                    {timesheetWeek === 'this' ? t.noHoursThisWeek : t.noHoursLastWeek}
+                  </div>
+                )
+              })()}
             </div>
           )}
 
@@ -1107,34 +1175,30 @@ export default function EmployeePortal_B() {
           </h2>
           <button
             onClick={handleLogout}
-            title={t.logout}
             style={{
-              width: '42px',
-              height: '42px',
-              background: '#EF4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              fontSize: '20px',
-              fontWeight: '700',
+              padding: '8px 16px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              color: '#DC2626',
+              border: '1px solid rgba(220, 38, 38, 0.15)',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)'
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.4)'
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 1)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)'
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)'
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'
             }}
           >
-            ⎋
+            {t.logout}
           </button>
         </div>
       </div>

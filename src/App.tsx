@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ClockInOut from './pages/ClockInOut';
 import EmployeePortal from './pages/EmployeePortal';
+import ScheduleBuilder from './pages/ScheduleBuilder';
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
         <Route path="/" element={<Navigate to="/clockinout" replace />} />
         <Route path="/clockinout" element={<ClockInOut />} />
         <Route path="/employee-portal" element={<EmployeePortal />} />
+        <Route path="/schedule-builder" element={<ScheduleBuilder />} />
       </Routes>
     </Router>
   );

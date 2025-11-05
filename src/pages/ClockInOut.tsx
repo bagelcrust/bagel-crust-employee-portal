@@ -152,10 +152,13 @@ export default function ClockInOut_B() {
       const formattedEvents = events.map(event => {
         const time = new Date(event.event_timestamp)
 
-        // Check if event is today in Eastern Time (not server's local timezone)
-        const todayEST = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' })
+        // Get today and yesterday in Eastern Time
+        const nowEST = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' })
         const eventDateEST = time.toLocaleDateString('en-US', { timeZone: 'America/New_York' })
-        const isToday = todayEST === eventDateEST
+
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        const yesterdayEST = yesterday.toLocaleDateString('en-US', { timeZone: 'America/New_York' })
 
         const timeStr = time.toLocaleTimeString('en-US', {
           hour: 'numeric',
@@ -164,11 +167,28 @@ export default function ClockInOut_B() {
           timeZone: 'America/New_York'
         })
 
+        let displayTime = timeStr
+        if (eventDateEST === nowEST) {
+          // Today: just show time
+          displayTime = timeStr
+        } else if (eventDateEST === yesterdayEST) {
+          // Yesterday: show "Yesterday 3:45 PM"
+          displayTime = `Yesterday ${timeStr}`
+        } else {
+          // Older: show date with time (no year)
+          const dateStr = time.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'America/New_York'
+          })
+          displayTime = `${dateStr}, ${timeStr}`
+        }
+
         return {
           id: event.id,
           name: event.employee ? event.employee.first_name : 'Unknown',
           action: event.event_type === 'in' ? 'Clock In' : 'Clock Out',
-          time: isToday ? timeStr : `${eventDateEST} ${timeStr}`
+          time: displayTime
         }
       })
       setRecentEvents(formattedEvents)
