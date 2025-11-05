@@ -1,5 +1,5 @@
 /**
- * REFINED KEYPAD COMPONENT - Controlled PIN Entry
+ * CLOCK IN KEYPAD COMPONENT
  *
  * Purpose: Controlled keypad component for parent-managed PIN state
  * Used in: Employee Portal login with external state management
@@ -13,22 +13,22 @@
  * - Internationalization support (translations)
  *
  * IMPORTANT: This is different from:
- * - ClockInOutKeypad (in pages/ClockInOut.tsx) - Standalone clock terminal with auto-submit
- * - NumericKeypad (in components/NumericKeypad.tsx) - Self-contained with built-in state
+ * - ClockInOutKeypad (in pages/ClockInOut.tsx) - Inline keypad in clock terminal page
+ * - PortalKeypad (components/PortalKeypad.tsx) - Self-contained with built-in state
  *
  * Use this when: Parent component needs full control over PIN input state
  */
 
 import type { Translations } from '../lib/translations'
 
-interface RefinedKeypadProps {
+interface ClockInKeypadProps {
   onInput: (digit: string) => void
   onClear: () => void
   disabled?: boolean
   t: Translations
 }
 
-export function RefinedKeypad({ onInput, onClear, disabled, t }: RefinedKeypadProps) {
+export function ClockInKeypad({ onInput, onClear, disabled, t }: ClockInKeypadProps) {
   return (
     <div className="grid grid-cols-3 gap-2.5 max-w-[320px] mx-auto">
       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (

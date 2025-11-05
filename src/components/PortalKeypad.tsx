@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
 /**
- * NUMERIC KEYPAD COMPONENT - Employee Portal Login
+ * PORTAL KEYPAD COMPONENT
  *
- * Purpose: Self-contained PIN entry keypad with built-in state management
+ * Purpose: Self-contained PIN entry keypad for Employee Portal login
  * Used in: Employee Portal login flow
  *
  * Features:
@@ -11,27 +11,28 @@ import { useState } from 'react'
  * - Auto-submit on complete PIN
  * - Backspace support
  * - Glass morphism styling
+ * - Self-managing state
  *
- * IMPORTANT: This is different from:
- * - ClockInOutKeypad (in pages/ClockInOut.tsx) - Used for standalone clock terminal
- * - RefinedKeypad (in components/RefinedKeypad.tsx) - Used for controlled PIN entry
+ * IMPORTANT: This is different from ClockInKeypad:
+ * - ClockInKeypad (components/ClockInKeypad.tsx) - Controlled keypad for employee portal
+ * - ClockInOutKeypad (pages/ClockInOut.tsx) - Inline keypad for clock terminal
  *
- * Use this when: You need a standalone keypad with its own state for login flows
+ * Use this when: You need a standalone keypad with its own state for portal login
  */
 
-interface NumericKeypadProps {
+interface PortalKeypadProps {
   onComplete?: (value: string) => void
   onChange?: (value: string) => void
   maxLength?: number
   showDisplay?: boolean
 }
 
-export function NumericKeypad({
+export function PortalKeypad({
   onComplete,
   onChange,
   maxLength = 4,
   showDisplay = true
-}: NumericKeypadProps) {
+}: PortalKeypadProps) {
   const [value, setValue] = useState('')
 
   const handleInput = (digit: string) => {

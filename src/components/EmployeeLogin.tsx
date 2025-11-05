@@ -3,7 +3,7 @@
  * Full-screen login interface with glassmorphism design
  */
 
-import { RefinedKeypad } from './RefinedKeypad'
+import { ClockInKeypad } from './ClockInKeypad'
 import type { Translations } from '../lib/translations'
 
 interface EmployeeLoginProps {
@@ -70,7 +70,7 @@ export function EmployeeLogin({
         )}
 
         {/* Keypad */}
-        <RefinedKeypad
+        <ClockInKeypad
           onInput={onPinInput}
           onClear={onPinClear}
           disabled={isLoggingIn}

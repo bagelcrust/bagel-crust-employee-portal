@@ -18,8 +18,10 @@ import { employeeApi, timeclockApi, getDisplayName, supabase } from '../supabase
  */
 
 // Clock In/Out Keypad Component (Tailwind CSS)
-// NOTE: This keypad is specific to the clock in/out flow with PIN entry
-// For other keypad needs, see NumericKeypad.tsx (employee portal login)
+// NOTE: This keypad is specific to the clock in/out terminal flow with PIN entry
+// For other keypad needs:
+//   - PortalKeypad.tsx (standalone portal login with built-in state)
+//   - ClockInKeypad.tsx (controlled keypad for portal with parent state)
 function ClockInOutKeypad({ onComplete, maxLength = 4 }: { onComplete?: (value: string) => void, maxLength?: number }) {
   const [value, setValue] = useState('')
 
