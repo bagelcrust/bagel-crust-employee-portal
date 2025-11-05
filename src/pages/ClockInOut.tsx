@@ -269,10 +269,10 @@ export default function ClockInOut_B() {
           />
         </div>
 
-      {/* Recent Activity - Subtle Glass */}
+      {/* Recent Activity - Subtle Glass with safe area */}
       <div style={{
         position: 'fixed',
-        bottom: '16px',
+        bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
         right: '16px',
         width: '280px',
         background: 'rgba(255, 255, 255, 0.7)',
@@ -357,11 +357,11 @@ export default function ClockInOut_B() {
         )}
       </div>
 
-      {/* Message Display - Refined Glass */}
+      {/* Message Display - Refined Glass with safe area */}
       {message && (
         <div style={{
           position: 'fixed',
-          bottom: '32px',
+          bottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
           left: '50%',
           transform: 'translateX(-50%)',
           padding: '14px 28px',

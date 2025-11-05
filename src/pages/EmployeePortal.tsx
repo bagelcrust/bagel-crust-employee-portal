@@ -484,6 +484,9 @@ export default function EmployeePortal_B() {
   }
 
   // PIN Login Screen - Refined Glassmorphism
+  // PIN LOGIN SCREEN - Static, centered, no scroll
+  // position: fixed with overflow: hidden ensures no scrollbar
+  // Padding on inner container only (not on 100vh container)
   if (!isLoggedIn) {
     return (
       <div style={{
@@ -493,7 +496,6 @@ export default function EmployeePortal_B() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         position: 'fixed',
         overflow: 'hidden'
@@ -614,6 +616,7 @@ export default function EmployeePortal_B() {
 
   // APP SHELL ARCHITECTURE:
   // - Outer container: Fixed background (100vh, overflow: hidden) - Never scrolls
+  //   - paddingTop uses env(safe-area-inset-top) to prevent header from going under iOS notch/URL bar
   // - Inner container: Scrollable content area (flex: 1, overflow: auto) - Only this scrolls
   // - Fixed footer: Position fixed at bottom, outside scroll area
   // This prevents "scrolling poster" effect where background moves with content
@@ -625,7 +628,8 @@ export default function EmployeePortal_B() {
       flexDirection: 'column',
       background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      paddingTop: 'env(safe-area-inset-top, 20px)'
     }}>
       {/* Scrollable Content Area - paddingBottom creates safe area from mobile UI */}
       <div style={{
@@ -1166,7 +1170,7 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Footer Bar - Fixed */}
+      {/* Bottom Footer Bar - Fixed with safe area padding */}
       <div style={{
         position: 'fixed',
         bottom: 0,
@@ -1178,6 +1182,7 @@ export default function EmployeePortal_B() {
         borderTop: '1px solid rgba(0, 0, 0, 0.08)',
         boxShadow: '0 -2px 12px rgba(0, 0, 0, 0.08)',
         padding: '12px 20px',
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
