@@ -13,6 +13,13 @@ echo ""
 echo "Paste your token below and press Enter:"
 read -s GITHUB_TOKEN
 echo ""
+
+# Save the credentials first
+echo "Saving your token..."
+echo "https://${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+git config --global credential.helper store
+echo ""
+
 echo "Pushing to GitHub..."
 echo ""
 
@@ -25,9 +32,12 @@ if [ $? -eq 0 ]; then
     echo "✅ SUCCESS! Code pushed to GitHub"
     echo "======================================"
     echo ""
-    echo "Your token has been saved."
+    echo "✅ Your token has been saved!"
+    echo ""
     echo "From now on, you can just use:"
     echo "  git push origin main"
+    echo ""
+    echo "Or run this script again (won't ask for token)"
     echo ""
 else
     echo ""
@@ -35,4 +45,6 @@ else
     echo "❌ Push failed. Check your token."
     echo "======================================"
     echo ""
+    echo "Removing saved credentials..."
+    rm -f ~/.git-credentials
 fi
