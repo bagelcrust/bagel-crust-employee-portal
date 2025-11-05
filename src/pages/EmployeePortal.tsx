@@ -485,7 +485,7 @@ export default function EmployeePortal_B() {
 
   if (!isLoggedIn) {
     return (
-      <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-5">
+      <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-20 px-5">
         <div style={{
           maxWidth: '400px',
           width: '100%',
