@@ -500,7 +500,12 @@ export default function EmployeePortal_B() {
 
   if (!isLoggedIn) {
     return (
-      <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-8 px-5">
+      <div className="min-h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-8 px-5"
+           style={{
+             minHeight: '100dvh',
+             paddingTop: 'max(2rem, env(safe-area-inset-top, 0px))',
+             paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+           }}>
         <div style={{
           maxWidth: '400px',
           width: '100%',
@@ -615,8 +620,11 @@ export default function EmployeePortal_B() {
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
   return (
-    <div className="h-screen w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
-         style={{ paddingTop: 'env(safe-area-inset-top, 20px)' }}>
+    <div className="min-h-screen w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
+         style={{
+           minHeight: '100dvh',
+           paddingTop: 'env(safe-area-inset-top, 20px)'
+         }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-2xl mx-auto p-5">
           {/* Menu Navigation with Glass Effect */}

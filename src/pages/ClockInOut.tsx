@@ -219,7 +219,12 @@ export default function ClockInOut_B() {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-12 px-5">
+    <div className="min-h-screen w-full overflow-hidden fixed inset-0 flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 pt-12 px-5"
+         style={{
+           minHeight: '100dvh',
+           paddingTop: 'max(3rem, env(safe-area-inset-top, 0px))',
+           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+         }}>
       <div className="flex flex-col items-center w-full max-w-md">
           {/* Clock Display */}
           <div style={{ marginBottom: '32px', textAlign: 'center' }}>
