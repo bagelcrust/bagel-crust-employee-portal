@@ -253,6 +253,7 @@ export default function EmployeePortal_B() {
   const [timeOffEndDate, setTimeOffEndDate] = useState('')
   const [timeOffReason, setTimeOffReason] = useState('')
   const [timeOffSubmitting, setTimeOffSubmitting] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
 
   // Get current translations
   const t = translations[language]
@@ -771,42 +772,117 @@ export default function EmployeePortal_B() {
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '20px'
+           paddingTop: '8px'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto px-4 py-5">
-          {/* Horizontal Tab Navigation */}
-        <div className="flex gap-2 mb-4 overflow-x-auto" style={{
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {[
-            { key: 'weeklySchedule', label: t.weeklySchedule },
-            { key: 'teamSchedule', label: t.teamSchedule },
-            { key: 'openShifts', label: t.openShifts },
-            { key: 'timeOff', label: t.timeOff },
-            { key: 'timesheet', label: t.timesheet },
-            { key: 'profile', label: t.profile }
-          ].map(({ key, label }) => (
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          {/* My Schedule + More Menu */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '16px',
+            position: 'relative'
+          }}>
             <button
-              key={key}
-              onClick={() => setActiveTab(key as any)}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
-                activeTab === key
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white/90 text-gray-700 hover:bg-white'
-              }`}
+              onClick={() => setActiveTab('weeklySchedule')}
               style={{
+                flex: 1,
+                padding: '14px',
+                borderRadius: '12px',
+                border: 'none',
+                background: activeTab === 'weeklySchedule' ? '#2563EB' : 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(10px)',
                 WebkitBackdropFilter: 'blur(10px)',
-                border: activeTab === key ? 'none' : '1px solid rgba(0,0,0,0.06)'
+                boxShadow: activeTab === 'weeklySchedule' ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                fontSize: '16px',
+                fontWeight: '700',
+                color: activeTab === 'weeklySchedule' ? '#fff' : '#1F2937',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
               }}
             >
-              {label}
+              <span>📅</span>
+              <span>My Schedule</span>
             </button>
-          ))}
-        </div>
+
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              style={{
+                padding: '14px 20px',
+                borderRadius: '12px',
+                border: '1px solid rgba(0,0,0,0.06)',
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#1F2937'
+              }}
+            >
+              ⋯
+            </button>
+
+            {/* Dropdown Menu */}
+            {showMoreMenu && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
+                border: '1px solid rgba(0, 0, 0, 0.06)',
+                padding: '8px',
+                minWidth: '200px',
+                zIndex: 100
+              }}>
+                {[
+                  { key: 'teamSchedule', label: 'Team Schedule', icon: '👥' },
+                  { key: 'openShifts', label: 'Open Shifts', icon: '📋' },
+                  { key: 'timeOff', label: 'Time Off', icon: '🏖️' },
+                  { key: 'timesheet', label: 'Timesheet', icon: '⏰' },
+                  { key: 'profile', label: 'Profile', icon: '👤' }
+                ].map(({ key, label, icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setActiveTab(key as any)
+                      setShowMoreMenu(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      background: activeTab === key ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      color: activeTab === key ? '#2563EB' : '#1F2937',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <span style={{ fontSize: '20px' }}>{icon}</span>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
         {/* Content Area with Glass Effect */}
         <div style={{
