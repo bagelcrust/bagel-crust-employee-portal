@@ -1,64 +1,43 @@
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Filter, Wrench, Send } from 'lucide-react'
+import { useEffect } from 'react'
+import { ChevronLeft, ChevronRight, Calendar, Filter, Wrench, Send, Loader2 } from 'lucide-react'
+import { useScheduleBuilder } from '../hooks'
+import { format } from 'date-fns'
 
 /**
- * MODERN SCHEDULE BUILDER - UI Only
+ * SCHEDULE BUILDER - Connected to Supabase
  *
- * A refined, glassmorphism-style weekly schedule builder with:
- * - Clean header with date navigation
- * - Weekly grid view with employee rows
- * - Unavailable/Time-off block visualization
- * - Responsive Tailwind styling
- * - Professional color scheme
+ * Features:
+ * - Real employee data from Supabase
+ * - Real shifts displayed in weekly grid
+ * - Week navigation (Today, Previous, Next)
+ * - Glassmorphism styling
+ * - Responsive design
  */
 
-// Sample employee data for UI
-const employees = [
-  { id: 1, name: 'Shani' },
-  { id: 2, name: 'Kelly Scherer' },
-  { id: 3, name: 'Sophie' },
-  { id: 4, name: 'Annie' },
-  { id: 5, name: 'Clara' },
-  { id: 6, name: 'Fiona' },
-  { id: 7, name: 'Maddy' }
-]
-
-const daysOfWeek = [
-  { short: 'Mon', date: 3 },
-  { short: 'Tue', date: 4, isToday: true },
-  { short: 'Wed', date: 5 },
-  { short: 'Thu', date: 6 },
-  { short: 'Fri', date: 7 },
-  { short: 'Sat', date: 8 },
-  { short: 'Sun', date: 9 }
-]
-
-// Sample unavailability data (for UI demonstration)
-const unavailabilityData: Record<number, Record<number, { type: 'unavailable' | 'timeoff', time: string }>> = {
-  1: { 4: { type: 'unavailable', time: 'All Day' } },
-  2: { 1: { type: 'unavailable', time: 'All Day' }, 3: { type: 'unavailable', time: 'All Day' }, 5: { type: 'timeoff', time: 'All Day' } },
-  3: { 0: { type: 'unavailable', time: 'All Day' }, 2: { type: 'unavailable', time: 'All Day' }, 4: { type: 'unavailable', time: 'All Day' } },
-  4: { 2: { type: 'unavailable', time: 'All Day' } },
-  5: { 2: { type: 'unavailable', time: 'All Day' } },
-  6: {
-    0: { type: 'unavailable', time: '11am-2pm' },
-    1: { type: 'unavailable', time: 'All Day' },
-    2: { type: 'unavailable', time: '11am-2pm' },
-    3: { type: 'unavailable', time: 'All Day' },
-    4: { type: 'unavailable', time: '11am-2pm' }
-  },
-  7: { 3: { type: 'unavailable', time: 'All Day' } }
-}
-
 export default function ScheduleBuilder() {
-  const [dateRange] = useState('Nov 3, 2025 - Nov 9, 2025')
-  const [filterCount] = useState(4)
-  const [publishCount] = useState(0)
+  const {
+    dateRangeString,
+    isThisWeek,
+    daysOfWeek,
+    goToToday,
+    goToPreviousWeek,
+    goToNextWeek,
+    employees,
+    shiftsByEmployeeAndDay,
+    isLoading
+  } = useScheduleBuilder()
 
   // Set page title
   useEffect(() => {
     document.title = 'Bagel Crust - Schedule Builder'
   }, [])
+
+  // Format shift time for display
+  const formatShiftTime = (startTime: string, endTime: string) => {
+    const start = new Date(startTime)
+    const end = new Date(endTime)
+    return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
@@ -75,7 +54,15 @@ export default function ScheduleBuilder() {
             }}
           >
             {/* Today Button */}
-            <button className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-all">
+            <button
+              onClick={goToToday}
+              disabled={isThisWeek}
+              className={`px-4 py-2 border-2 rounded-lg font-semibold text-sm transition-all ${
+                isThisWeek
+                  ? 'border-gray-300 text-gray-400 cursor-not-allowed'
+                  : 'border-blue-600 text-blue-600 hover:bg-blue-50'
+              }`}
+            >
               Today
             </button>
 
@@ -88,12 +75,13 @@ export default function ScheduleBuilder() {
               }}
             >
               <Calendar className="w-4 h-4 text-gray-500" />
-              {dateRange}
+              {dateRangeString}
             </button>
 
             {/* Navigation Arrows */}
             <div className="flex gap-1">
               <button
+                onClick={goToPreviousWeek}
                 className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/80"
                 style={{
                   background: 'rgba(255, 255, 255, 0.6)',
@@ -103,6 +91,7 @@ export default function ScheduleBuilder() {
                 <ChevronLeft className="w-5 h-5 text-gray-600" />
               </button>
               <button
+                onClick={goToNextWeek}
                 className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/80"
                 style={{
                   background: 'rgba(255, 255, 255, 0.6)',
@@ -132,7 +121,7 @@ export default function ScheduleBuilder() {
             {/* Action Buttons */}
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-md">
               <Filter className="w-4 h-4" />
-              Filters ({filterCount})
+              Filters
             </button>
 
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-md">
@@ -149,7 +138,7 @@ export default function ScheduleBuilder() {
               disabled
             >
               <Send className="w-4 h-4" />
-              Publish ({publishCount})
+              Publish (0)
             </button>
           </div>
         </div>
@@ -167,129 +156,147 @@ export default function ScheduleBuilder() {
               border: '1px solid rgba(255, 255, 255, 0.5)'
             }}
           >
-            <div className="overflow-auto h-full">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    <th
-                      className="sticky top-0 left-0 z-20 border-r border-b px-5 py-4 text-left font-semibold text-sm text-gray-700 min-w-[200px]"
-                      style={{
-                        background: 'rgba(249, 250, 251, 0.95)',
-                        backdropFilter: 'blur(10px)',
-                        borderColor: 'rgba(0, 0, 0, 0.06)'
-                      }}
-                    >
-                      Employee
-                    </th>
-                    {daysOfWeek.map((day, index) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
+                  <div className="text-sm text-gray-600">Loading schedule...</div>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-auto h-full">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
                       <th
-                        key={index}
-                        className="sticky top-0 z-10 border-r border-b px-4 py-4 text-center font-semibold text-sm min-w-[140px]"
+                        className="sticky top-0 left-0 z-20 border-r border-b px-5 py-4 text-left font-semibold text-sm text-gray-700 min-w-[200px]"
                         style={{
-                          background: day.isToday
-                            ? 'rgba(224, 231, 255, 0.5)'
-                            : 'rgba(249, 250, 251, 0.95)',
+                          background: 'rgba(249, 250, 251, 0.95)',
                           backdropFilter: 'blur(10px)',
                           borderColor: 'rgba(0, 0, 0, 0.06)'
                         }}
                       >
-                        {day.isToday ? (
-                          <span className="inline-block bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
-                            {day.short}, {day.date}
-                          </span>
-                        ) : (
-                          <span className="text-gray-700">
-                            {day.short}, {day.date}
-                          </span>
-                        )}
+                        Employee ({employees.length})
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Employee Rows */}
-                  {employees.map((employee) => (
-                    <tr
-                      key={employee.id}
-                      className="transition-colors hover:bg-white/40"
-                    >
-                      <td
-                        className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.8)',
-                          backdropFilter: 'blur(10px)',
-                          borderColor: 'rgba(0, 0, 0, 0.04)'
-                        }}
-                      >
-                        {employee.name}
-                      </td>
-                      {daysOfWeek.map((day, dayIndex) => {
-                        const block = unavailabilityData[employee.id]?.[dayIndex]
-                        return (
+                      {daysOfWeek.map((day, index) => (
+                        <th
+                          key={index}
+                          className="sticky top-0 z-10 border-r border-b px-4 py-4 text-center font-semibold text-sm min-w-[140px]"
+                          style={{
+                            background: day.isToday
+                              ? 'rgba(224, 231, 255, 0.5)'
+                              : 'rgba(249, 250, 251, 0.95)',
+                            backdropFilter: 'blur(10px)',
+                            borderColor: 'rgba(0, 0, 0, 0.06)'
+                          }}
+                        >
+                          {day.isToday ? (
+                            <span className="inline-block bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                              {day.dayName}, {day.dayNumber}
+                            </span>
+                          ) : (
+                            <span className="text-gray-700">
+                              {day.dayName}, {day.dayNumber}
+                            </span>
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Employee Rows */}
+                    {employees.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-8 text-gray-500">
+                          No employees found
+                        </td>
+                      </tr>
+                    ) : (
+                      employees.map((employee) => (
+                        <tr
+                          key={employee.id}
+                          className="transition-colors hover:bg-white/40"
+                        >
                           <td
-                            key={dayIndex}
-                            className="border-r border-b p-2.5 h-[80px] align-top"
+                            className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
                             style={{
-                              borderColor: 'rgba(0, 0, 0, 0.04)',
-                              background: day.isToday ? 'rgba(224, 231, 255, 0.15)' : 'transparent'
+                              background: 'rgba(255, 255, 255, 0.8)',
+                              backdropFilter: 'blur(10px)',
+                              borderColor: 'rgba(0, 0, 0, 0.04)'
                             }}
                           >
-                            {block && (
-                              <div
-                                className="rounded-lg p-2.5 h-full"
+                            {employee.first_name}
+                          </td>
+                          {daysOfWeek.map((day, dayIndex) => {
+                            const shiftsForDay = shiftsByEmployeeAndDay[employee.id]?.[dayIndex] || []
+                            return (
+                              <td
+                                key={dayIndex}
+                                className="border-r border-b p-2.5 min-h-[80px] align-top"
                                 style={{
-                                  background: block.type === 'unavailable'
-                                    ? 'rgba(156, 163, 175, 0.15)'
-                                    : 'rgba(251, 191, 36, 0.15)',
-                                  border: `1px solid ${
-                                    block.type === 'unavailable'
-                                      ? 'rgba(156, 163, 175, 0.25)'
-                                      : 'rgba(251, 191, 36, 0.3)'
-                                  }`,
-                                  backdropFilter: 'blur(5px)'
+                                  borderColor: 'rgba(0, 0, 0, 0.04)',
+                                  background: day.isToday ? 'rgba(224, 231, 255, 0.15)' : 'transparent'
                                 }}
                               >
-                                <div className="font-semibold text-xs text-gray-700">
-                                  {block.type === 'unavailable' ? 'Unavailable' : 'Time-off'}
-                                </div>
-                                <div className="text-xs text-gray-600 mt-1">
-                                  {block.time}
-                                </div>
-                              </div>
-                            )}
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
+                                {shiftsForDay.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {shiftsForDay.map((shift) => (
+                                      <div
+                                        key={shift.id}
+                                        className="rounded-lg p-2.5 cursor-pointer hover:shadow-md transition-shadow"
+                                        style={{
+                                          background: 'rgba(37, 99, 235, 0.1)',
+                                          border: '1px solid rgba(37, 99, 235, 0.2)',
+                                          backdropFilter: 'blur(5px)'
+                                        }}
+                                      >
+                                        <div className="font-semibold text-xs text-blue-900">
+                                          {shift.location}
+                                        </div>
+                                        <div className="text-xs text-blue-800 mt-1">
+                                          {formatShiftTime(shift.start_time, shift.end_time)}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="h-full min-h-[60px]" />
+                                )}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))
+                    )}
 
-                  {/* Wages Row */}
-                  <tr className="font-semibold">
-                    <td
-                      className="sticky left-0 z-10 border-r border-t-2 px-5 py-4 text-sm text-gray-700"
-                      style={{
-                        background: 'rgba(243, 244, 246, 0.9)',
-                        backdropFilter: 'blur(10px)',
-                        borderColor: 'rgba(0, 0, 0, 0.1)'
-                      }}
-                    >
-                      Wages
-                    </td>
-                    {daysOfWeek.map((_, dayIndex) => (
+                    {/* Wages Row */}
+                    <tr className="font-semibold">
                       <td
-                        key={dayIndex}
-                        className="border-r border-t-2 px-4 py-4 text-center text-sm text-gray-600"
+                        className="sticky left-0 z-10 border-r border-t-2 px-5 py-4 text-sm text-gray-700"
                         style={{
+                          background: 'rgba(243, 244, 246, 0.9)',
+                          backdropFilter: 'blur(10px)',
                           borderColor: 'rgba(0, 0, 0, 0.1)'
                         }}
                       >
-                        $0.00
+                        Wages
                       </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                      {daysOfWeek.map((_, dayIndex) => (
+                        <td
+                          key={dayIndex}
+                          className="border-r border-t-2 px-4 py-4 text-center text-sm text-gray-600"
+                          style={{
+                            borderColor: 'rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          $0.00
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>
