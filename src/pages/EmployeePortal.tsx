@@ -687,24 +687,24 @@ export default function EmployeePortal_B() {
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
-              {/* Week Toggle - matches tab button size */}
-              <div className="flex gap-2 mb-5">
+              {/* Week Toggle - iOS-style segmented control */}
+              <div className="inline-flex bg-gray-100 rounded-lg p-1 mb-5" style={{ width: 'fit-content' }}>
                 <button
                   onClick={() => setShowWeek('this')}
-                  className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                  className={`px-6 py-1.5 rounded-md font-semibold text-sm transition-all ${
                     showWeek === 'this'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   {t.thisWeek}
                 </button>
                 <button
                   onClick={() => setShowWeek('next')}
-                  className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                  className={`px-6 py-1.5 rounded-md font-semibold text-sm transition-all ${
                     showWeek === 'next'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   {t.nextWeek}
