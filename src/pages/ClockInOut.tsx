@@ -268,7 +268,6 @@ export default function ClockInOut_B() {
             maxLength={4}
           />
         </div>
-      </div>
 
       {/* Recent Activity - Subtle Glass */}
       <div style={{
