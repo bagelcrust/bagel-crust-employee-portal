@@ -1,15 +1,14 @@
 /**
  * EmployeeLogin - PIN-based authentication screen
  * Full-screen login interface with glassmorphism design
+ * ✅ USES UNIFIED KEYPAD COMPONENT with auto-submit
  */
 
-import { ClockInKeypad } from './ClockInKeypad'
+import { Keypad } from './Keypad'
 import type { Translations } from '../lib/translations'
 
 interface EmployeeLoginProps {
-  pin: string
-  onPinInput: (digit: string) => void
-  onPinClear: () => void
+  onComplete: (pin: string) => void
   isLoggingIn: boolean
   loginError: string | null
   t: Translations
@@ -18,15 +17,12 @@ interface EmployeeLoginProps {
 /**
  * Full-screen login component with PIN entry
  * Features:
- * - 4-digit PIN visualization
- * - Numeric keypad
+ * - Auto-submit keypad (submits on 4 digits)
  * - Error display
  * - Loading state
  */
 export function EmployeeLogin({
-  pin,
-  onPinInput,
-  onPinClear,
+  onComplete,
   isLoggingIn,
   loginError,
   t
@@ -48,20 +44,6 @@ export function EmployeeLogin({
           {t.enterPin}
         </p>
 
-        {/* PIN Display - 4 dots */}
-        <div className="h-[60px] bg-white/95 backdrop-blur-md rounded-[10px] flex items-center justify-center mb-5 gap-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-black/5">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
-                i < pin.length
-                  ? 'bg-blue-600 shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
-                  : 'bg-slate-300/40'
-              }`}
-            />
-          ))}
-        </div>
-
         {/* Error Message */}
         {loginError && (
           <div className="bg-red-500/8 text-red-600 px-3.5 py-2.5 rounded-lg mb-4 text-center text-[13px] font-medium border border-red-500/15">
@@ -69,13 +51,14 @@ export function EmployeeLogin({
           </div>
         )}
 
-        {/* Keypad */}
-        <ClockInKeypad
-          onInput={onPinInput}
-          onClear={onPinClear}
-          disabled={isLoggingIn}
-          t={t}
-        />
+        {/* Unified Keypad with auto-submit */}
+        <div className="flex justify-center">
+          <Keypad
+            onComplete={onComplete}
+            disabled={isLoggingIn}
+            maxLength={4}
+          />
+        </div>
 
         {/* Loading State */}
         {isLoggingIn && (

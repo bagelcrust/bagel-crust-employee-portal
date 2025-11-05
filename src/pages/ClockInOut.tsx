@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { employeeApi, timeclockApi, getDisplayName, supabase } from '../supabase/supabase'
+import { Keypad } from '../components/Keypad'
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
  *
  * ✅ FULLY TAILWIND CSS COMPLIANT - No inline styles
+ * ✅ USES UNIFIED KEYPAD COMPONENT
  *
  * Features refined glassmorphism design with professional aesthetic:
- * - PIN-based clock in/out with glass morphism keypad
+ * - PIN-based clock in/out with unified keypad component
  * - Live clock display at the top (Eastern Time)
  * - Recent activity feed in bottom-right corner
  * - Auto-submit on 4-digit PIN entry
@@ -15,68 +17,8 @@ import { employeeApi, timeclockApi, getDisplayName, supabase } from '../supabase
  * - Subtle glass effects (10px blur, 90% opacity)
  * - Moderate border radius (8-10px)
  * - Muted accent colors for professional appearance
+ * - Real-time Supabase subscriptions for instant updates
  */
-
-// Clock In/Out Keypad Component (Tailwind CSS)
-// NOTE: This keypad is specific to the clock in/out terminal flow with PIN entry
-// For other keypad needs:
-//   - PortalKeypad.tsx (standalone portal login with built-in state)
-//   - ClockInKeypad.tsx (controlled keypad for portal with parent state)
-function ClockInOutKeypad({ onComplete, maxLength = 4 }: { onComplete?: (value: string) => void, maxLength?: number }) {
-  const [value, setValue] = useState('')
-
-  const handleInput = (digit: string) => {
-    if (value.length < maxLength) {
-      const newValue = value + digit
-      setValue(newValue)
-
-      if (newValue.length === maxLength) {
-        onComplete?.(newValue)
-        setTimeout(() => setValue(''), 500)
-      }
-    }
-  }
-
-  const handleBackspace = () => {
-    setValue(value.slice(0, -1))
-  }
-
-  return (
-    <div className="w-[330px]">
-      {/* PIN Display - Glass Effect */}
-      <div className="h-[68px] bg-white/60 backdrop-blur-md border border-white/80 rounded-[10px] flex items-center justify-center mb-5 gap-[14px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
-        {Array.from({ length: maxLength }).map((_, i) => (
-          <div
-            key={i}
-            className={`w-[14px] h-[14px] rounded-full transition-all duration-[250ms] ease-in-out ${
-              i < value.length ? 'bg-blue-600' : 'bg-black/10'
-            }`}
-          />
-        ))}
-      </div>
-
-      {/* Keypad Grid */}
-      <div className="grid grid-cols-3 gap-[10px]">
-        {[1,2,3,4,5,6,7,8,9,'←',0].map(item => (
-          <button
-            key={item}
-            onClick={() => {
-              if (item === '←') handleBackspace()
-              else if (typeof item === 'number') handleInput(item.toString())
-            }}
-            className={`h-[68px] ${
-              item === '←' ? 'text-[22px]' : 'text-[26px]'
-            } font-semibold bg-white/50 backdrop-blur-md border border-white/60 rounded-[10px] cursor-pointer text-gray-800 transition-all duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-white/70 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] active:translate-y-0 ${
-              item === 0 ? 'col-start-2' : ''
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function ClockInOut() {
   const [message, setMessage] = useState('')
@@ -237,7 +179,7 @@ export default function ClockInOut() {
         </div>
 
         {/* Keypad */}
-        <ClockInOutKeypad
+        <Keypad
           key={keypadKey}
           onComplete={handleClockAction}
           maxLength={4}

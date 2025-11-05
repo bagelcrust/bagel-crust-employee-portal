@@ -97,7 +97,6 @@ export default function EmployeePortal() {
   // ============================================================================
   // LOCAL UI STATE (not data fetching)
   // ============================================================================
-  const [pin, setPin] = useState('')
   const [activeTab, setActiveTab] = useState<'weeklySchedule' | 'teamSchedule' | 'openShifts' | 'timeOff' | 'timesheet' | 'profile'>('weeklySchedule')
   const [language, _setLanguage] = useState<'en' | 'es'>('en')
   const [timeOffStartDate, setTimeOffStartDate] = useState('')
@@ -110,29 +109,11 @@ export default function EmployeePortal() {
   // ============================================================================
   // EVENT HANDLERS - Simplified with hooks
   // ============================================================================
-  const handlePinInput = (digit: string) => {
-    setPin(prevPin => {
-      const newPin = prevPin.length < 4 ? prevPin + digit : prevPin
-      if (newPin.length === 4) {
-        setTimeout(() => handlePinLogin(newPin), 0)
-      }
-      return newPin
-    })
-  }
-
-  const handlePinClear = () => {
-    setPin('')
-  }
-
-  const handlePinLogin = async (pinValue?: string) => {
-    const pinToUse = pinValue || pin
-    if (pinToUse.length !== 4) return
-
+  const handlePinLogin = async (pin: string) => {
     try {
-      await login(pinToUse)
-      setPin('')
+      await login(pin)
     } catch (error) {
-      setPin('')
+      // Error is handled by useEmployeeAuth hook
     }
   }
 
@@ -177,9 +158,7 @@ export default function EmployeePortal() {
   if (!isLoggedIn) {
     return (
       <EmployeeLogin
-        pin={pin}
-        onPinInput={handlePinInput}
-        onPinClear={handlePinClear}
+        onComplete={handlePinLogin}
         isLoggingIn={isLoggingIn}
         loginError={loginError}
         t={t}
