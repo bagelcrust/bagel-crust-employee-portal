@@ -720,6 +720,23 @@ export default function EmployeePortal_B() {
                   const dayName = t[day as keyof typeof t] as string
                   const isToday = new Date().getDay() === (dayOrder.indexOf(day) + 1) % 7
 
+                  // Calculate date for this day
+                  const now = new Date()
+                  const currentDayOfWeek = now.getDay() // 0 = Sunday, 1 = Monday, etc.
+                  const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek
+                  const monday = new Date(now)
+                  monday.setDate(now.getDate() + mondayOffset)
+
+                  const weekOffset = showWeek === 'next' ? 7 : 0
+                  const dayDate = new Date(monday)
+                  dayDate.setDate(monday.getDate() + index + weekOffset)
+
+                  const dateStr = dayDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'America/New_York'
+                  })
+
                   return (
                     <div
                       key={day}
@@ -740,6 +757,13 @@ export default function EmployeePortal_B() {
                           lineHeight: '1.5'
                         }}>
                           {dayName}
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#6B7280',
+                          marginTop: '2px'
+                        }}>
+                          {dateStr}
                         </div>
                         {isToday && (
                           <div style={{
