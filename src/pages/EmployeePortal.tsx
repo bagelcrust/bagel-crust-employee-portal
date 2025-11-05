@@ -1498,22 +1498,22 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 shadow-lg"
+      {/* Bottom Navigation Bar - Underline Style */}
+      <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
-             paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-             background: 'rgba(255, 255, 255, 0.95)',
+             paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
+             background: 'rgba(255, 255, 255, 0.98)',
              backdropFilter: 'blur(10px)',
              WebkitBackdropFilter: 'blur(10px)',
-             borderTop: '2px solid #60A5FA'
+             borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+             boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.03)'
            }}>
         <div style={{
           display: 'flex',
-          gap: '6px',
-          alignItems: 'center',
+          justifyContent: 'space-around',
           maxWidth: '600px',
           margin: '0 auto',
-          padding: '12px 8px 8px'
+          padding: '8px 12px 0'
         }}>
           {[
             { key: 'weeklySchedule', icon: '📅', label: 'Schedule' },
@@ -1530,30 +1530,31 @@ export default function EmployeePortal_B() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '10px 8px',
-                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
-                background: activeTab === key ? '#2563EB' : '#EFF6FF',
+                gap: '6px',
+                padding: '8px 4px',
+                border: 'none',
+                background: 'transparent',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                borderRadius: '10px',
-                minWidth: '60px',
-                flex: 1
+                transition: 'all 0.2s ease',
+                flex: 1,
+                position: 'relative',
+                borderBottom: activeTab === key ? '3px solid #2563EB' : '3px solid transparent'
               }}
             >
               <div style={{
                 fontSize: '24px',
-                transform: activeTab === key ? 'scale(1.1)' : 'scale(1)',
-                transition: 'transform 0.15s ease'
+                transition: 'all 0.2s ease',
+                opacity: activeTab === key ? 1 : 0.5
               }}>
                 {icon}
               </div>
               <div style={{
                 fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '600',
-                color: activeTab === key ? '#ffffff' : '#2563EB',
+                fontWeight: activeTab === key ? '700' : '500',
+                color: activeTab === key ? '#2563EB' : '#9CA3AF',
                 textAlign: 'center',
-                lineHeight: '1.2'
+                lineHeight: '1.2',
+                transition: 'all 0.2s ease'
               }}>
                 {label}
               </div>
