@@ -642,9 +642,9 @@ export default function EmployeePortal_B() {
            paddingTop: '20px'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto p-5">
+        <div className="max-w-2xl mx-auto px-4 py-3">
           {/* Horizontal Tab Navigation */}
-        <div className="flex gap-2 mb-4 overflow-x-auto" style={{
+        <div className="flex gap-2 mb-3 overflow-x-auto" style={{
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none'
@@ -680,32 +680,34 @@ export default function EmployeePortal_B() {
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
           borderRadius: '10px',
-          padding: '22px',
+          padding: '16px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
           border: '1px solid rgba(255, 255, 255, 0.5)'
         }}>
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
-              {/* Week Toggle - iOS-style segmented control */}
-              <div className="inline-flex bg-gray-100 rounded-lg p-1 mb-5" style={{ width: 'fit-content' }}>
+              {/* Week Toggle - full width segmented control */}
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-3 w-full">
                 <button
                   onClick={() => setShowWeek('this')}
-                  className={`px-6 py-1.5 rounded-md font-semibold text-sm transition-all ${
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
                     showWeek === 'this'
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
+                  type="button"
                 >
                   {t.thisWeek}
                 </button>
                 <button
                   onClick={() => setShowWeek('next')}
-                  className={`px-6 py-1.5 rounded-md font-semibold text-sm transition-all ${
+                  className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
                     showWeek === 'next'
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
+                  type="button"
                 >
                   {t.nextWeek}
                 </button>
