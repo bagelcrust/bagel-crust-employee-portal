@@ -20,12 +20,19 @@ export function useDynamicManifest() {
   const location = useLocation()
 
   useEffect(() => {
+    // Get full URL including origin (required for PWA start_url)
+    const fullUrl = window.location.origin + location.pathname
+
+    console.log('📱 PWA Manifest: Generating for path:', location.pathname)
+    console.log('📱 PWA Manifest: Full start_url:', fullUrl)
+
     // Generate manifest based on current path
     const manifest = {
       name: 'Bagel Crust Employee Portal',
       short_name: 'Bagel Crust',
       description: 'Employee scheduling, timesheets, and portal for Bagel Crust',
-      start_url: location.pathname, // Current page becomes the start URL
+      start_url: fullUrl, // Full URL including origin
+      scope: '/',
       display: 'standalone',
       background_color: '#ffffff',
       theme_color: '#2563EB',
@@ -50,26 +57,23 @@ export function useDynamicManifest() {
     const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' })
     const manifestURL = URL.createObjectURL(manifestBlob)
 
-    // Update or create manifest link in <head>
-    let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement
-
-    if (!manifestLink) {
-      manifestLink = document.createElement('link')
-      manifestLink.rel = 'manifest'
-      document.head.appendChild(manifestLink)
+    // Remove old manifest link if it exists
+    const oldManifestLink = document.querySelector('link[rel="manifest"]')
+    if (oldManifestLink) {
+      oldManifestLink.remove()
     }
 
-    // Store old URL for cleanup
-    const oldURL = manifestLink.href
-
-    // Set new manifest URL
+    // Create new manifest link
+    const manifestLink = document.createElement('link')
+    manifestLink.rel = 'manifest'
     manifestLink.href = manifestURL
+    document.head.appendChild(manifestLink)
 
-    // Cleanup: revoke old blob URL when location changes
+    console.log('📱 PWA Manifest: Updated manifest link in <head>')
+
+    // Cleanup: revoke blob URL when location changes
     return () => {
-      if (oldURL && oldURL.startsWith('blob:')) {
-        URL.revokeObjectURL(oldURL)
-      }
+      URL.revokeObjectURL(manifestURL)
     }
   }, [location.pathname])
 }
