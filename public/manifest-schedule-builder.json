@@ -1,9 +1,10 @@
 {
+  "id": "/schedule-builder",
   "name": "Bagel Crust - Schedule Builder",
   "short_name": "Schedule",
   "description": "Schedule builder for Bagel Crust",
   "start_url": "/schedule-builder",
-  "scope": "/",
+  "scope": "/schedule-builder",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563EB",

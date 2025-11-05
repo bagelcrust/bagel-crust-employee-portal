@@ -1,9 +1,10 @@
 {
+  "id": "/employee-portal",
   "name": "Bagel Crust - Employee Portal",
   "short_name": "Employee Portal",
   "description": "Employee portal for Bagel Crust",
   "start_url": "/employee-portal",
-  "scope": "/",
+  "scope": "/employee-portal",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563EB",

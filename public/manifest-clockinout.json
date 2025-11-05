@@ -1,9 +1,10 @@
 {
+  "id": "/clockinout",
   "name": "Bagel Crust - Clock In/Out",
   "short_name": "Clock In",
   "description": "Clock in and out for Bagel Crust",
   "start_url": "/clockinout",
-  "scope": "/",
+  "scope": "/clockinout",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563EB",
