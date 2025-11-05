@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { employeeApi, scheduleApi, Employee, Shift } from '../supabase/supabase'
+import { employeeApi, scheduleApi } from '../supabase/supabase'
+import type { Shift } from '../supabase/supabase'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek } from 'date-fns'
 
 /**
