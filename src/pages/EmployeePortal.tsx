@@ -1498,22 +1498,19 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 shadow-lg"
+      {/* Bottom Navigation Bar - Floating Circles */}
+      <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
-             paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-             background: 'rgba(255, 255, 255, 0.95)',
-             backdropFilter: 'blur(10px)',
-             WebkitBackdropFilter: 'blur(10px)',
-             borderTop: '2px solid #60A5FA'
+             paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+             background: 'transparent'
            }}>
         <div style={{
           display: 'flex',
-          gap: '6px',
-          alignItems: 'center',
+          justifyContent: 'space-around',
+          alignItems: 'flex-end',
           maxWidth: '600px',
           margin: '0 auto',
-          padding: '12px 8px 8px'
+          padding: '0 12px'
         }}>
           {[
             { key: 'weeklySchedule', icon: '📅', label: 'Schedule' },
@@ -1523,41 +1520,49 @@ export default function EmployeePortal_B() {
             { key: 'timesheet', icon: '⏰', label: 'Hours' },
             { key: 'profile', icon: '👤', label: 'Profile' }
           ].map(({ key, icon, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key as any)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '10px 8px',
-                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
-                background: activeTab === key ? '#2563EB' : '#EFF6FF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                borderRadius: '10px',
-                minWidth: '60px',
-                flex: 1
-              }}
-            >
-              <div style={{
-                fontSize: '24px',
-                transform: activeTab === key ? 'scale(1.1)' : 'scale(1)',
-                transition: 'transform 0.15s ease'
-              }}>
-                {icon}
-              </div>
-              <div style={{
-                fontSize: '10px',
-                fontWeight: activeTab === key ? '700' : '600',
-                color: activeTab === key ? '#ffffff' : '#2563EB',
-                textAlign: 'center',
-                lineHeight: '1.2'
-              }}>
-                {label}
-              </div>
-            </button>
+            <div key={key} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <button
+                onClick={() => setActiveTab(key as any)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  background: activeTab === key ? '#2563EB' : 'rgba(255, 255, 255, 0.95)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  borderRadius: '50%',
+                  width: activeTab === key ? '66px' : '52px',
+                  height: activeTab === key ? '66px' : '52px',
+                  boxShadow: activeTab === key
+                    ? '0 8px 24px rgba(37, 99, 235, 0.5), 0 0 0 4px rgba(37, 99, 235, 0.1)'
+                    : '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  transform: activeTab === key ? 'translateY(-12px) scale(1.05)' : 'translateY(0)',
+                  position: 'relative'
+                }}
+              >
+                <div style={{
+                  fontSize: activeTab === key ? '26px' : '22px',
+                  transition: 'font-size 0.3s ease',
+                  filter: activeTab === key ? 'none' : 'grayscale(0.2)'
+                }}>
+                  {icon}
+                </div>
+              </button>
+              {activeTab === key && (
+                <div style={{
+                  fontSize: '9px',
+                  fontWeight: '700',
+                  color: '#2563EB',
+                  textAlign: 'center',
+                  marginTop: '6px',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.3px'
+                }}>
+                  {label}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
