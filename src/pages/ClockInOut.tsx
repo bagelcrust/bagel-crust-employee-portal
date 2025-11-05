@@ -218,27 +218,29 @@ export default function ClockInOut_B() {
     }
   }
 
+  // STATIC PAGE LAYOUT (No Scroll):
+  // PIN entry should be centered and non-scrollable for stability
+  // position: fixed + overflow: hidden prevents any scroll behavior
+  // Recent activity panel is positioned absolutely, outside main content flow
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
+      width: '100%',
       background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
-      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      position: 'fixed',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       {/* Main Center Area */}
       <div style={{
         display: 'flex',
-        justifyContent: 'center',
-        paddingTop: '40px',
-        paddingBottom: '120px',
-        paddingLeft: '32px',
-        paddingRight: '32px'
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '20px'
       }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}>
           {/* Clock Display */}
           <div style={{ marginBottom: '32px', textAlign: 'center' }}>
             <div style={{

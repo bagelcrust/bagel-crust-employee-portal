@@ -487,14 +487,16 @@ export default function EmployeePortal_B() {
   if (!isLoggedIn) {
     return (
       <div style={{
-        minHeight: '100vh',
+        height: '100vh',
+        width: '100%',
         background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '20px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        position: 'relative'
+        position: 'fixed',
+        overflow: 'hidden'
       }}>
         <div style={{
           maxWidth: '400px',
@@ -610,6 +612,11 @@ export default function EmployeePortal_B() {
   // Main Portal View - Refined Glassmorphism
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
+  // APP SHELL ARCHITECTURE:
+  // - Outer container: Fixed background (100vh, overflow: hidden) - Never scrolls
+  // - Inner container: Scrollable content area (flex: 1, overflow: auto) - Only this scrolls
+  // - Fixed footer: Position fixed at bottom, outside scroll area
+  // This prevents "scrolling poster" effect where background moves with content
   return (
     <div style={{
       height: '100vh',
@@ -620,12 +627,12 @@ export default function EmployeePortal_B() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       overflow: 'hidden'
     }}>
-      {/* Scrollable Content Area */}
+      {/* Scrollable Content Area - paddingBottom creates safe area from mobile UI */}
       <div style={{
         flex: 1,
         overflow: 'auto',
         WebkitOverflowScrolling: 'touch',
-        paddingBottom: '80px'
+        paddingBottom: '100px'
       }}>
         <div style={{
           maxWidth: '600px',
