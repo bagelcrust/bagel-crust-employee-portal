@@ -794,11 +794,31 @@ export default function EmployeePortal_B() {
                 fontSize: '28px',
                 fontWeight: '700',
                 color: '#1F2937',
-                marginBottom: '32px',
+                marginBottom: '24px',
                 letterSpacing: '-0.5px'
               }}>
                 Hi {employee?.first_name || 'there'}! 👋
               </h1>
+
+              {/* Orange Gradient Next Shift Card */}
+              <div style={{
+                marginBottom: '32px',
+                padding: '24px',
+                background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+                borderRadius: '16px',
+                color: 'white',
+                boxShadow: '0 8px 20px rgba(255, 107, 107, 0.35)'
+              }}>
+                <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '8px', fontWeight: '600', letterSpacing: '0.5px' }}>
+                  NEXT SHIFT
+                </div>
+                <div style={{ fontSize: '26px', fontWeight: '700', marginBottom: '6px' }}>
+                  Tomorrow
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: '600', opacity: 0.95 }}>
+                  9:00 AM - 5:00 PM
+                </div>
+              </div>
 
               {/* Week Toggle - full width segmented control */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
