@@ -1536,7 +1536,7 @@ export default function EmployeePortal_B() {
                 background: activeTab === key ? '#2563EB' : '#EFF6FF',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                borderRadius: '10px',
+                borderRadius: '25px',
                 minWidth: '60px',
                 flex: 1
               }}
