@@ -7,24 +7,33 @@ echo "======================================"
 echo "  GitHub Push Helper"
 echo "======================================"
 echo ""
-echo "This script will push your code to GitHub."
-echo "You'll need your GitHub Personal Access Token."
-echo ""
-echo "Paste your token below and press Enter:"
-read -s GITHUB_TOKEN
-echo ""
 
-# Save the credentials first
-echo "Saving your token..."
-echo "https://${GITHUB_TOKEN}@github.com" > ~/.git-credentials
-git config --global credential.helper store
-echo ""
+# Check if credentials are already saved
+if [ -f ~/.git-credentials ]; then
+    echo "✅ Token already saved! Pushing to GitHub..."
+    echo ""
+    git config --global credential.helper store
+    git push origin main
+else
+    echo "This script will push your code to GitHub."
+    echo "You'll need your GitHub Personal Access Token."
+    echo ""
+    echo "Paste your token below and press Enter:"
+    read -s GITHUB_TOKEN
+    echo ""
 
-echo "Pushing to GitHub..."
-echo ""
+    # Save the credentials first
+    echo "Saving your token..."
+    echo "https://${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+    git config --global credential.helper store
+    echo ""
 
-# Push with the token
-git push https://${GITHUB_TOKEN}@github.com/bagelcrust/bagel-crust-employee-portal.git main
+    echo "Pushing to GitHub..."
+    echo ""
+
+    # Push with the token
+    git push https://${GITHUB_TOKEN}@github.com/bagelcrust/bagel-crust-employee-portal.git main
+fi
 
 if [ $? -eq 0 ]; then
     echo ""

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { employeeApi, timeclockApi } from '../lib/supabase'
+import { employeeApi, timeclockApi, getDisplayName } from '../lib/supabase'
 
 /**
  * OPTION B: REFINED GLASSMORPHISM
@@ -149,7 +149,7 @@ export default function ClockInOut_B() {
     try {
       const events = await timeclockApi.getRecentEvents(10)
       const formattedEvents = events.map(event => {
-        const time = new Date(event.event_time_est)
+        const time = new Date(event.event_timestamp)
         const isToday = time.toDateString() === new Date().toDateString()
         const timeStr = time.toLocaleTimeString('en-US', {
           hour: 'numeric',
@@ -160,7 +160,7 @@ export default function ClockInOut_B() {
 
         return {
           id: event.id,
-          name: event.core_employees?.display_name || event.core_employees?.name || 'Unknown',
+          name: event.employee ? getDisplayName(event.employee) : 'Unknown',
           action: event.event_type === 'in' ? 'Clock In' : 'Clock Out',
           time: isToday ? timeStr : `${time.toLocaleDateString()} ${timeStr}`
         }
@@ -188,7 +188,7 @@ export default function ClockInOut_B() {
 
       const event = await timeclockApi.clockInOut(employee.id)
 
-      const displayName = employee.display_name || employee.name
+      const displayName = getDisplayName(employee)
       const action = event.event_type === 'in' ? 'clocked in' : 'clocked out'
 
       setMessage(`${displayName} successfully ${action}`)
