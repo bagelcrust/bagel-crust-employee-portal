@@ -644,7 +644,7 @@ export default function EmployeePortal_B() {
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-2xl mx-auto px-4 py-5">
           {/* Horizontal Tab Navigation */}
-        <div className="flex gap-2 mb-3 overflow-x-auto" style={{
+        <div className="flex gap-2 mb-4 overflow-x-auto" style={{
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none'
@@ -688,7 +688,7 @@ export default function EmployeePortal_B() {
           {activeTab === 'weeklySchedule' && (
             <div>
               {/* Week Toggle - full width segmented control */}
-              <div className="flex bg-gray-100 rounded-lg p-1 mb-3 w-full">
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
                 <button
                   onClick={() => setShowWeek('this')}
                   className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
@@ -732,12 +732,11 @@ export default function EmployeePortal_B() {
                         alignItems: 'center'
                       }}
                     >
-                      <div>
+                      <div className="flex items-baseline gap-2">
                         <div style={{
                           fontWeight: '600',
                           color: '#1F2937',
-                          fontSize: '15px',
-                          marginBottom: '2px'
+                          fontSize: '15px'
                         }}>
                           {dayName}
                         </div>
@@ -762,7 +761,7 @@ export default function EmployeePortal_B() {
                           </span>
                         ) : (
                           shifts.map((shift: any, idx: number) => (
-                            <div key={idx}>
+                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '4px' : '0' }}>
                               <div style={{
                                 fontWeight: '600',
                                 color: '#1F2937',
@@ -771,9 +770,8 @@ export default function EmployeePortal_B() {
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </div>
                               <div style={{
-                                fontSize: '13px',
-                                color: '#6B7280',
-                                marginTop: '2px'
+                                fontSize: '12px',
+                                color: '#6B7280'
                               }}>
                                 {shift.hoursScheduled}h
                               </div>
