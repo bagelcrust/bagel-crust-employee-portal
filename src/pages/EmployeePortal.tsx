@@ -1498,7 +1498,7 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar - Underline Style */}
+      {/* Bottom Navigation Bar - Side Indicator */}
       <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
              paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
@@ -1538,7 +1538,8 @@ export default function EmployeePortal_B() {
                 transition: 'all 0.2s ease',
                 flex: 1,
                 position: 'relative',
-                borderBottom: activeTab === key ? '3px solid #2563EB' : '3px solid transparent'
+                borderLeft: activeTab === key ? '4px solid #2563EB' : '4px solid transparent',
+                paddingLeft: '8px'
               }}
             >
               <div style={{
