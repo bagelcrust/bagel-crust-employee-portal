@@ -771,39 +771,57 @@ export default function EmployeePortal_B() {
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '20px'
+           paddingTop: '8px'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto px-4 py-5">
-          {/* Horizontal Tab Navigation */}
-        <div className="flex gap-2 mb-4 overflow-x-auto" style={{
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          {/* Square Icon Grid Navigation */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '10px',
+          marginBottom: '16px'
         }}>
           {[
-            { key: 'weeklySchedule', label: t.weeklySchedule },
-            { key: 'teamSchedule', label: t.teamSchedule },
-            { key: 'openShifts', label: t.openShifts },
-            { key: 'timeOff', label: t.timeOff },
-            { key: 'timesheet', label: t.timesheet },
-            { key: 'profile', label: t.profile }
-          ].map(({ key, label }) => (
+            { key: 'weeklySchedule', label: 'My Schedule', icon: '📅' },
+            { key: 'teamSchedule', label: 'Team', icon: '👥' },
+            { key: 'openShifts', label: 'Shifts', icon: '📋' },
+            { key: 'timeOff', label: 'Time Off', icon: '🏖️' },
+            { key: 'timesheet', label: 'Hours', icon: '⏰' },
+            { key: 'profile', label: 'Profile', icon: '👤' }
+          ].map(({ key, label, icon }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key as any)}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
-                activeTab === key
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white/90 text-gray-700 hover:bg-white'
-              }`}
               style={{
+                aspectRatio: '1',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                borderRadius: '12px',
+                border: activeTab === key ? 'none' : '1px solid rgba(0,0,0,0.06)',
+                background: activeTab === key ? '#2563EB' : 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(10px)',
                 WebkitBackdropFilter: 'blur(10px)',
-                border: activeTab === key ? 'none' : '1px solid rgba(0,0,0,0.06)'
+                boxShadow: activeTab === key ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                padding: '12px',
+                minHeight: '90px'
               }}
             >
-              {label}
+              <div style={{ fontSize: '28px' }}>{icon}</div>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: '600',
+                color: activeTab === key ? '#fff' : '#374151',
+                textAlign: 'center',
+                lineHeight: '1.2'
+              }}>
+                {label}
+              </div>
             </button>
           ))}
         </div>
