@@ -1532,11 +1532,11 @@ export default function EmployeePortal_B() {
                 alignItems: 'center',
                 gap: '4px',
                 padding: '10px 8px',
-                border: activeTab === key ? '2px solid #2563EB' : '2px solid #DBEAFE',
+                border: activeTab === key ? '3px solid #2563EB' : '3px solid #DBEAFE',
                 background: activeTab === key ? '#2563EB' : '#EFF6FF',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                borderRadius: '10px',
+                borderRadius: '4px',
                 minWidth: '60px',
                 flex: 1
               }}
