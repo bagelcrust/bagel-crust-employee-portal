@@ -764,14 +764,15 @@ export default function EmployeePortal_B() {
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
   return (
-    <div className="w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
+    <div className="w-full overflow-hidden flex flex-col"
          style={{
            position: 'fixed',
            top: 0,
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '8px'
+           paddingTop: '8px',
+           background: 'linear-gradient(180deg, #E0F2FE 0%, #DBEAFE 50%, #EDE9FE 100%)'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-2xl mx-auto px-4 py-3">
