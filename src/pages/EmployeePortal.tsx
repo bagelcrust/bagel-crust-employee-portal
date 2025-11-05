@@ -764,33 +764,80 @@ export default function EmployeePortal_B() {
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
 
   return (
-    <div className="w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50"
+    <div className="w-full overflow-hidden flex flex-col"
          style={{
            position: 'fixed',
            top: 0,
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '8px'
+           background: '#FFFFFF'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-2xl mx-auto" style={{ padding: '60px 24px 24px 24px' }}>
 
-        {/* Content Area with Glass Effect */}
+        {/* Ultra Minimal Content */}
         <div style={{
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          borderRadius: '10px',
-          padding: '20px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-          border: '1px solid rgba(255, 255, 255, 0.5)'
+          background: 'transparent'
         }}>
           {/* WEEKLY SCHEDULE TAB */}
           {activeTab === 'weeklySchedule' && (
             <div>
-              {/* Week Toggle - full width segmented control */}
-              <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
+              {/* Minimal Header */}
+              <h1 style={{
+                fontSize: '28px',
+                fontWeight: '600',
+                color: '#000000',
+                marginBottom: '40px',
+                letterSpacing: '-0.5px'
+              }}>
+                Schedule
+              </h1>
+
+              {/* Ultra Simple Week Toggle */}
+              <div style={{
+                display: 'flex',
+                gap: '24px',
+                marginBottom: '32px',
+                borderBottom: '1px solid #E5E5EA',
+                paddingBottom: '12px'
+              }}>
+                <button style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '17px',
+                  fontWeight: showWeek === 'this' ? '600' : '400',
+                  color: showWeek === 'this' ? '#000000' : '#8E8E93',
+                  cursor: 'pointer',
+                  padding: '0',
+                  borderBottom: showWeek === 'this' ? '2px solid #000000' : '2px solid transparent',
+                  paddingBottom: '12px',
+                  marginBottom: '-12px'
+                }}
+                onClick={() => setShowWeek('this')}
+                >
+                  This Week
+                </button>
+                <button style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '17px',
+                  fontWeight: showWeek === 'next' ? '600' : '400',
+                  color: showWeek === 'next' ? '#000000' : '#8E8E93',
+                  cursor: 'pointer',
+                  padding: '0',
+                  borderBottom: showWeek === 'next' ? '2px solid #000000' : '2px solid transparent',
+                  paddingBottom: '12px',
+                  marginBottom: '-12px'
+                }}
+                onClick={() => setShowWeek('next')}
+                >
+                  Next Week
+                </button>
+              </div>
+
+              {/* Minimal Schedule List - No wrapper */}
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full" style={{ display: 'none' }}>
                 <button
                   onClick={() => setShowWeek('this')}
                   className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
@@ -815,8 +862,8 @@ export default function EmployeePortal_B() {
                 </button>
               </div>
 
-              {/* Schedule List */}
-              <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+              {/* Minimal Schedule List */}
+              <div>
                 {dayOrder.map((day, index) => {
                   const shifts = currentSchedule?.[day] || []
                   const dayName = t[day as keyof typeof t] as string
@@ -839,63 +886,49 @@ export default function EmployeePortal_B() {
                     <div
                       key={day}
                       style={{
-                        padding: '20px 16px',
-                        borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                        backgroundColor: isToday ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
-                        textAlign: 'center',
-                        position: 'relative'
+                        padding: '20px 0',
+                        borderBottom: index < 6 ? '1px solid #F2F2F7' : 'none',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
                       }}
                     >
-                      {isToday && (
+                      {/* Left: Day */}
+                      <div>
                         <div style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '12px',
-                          fontSize: '11px',
-                          color: '#2563EB',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          fontWeight: isToday ? '600' : '400',
+                          color: '#000000',
+                          fontSize: '17px',
+                          marginBottom: '2px'
                         }}>
-                          Today
+                          {dayName}
                         </div>
-                      )}
-                      <div style={{
-                        fontWeight: '700',
-                        color: '#1F2937',
-                        fontSize: '20px',
-                        letterSpacing: '-0.3px',
-                        marginBottom: '4px'
-                      }}>
-                        {dayName}
+                        <div style={{
+                          fontSize: '15px',
+                          color: '#8E8E93'
+                        }}>
+                          {dateStr}
+                        </div>
                       </div>
-                      <div style={{
-                        fontSize: '14px',
-                        color: '#9CA3AF',
-                        fontWeight: '500',
-                        marginBottom: '12px'
-                      }}>
-                        {dateStr}
-                      </div>
+
+                      {/* Right: Time */}
                       <div>
                         {shifts.length === 0 ? (
                           <span style={{
-                            color: '#D1D5DB',
-                            fontSize: '16px',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px'
+                            color: '#8E8E93',
+                            fontSize: '15px',
+                            fontWeight: '400'
                           }}>
-                            {t.off}
+                            Off
                           </span>
                         ) : (
                           shifts.map((shift: any, idx: number) => (
-                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '8px' : '0' }}>
+                            <div key={idx} style={{ marginBottom: idx < shifts.length - 1 ? '4px' : '0' }}>
                               <div style={{
-                                fontWeight: '600',
-                                color: '#2563EB',
-                                fontSize: '19px',
-                                letterSpacing: '-0.2px'
+                                fontWeight: '400',
+                                color: '#000000',
+                                fontSize: '17px',
+                                textAlign: 'right'
                               }}>
                                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                               </div>
