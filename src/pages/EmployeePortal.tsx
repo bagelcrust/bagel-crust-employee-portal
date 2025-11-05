@@ -791,17 +791,18 @@ export default function EmployeePortal_B() {
             <div>
               {/* Clean Greeting */}
               <h1 style={{
-                fontSize: '28px',
+                fontSize: '32px',
                 fontWeight: '700',
                 color: '#1F2937',
-                marginBottom: '32px',
-                letterSpacing: '-0.5px'
+                marginBottom: '48px',
+                letterSpacing: '-0.5px',
+                paddingTop: '20px'
               }}>
                 Hi {employee?.first_name || 'there'}! 👋
               </h1>
 
               {/* Week Toggle - full width segmented control */}
-              <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-6 w-full">
                 <button
                   onClick={() => setShowWeek('this')}
                   className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
@@ -850,7 +851,7 @@ export default function EmployeePortal_B() {
                     <div
                       key={day}
                       style={{
-                        padding: '20px 16px',
+                        padding: '28px 20px',
                         borderBottom: index < 6 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
                         backgroundColor: isToday ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
                         textAlign: 'center',
