@@ -351,13 +351,22 @@ export default function EmployeePortal_B() {
       const thisWeekSchedules = await scheduleApi.getWeeklySchedule()
       const nextWeekSchedules = await scheduleApi.getNextWeekSchedule()
 
+      console.log('🔍 DEBUG: This week schedules:', thisWeekSchedules)
+      console.log('🔍 DEBUG: Next week schedules:', nextWeekSchedules)
+
       // Filter for this employee
       const myThisWeekSchedule = thisWeekSchedules.filter(s => s.employee_id === employeeId)
       const myNextWeekSchedule = nextWeekSchedules.filter(s => s.employee_id === employeeId)
 
+      console.log('🔍 DEBUG: My this week schedule:', myThisWeekSchedule)
+      console.log('🔍 DEBUG: My next week schedule:', myNextWeekSchedule)
+
       // Group by day of week
       const thisWeekByDay = groupScheduleByDay(myThisWeekSchedule)
       const nextWeekByDay = groupScheduleByDay(myNextWeekSchedule)
+
+      console.log('🔍 DEBUG: This week by day:', thisWeekByDay)
+      console.log('🔍 DEBUG: Next week by day:', nextWeekByDay)
 
       setScheduleData({
         thisWeek: thisWeekByDay,
@@ -374,9 +383,10 @@ export default function EmployeePortal_B() {
 
       // Load today's team schedule
       const todaySchedules = await scheduleApi.getTodaySchedule()
+      console.log('🔍 DEBUG: Today schedules:', todaySchedules)
       setTodayScheduleData(todaySchedules)
     } catch (error) {
-      console.error('Failed to load employee data:', error)
+      console.error('❌ Failed to load employee data:', error)
     }
   }
 
