@@ -1498,7 +1498,7 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar - Underline Style */}
+      {/* Bottom Navigation Bar - Thick Underline */}
       <div className="fixed bottom-0 left-0 right-0 z-50"
            style={{
              paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
@@ -1533,12 +1533,13 @@ export default function EmployeePortal_B() {
                 gap: '6px',
                 padding: '8px 4px',
                 border: 'none',
-                background: 'transparent',
+                background: activeTab === key ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 flex: 1,
                 position: 'relative',
-                borderBottom: activeTab === key ? '3px solid #2563EB' : '3px solid transparent'
+                borderBottom: activeTab === key ? '5px solid #2563EB' : '5px solid transparent',
+                boxShadow: activeTab === key ? '0 4px 8px rgba(37, 99, 235, 0.15)' : 'none'
               }}
             >
               <div style={{
