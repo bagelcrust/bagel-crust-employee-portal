@@ -771,42 +771,10 @@ export default function EmployeePortal_B() {
            left: 0,
            right: 0,
            bottom: 0,
-           paddingTop: '20px'
+           paddingTop: '8px'
          }}>
       <div className="flex-1 overflow-y-auto pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="max-w-2xl mx-auto px-4 py-5">
-          {/* Horizontal Tab Navigation */}
-        <div className="flex gap-2 mb-4 overflow-x-auto" style={{
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {[
-            { key: 'weeklySchedule', label: t.weeklySchedule },
-            { key: 'teamSchedule', label: t.teamSchedule },
-            { key: 'openShifts', label: t.openShifts },
-            { key: 'timeOff', label: t.timeOff },
-            { key: 'timesheet', label: t.timesheet },
-            { key: 'profile', label: t.profile }
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key as any)}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
-                activeTab === key
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white/90 text-gray-700 hover:bg-white'
-              }`}
-              style={{
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                border: activeTab === key ? 'none' : '1px solid rgba(0,0,0,0.06)'
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <div className="max-w-2xl mx-auto px-4 py-3">
 
         {/* Content Area with Glass Effect */}
         <div style={{
@@ -1530,39 +1498,60 @@ export default function EmployeePortal_B() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-5 py-3 flex items-center justify-center z-50 shadow-lg"
+      {/* Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 z-50 shadow-lg"
            style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="max-w-2xl w-full flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800 m-0">
-            {employee?.first_name || ''}
-          </h2>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '8px 16px',
-              background: 'rgba(255, 255, 255, 0.9)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              color: '#DC2626',
-              border: '1px solid rgba(220, 38, 38, 0.15)',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 1)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.06)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            {t.logout}
-          </button>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          maxWidth: '600px',
+          margin: '0 auto',
+          padding: '12px 8px 8px'
+        }}>
+          {[
+            { key: 'weeklySchedule', icon: '📅', label: 'Schedule' },
+            { key: 'teamSchedule', icon: '👥', label: 'Team' },
+            { key: 'openShifts', icon: '📋', label: 'Shifts' },
+            { key: 'timeOff', icon: '🏖️', label: 'Time Off' },
+            { key: 'timesheet', icon: '⏰', label: 'Hours' },
+            { key: 'profile', icon: '👤', label: 'Profile' }
+          ].map(({ key, icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key as any)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '8px 12px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                borderRadius: '8px',
+                minWidth: '60px'
+              }}
+            >
+              <div style={{
+                fontSize: '24px',
+                transform: activeTab === key ? 'scale(1.1)' : 'scale(1)',
+                transition: 'transform 0.15s ease'
+              }}>
+                {icon}
+              </div>
+              <div style={{
+                fontSize: '10px',
+                fontWeight: activeTab === key ? '700' : '500',
+                color: activeTab === key ? '#2563EB' : '#6B7280',
+                textAlign: 'center',
+                lineHeight: '1.2'
+              }}>
+                {label}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
