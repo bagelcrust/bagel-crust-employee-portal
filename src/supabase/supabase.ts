@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -7,61 +8,33 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Create Supabase client with employees schema
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Create Supabase client with auto-generated types and employees schema
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   db: { schema: 'employees' }
 });
 
-// Types for YOUR actual database
-export interface Employee {
-  id: string;
-  employee_code: string;
-  first_name: string;
-  last_name: string | null;
-  email: string | null;
-  hire_date: string | null;
-  active: boolean;
-  location: string;
-  role: string;
-  pay_schedule: string;
-  pin: string;
-  phone_number: string | null;
-  user_id: string;
-  preferred_language: 'en' | 'es';
-}
+// Type aliases using auto-generated types from database.types.ts
+// These provide cleaner names and match your existing code
+export type Employee = Database['employees']['Tables']['employees']['Row'];
+export type TimeEntry = Database['employees']['Tables']['time_entries']['Row'];
+export type Shift = Database['employees']['Tables']['shifts']['Row'];
+export type TimeOff = Database['employees']['Tables']['time_off_notices']['Row'];
+export type PayRate = Database['employees']['Tables']['pay_rates']['Row'];
+export type Availability = Database['employees']['Tables']['availability']['Row'];
 
-export interface TimeEntry {
-  id: number;
-  employee_id: string;
-  event_type: 'in' | 'out';
-  event_timestamp: string; // ISO timestamp
-}
+// Insert types for creating new records
+export type EmployeeInsert = Database['employees']['Tables']['employees']['Insert'];
+export type TimeEntryInsert = Database['employees']['Tables']['time_entries']['Insert'];
+export type ShiftInsert = Database['employees']['Tables']['shifts']['Insert'];
+export type TimeOffInsert = Database['employees']['Tables']['time_off_notices']['Insert'];
+export type PayRateInsert = Database['employees']['Tables']['pay_rates']['Insert'];
 
-export interface Shift {
-  id: number;
-  employee_id: string | null; // null = open shift (unassigned)
-  start_time: string; // Full timestamp (e.g., "2025-10-19 02:00:00+00")
-  end_time: string;   // Full timestamp (e.g., "2025-10-19 07:00:00+00")
-  location: string;
-  role: string | null;
-  status: 'draft' | 'published'; // draft = manager only, published = visible to employees
-}
-
-export interface TimeOff {
-  id: number;
-  employee_id: string;
-  start_time: string; // Full timestamp
-  end_time: string;   // Full timestamp
-  reason: string | null;
-  status: string;     // "pending", "approved", "denied"
-}
-
-export interface PayRate {
-  id: number;
-  employee_id: string;
-  rate: number;
-  effective_date: string;
-}
+// Update types for modifying records
+export type EmployeeUpdate = Database['employees']['Tables']['employees']['Update'];
+export type TimeEntryUpdate = Database['employees']['Tables']['time_entries']['Update'];
+export type ShiftUpdate = Database['employees']['Tables']['shifts']['Update'];
+export type TimeOffUpdate = Database['employees']['Tables']['time_off_notices']['Update'];
+export type PayRateUpdate = Database['employees']['Tables']['pay_rates']['Update'];
 
 // Helper to get display name
 export function getDisplayName(employee: Employee): string {
@@ -115,25 +88,12 @@ export const timeclockApi = {
     return data as TimeEntry | null;
   },
 
-  // Clock in or out
+  // Clock in or out (atomic operation via RPC to prevent race conditions)
+  // Uses PostgreSQL function to atomically determine in/out and insert event
   async clockInOut(employeeId: string) {
-    // Get last event to determine if clocking in or out
-    const lastEvent = await this.getLastEvent(employeeId);
-    const eventType = (!lastEvent || lastEvent.event_type === 'out') ? 'in' : 'out';
-
-    // Create timestamp in ISO format with timezone
-    const now = new Date();
-    const timestamp = now.toISOString();
-
-    const { data, error } = await supabase
-      .from('time_entries')
-      .insert({
-        employee_id: employeeId,
-        event_type: eventType,
-        event_timestamp: timestamp
-      })
-      .select()
-      .single();
+    const { data, error } = await supabase.rpc('clock_in_out', {
+      p_employee_id: employeeId
+    });
 
     if (error) throw error;
     return data as TimeEntry;
@@ -155,44 +115,39 @@ export const timeclockApi = {
     return data || [];
   },
 
-  // Get currently working employees (optimized with join)
-  async getCurrentlyWorking() {
-    // Get all time entries from today with employee data in one query
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayISO = today.toISOString();
-
-    const { data, error } = await supabase
-      .from('time_entries')
-      .select(`
-        *,
-        employee:employees(*)
-      `)
-      .gte('event_timestamp', todayISO)
-      .order('event_timestamp', { ascending: false });
+  // Get events in Eastern Time date range (timezone-aware!)
+  // Pass simple date strings like "2025-11-04" and it handles all timezone conversion
+  async getEventsInRangeET(startDate: string, endDate: string) {
+    const { data, error } = await supabase.rpc('get_time_entries_et', {
+      p_start_date: startDate,
+      p_end_date: endDate,
+      p_employee_id: undefined
+    });
 
     if (error) throw error;
 
-    // Group by employee and check if they're clocked in
-    const employeeStatus = new Map();
-
-    data?.forEach((event: any) => {
-      if (!employeeStatus.has(event.employee_id)) {
-        employeeStatus.set(event.employee_id, {
-          employee: event.employee,
-          last_event: event.event_type,
-          clock_in_time: event.event_type === 'in' ? event.event_timestamp : null
-        });
+    // Transform to match old API format (for backward compatibility)
+    return (data || []).map((entry: any) => ({
+      id: entry.id,
+      employee_id: entry.employee_id,
+      event_type: entry.event_type,
+      event_timestamp: entry.event_timestamp,
+      employee: {
+        first_name: entry.employee_name.split(' ')[0],
+        last_name: entry.employee_name.split(' ').slice(1).join(' ') || null
       }
-    });
+    }));
+  },
 
-    // Return employees currently clocked in
-    return Array.from(employeeStatus.values())
-      .filter(emp => emp.last_event === 'in')
-      .map(emp => ({
-        ...emp.employee,
-        clock_in_time: emp.clock_in_time
-      }));
+  // Get currently working employees (optimized RPC - returns only clocked-in employees)
+  // Replaces client-side logic that fetched ALL today's events and filtered in JavaScript
+  async getCurrentlyWorking() {
+    const { data, error } = await supabase.rpc('get_currently_working');
+
+    if (error) throw error;
+
+    // RPC returns employees with clock_in_time already calculated
+    return data || [];
   },
 
   // Get recent events (with employee info using join - single query!)
@@ -208,6 +163,52 @@ export const timeclockApi = {
 
     if (error) throw error;
     return data || [];
+  }
+
+,
+
+  // Get recent events with timezone-aware formatting (uses ET)
+  // Returns events from last 3 days with pre-formatted Eastern Time strings
+  async getRecentEventsET(limit = 10) {
+    // Get date range: 3 days ago to today (in Eastern Time)
+    const today = new Date()
+    const threeDaysAgo = new Date(today)
+    threeDaysAgo.setDate(today.getDate() - 3)
+    
+    // Format as YYYY-MM-DD for the RPC function
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
+    const startDate = formatDate(threeDaysAgo)
+    const endDate = formatDate(today)
+
+    const { data, error } = await supabase.rpc('get_time_entries_et', {
+      p_start_date: startDate,
+      p_end_date: endDate,
+      p_employee_id: undefined
+    })
+
+    if (error) throw error
+
+    // Transform and limit results
+    const events = (data || []).slice(0, limit).map((entry: any) => ({
+      id: entry.id,
+      employee_id: entry.employee_id,
+      event_type: entry.event_type,
+      event_timestamp: entry.event_timestamp,
+      event_time_et: entry.event_time_et,  // Pre-formatted Eastern Time string
+      event_date_et: entry.event_date_et,  // Date in Eastern Time
+      employee: {
+        first_name: entry.employee_name.split(' ')[0],
+        last_name: entry.employee_name.split(' ').slice(1).join(' ') || null
+      }
+    }))
+
+    return events
   }
 };
 

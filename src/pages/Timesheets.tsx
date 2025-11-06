@@ -69,32 +69,37 @@ export default function Timesheets() {
   const loadTimesheets = async () => {
     setLoading(true)
     try {
-      // Determine date range
-      let rangeStart: Date
-      let rangeEnd: Date
+      // Determine date range (using Eastern Time dates - YYYY-MM-DD format)
+      let startDateET: string
+      let endDateET: string
 
       if (weekSelection === 'this') {
+        // Get current week in Eastern Time
         const today = new Date()
-        rangeStart = startOfWeek(today, { weekStartsOn: 1 })
-        rangeEnd = endOfWeek(today, { weekStartsOn: 1 })
+        const mondayET = startOfWeek(today, { weekStartsOn: 1 })
+        const sundayET = endOfWeek(today, { weekStartsOn: 1 })
+        startDateET = format(mondayET, 'yyyy-MM-dd')
+        endDateET = format(sundayET, 'yyyy-MM-dd')
       } else if (weekSelection === 'last') {
+        // Get last week in Eastern Time
         const lastWeek = subWeeks(new Date(), 1)
-        rangeStart = startOfWeek(lastWeek, { weekStartsOn: 1 })
-        rangeEnd = endOfWeek(lastWeek, { weekStartsOn: 1 })
+        const mondayET = startOfWeek(lastWeek, { weekStartsOn: 1 })
+        const sundayET = endOfWeek(lastWeek, { weekStartsOn: 1 })
+        startDateET = format(mondayET, 'yyyy-MM-dd')
+        endDateET = format(sundayET, 'yyyy-MM-dd')
       } else {
         if (!startDate || !endDate) {
           setLoading(false)
           return
         }
-        rangeStart = new Date(startDate)
-        rangeEnd = new Date(endDate)
-        rangeEnd.setHours(23, 59, 59, 999)
+        startDateET = startDate
+        endDateET = endDate
       }
 
-      // Fetch all data in parallel using improved API with joins
+      // Fetch all data in parallel using timezone-aware API
       const [employeesData, eventsInRange, payRatesData] = await Promise.all([
         employeeApi.getAll(),
-        timeclockApi.getEventsInRange(rangeStart.toISOString(), rangeEnd.toISOString()),
+        timeclockApi.getEventsInRangeET(startDateET, endDateET),
         payRatesApi.getAll()
       ])
 
@@ -114,7 +119,9 @@ export default function Timesheets() {
         const dailyHoursMap = new Map<string, DayRecord>()
         let totalHours = 0
         let clockIn: TimeEntry | null = null
+        // NOTE: wageRate defaults to 0 if no rate found; employee.role is guaranteed non-null
         const wageRate = payRatesMap.get(employee.id) || 0
+        const employeeRole = employee.role || 'Unknown'
 
         // Process events to calculate hours
         sortedEvents.forEach((event: TimeEntry) => {
@@ -126,18 +133,21 @@ export default function Timesheets() {
               const clockInFormatted = formatInEasternTime(inTime, 'time')
               const dayNameET = formatInEasternTime(inTime, 'weekday')
 
-              dailyHoursMap.set(dateKey, {
-                date: dateKey,
-                dayName: dayNameET,
-                role: employee.role,
-                wageRate,
-                clockIn: clockInFormatted,
-                clockOut: null,
-                scheduledHours: 0,
-                totalPaidHours: 0,
-                estimatedWages: 0,
-                issues: 'Missing clock out'
-              })
+              // Ensure dateKey and clockInFormatted are non-null before using
+              if (dateKey && clockInFormatted && dayNameET) {
+                dailyHoursMap.set(dateKey, {
+                  date: dateKey,
+                  dayName: dayNameET,
+                  role: employeeRole,
+                  wageRate,
+                  clockIn: clockInFormatted,
+                  clockOut: null,
+                  scheduledHours: 0,
+                  totalPaidHours: 0,
+                  estimatedWages: 0,
+                  issues: 'Missing clock out'
+                })
+              }
             }
             clockIn = event
           } else if (event.event_type === 'out' && clockIn) {
@@ -156,15 +166,23 @@ export default function Timesheets() {
             const clockOutFormatted = formatInEasternTime(outTime, 'time')
             const dayNameET = formatInEasternTime(inTime, 'weekday')
 
+            // Ensure all formatted values are valid before using
+            if (!dateKey || !clockInFormatted || !clockOutFormatted || !dayNameET) {
+              clockIn = null
+              return
+            }
+
             if (dailyHoursMap.has(dateKey)) {
-              const existing = dailyHoursMap.get(dateKey)!
-              existing.totalPaidHours += hours
-              existing.estimatedWages = existing.totalPaidHours * wageRate
+              const existing = dailyHoursMap.get(dateKey)
+              if (existing) {
+                existing.totalPaidHours += hours
+                existing.estimatedWages = existing.totalPaidHours * wageRate
+              }
             } else {
               dailyHoursMap.set(dateKey, {
                 date: dateKey,
                 dayName: dayNameET,
-                role: employee.role,
+                role: employeeRole,
                 wageRate,
                 clockIn: clockInFormatted,
                 clockOut: clockOutFormatted,
@@ -188,18 +206,21 @@ export default function Timesheets() {
           const clockInFormatted = formatInEasternTime(inTime, 'time')
           const dayNameET = formatInEasternTime(inTime, 'weekday')
 
-          dailyHoursMap.set(dateKey, {
-            date: dateKey,
-            dayName: dayNameET,
-            role: employee.role,
-            wageRate,
-            clockIn: clockInFormatted,
-            clockOut: null,
-            scheduledHours: 0,
-            totalPaidHours: 0,
-            estimatedWages: 0,
-            issues: 'Missing clock out'
-          })
+          // Only set if all values are valid
+          if (dateKey && clockInFormatted && dayNameET) {
+            dailyHoursMap.set(dateKey, {
+              date: dateKey,
+              dayName: dayNameET,
+              role: employeeRole,
+              wageRate,
+              clockIn: clockInFormatted,
+              clockOut: null,
+              scheduledHours: 0,
+              totalPaidHours: 0,
+              estimatedWages: 0,
+              issues: 'Missing clock out'
+            })
+          }
         }
 
         const dailyHours = Array.from(dailyHoursMap.values()).sort((a, b) =>
@@ -209,7 +230,7 @@ export default function Timesheets() {
         return {
           id: employee.id,
           name: getDisplayName(employee),
-          avatar: getAvatarForRole(employee.role),
+          avatar: getAvatarForRole(employeeRole),
           days: dailyHours,
           totalTimeCards: dailyHours.length,
           totalScheduledHours: 0,

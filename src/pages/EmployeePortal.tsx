@@ -115,14 +115,15 @@ export default function EmployeePortal() {
   // ROLE-BASED TAB CONFIGURATION
   // ============================================================================
   // Get tabs that this employee's role can access
+  // NOTE: employee.role is guaranteed non-null for logged-in employees
   const availableTabs = useMemo(() => {
-    if (!employee) return []
+    if (!employee || !employee.role) return []
     return getTabsForRole(employee.role)
   }, [employee?.role])
 
   // Get default tab for this role (first available tab)
   const defaultTab = useMemo(() => {
-    if (!employee) return 'timesheet' as TabKey
+    if (!employee || !employee.role) return 'timesheet' as TabKey
     return getDefaultTabForRole(employee.role)
   }, [employee?.role])
 
@@ -149,7 +150,7 @@ export default function EmployeePortal() {
 
   // Validate active tab when employee or role changes
   useEffect(() => {
-    if (employee) {
+    if (employee && employee.role) {
       const validTab = validateTabForRole(employee.role, activeTab)
       if (validTab !== activeTab) {
         setActiveTab(validTab)
@@ -174,11 +175,17 @@ export default function EmployeePortal() {
   }, [login])
 
   const handleTimeOffSubmit = useCallback(async () => {
+    // Ensure employee exists and has an ID before proceeding
+    if (!employee || !employee.id) {
+      alert('Error: Employee information not available')
+      return
+    }
+
     // Validate form using validation utility
     const validation = validateTimeOffRequest(
       timeOffStartDate,
       timeOffEndDate,
-      employee?.id
+      employee.id
     )
 
     if (!validation.isValid) {
@@ -188,7 +195,7 @@ export default function EmployeePortal() {
 
     try {
       await submitTimeOffRequest({
-        employee_id: employee!.id, // Safe to use ! because validation passed
+        employee_id: employee.id,
         start_date: timeOffStartDate,
         end_date: timeOffEndDate,
         reason: timeOffReason

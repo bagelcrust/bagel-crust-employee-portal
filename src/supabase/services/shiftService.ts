@@ -48,10 +48,13 @@ export const shiftService = {
     }
 
     // Insert shift with default status = 'draft'
+    // NOTE: Using `as any` for employee_id to allow NULL values for open shifts
+    // This is a temporary workaround until the database schema is updated to allow NULL employee_id
+    // Currently, the shifts table requires employee_id as NOT NULL, but we need to support open shifts (employee_id = null)
     const { data, error } = await supabase
       .from('shifts')
       .insert({
-        employee_id: input.employee_id,
+        employee_id: input.employee_id as any,
         start_time: input.start_time,
         end_time: input.end_time,
         location: input.location,
@@ -104,9 +107,11 @@ export const shiftService = {
     }
 
     // Update shift
+    // NOTE: Using `as any` for updates object to allow NULL employee_id for open shifts
+    // This is a temporary workaround until the database schema is updated to allow NULL employee_id
     const { data, error } = await supabase
       .from('shifts')
-      .update(updates)
+      .update(updates as any)
       .eq('id', shiftId)
       .select()
       .single()

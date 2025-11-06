@@ -31,3 +31,6 @@ dist-ssr
 # Backups
 *.backup
 .vercel
+
+# MCP configuration (local only)
+.mcp.json

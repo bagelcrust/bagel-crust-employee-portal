@@ -7,17 +7,23 @@ import { Keypad } from '../components/Keypad'
  *
  * ✅ FULLY TAILWIND CSS COMPLIANT - No inline styles
  * ✅ USES UNIFIED KEYPAD COMPONENT
+ * ✅ USES TIMEZONE-AWARE SUPABASE RPC FUNCTIONS
  *
  * Features refined glassmorphism design with professional aesthetic:
  * - PIN-based clock in/out with unified keypad component
  * - Live clock display at the top (Eastern Time)
- * - Recent activity feed in bottom-right corner
+ * - Recent activity feed in bottom-right corner (uses timezone-aware getRecentEventsET)
  * - Auto-submit on 4-digit PIN entry
  * - Personalized success messages
  * - Subtle glass effects (10px blur, 90% opacity)
  * - Moderate border radius (8-10px)
  * - Muted accent colors for professional appearance
  * - Real-time Supabase subscriptions for instant updates
+ *
+ * Timezone Handling:
+ * - Uses clockInOut() RPC for atomic clock operations
+ * - Uses getRecentEventsET() for timezone-aware event display
+ * - All times displayed in Eastern Time (EST/EDT) from database
  */
 
 export default function ClockInOut() {
@@ -78,40 +84,43 @@ export default function ClockInOut() {
 
   const loadRecentEvents = async () => {
     try {
-      const events = await timeclockApi.getRecentEvents(10)
+      // Use timezone-aware function that returns pre-formatted Eastern Time strings
+      const events = await timeclockApi.getRecentEventsET(10)
+
       const formattedEvents = events.map(event => {
-        const time = new Date(event.event_timestamp)
+        // Parse the pre-formatted ET string from database
+        // Format: "Nov 06, 2025 08:49 AM EST"
+        const eventTimeET = event.event_time_et || ''
+        const eventDateET = event.event_date_et || ''
 
-        // Get today and yesterday in Eastern Time
-        const nowEST = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' })
-        const eventDateEST = time.toLocaleDateString('en-US', { timeZone: 'America/New_York' })
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date()
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayEST = yesterday.toLocaleDateString('en-US', { timeZone: 'America/New_York' })
+        // Get yesterday's date
+        const yesterday = new Date(today)
+        yesterday.setDate(today.getDate() - 1)
+        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
 
-        const timeStr = time.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-          timeZone: 'America/New_York'
-        })
+        // Extract just the time from the formatted string (e.g., "08:49 AM")
+        const timeMatch = eventTimeET.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i)
+        const timeStr = timeMatch ? timeMatch[1] : eventTimeET
 
+        // Determine display format based on date
         let displayTime = timeStr
-        if (eventDateEST === nowEST) {
+        if (eventDateET === todayStr) {
           // Today: just show time
           displayTime = timeStr
-        } else if (eventDateEST === yesterdayEST) {
+        } else if (eventDateET === yesterdayStr) {
           // Yesterday: show "Yesterday 3:45 PM"
           displayTime = `Yesterday ${timeStr}`
         } else {
-          // Older: show date with time (no year)
-          const dateStr = time.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            timeZone: 'America/New_York'
-          })
-          displayTime = `${dateStr}, ${timeStr}`
+          // Older: show abbreviated date with time (e.g., "Nov 5, 3:45 PM")
+          const dateObj = new Date(eventDateET)
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const month = monthNames[dateObj.getMonth()]
+          const day = dateObj.getDate()
+          displayTime = `${month} ${day}, ${timeStr}`
         }
 
         return {

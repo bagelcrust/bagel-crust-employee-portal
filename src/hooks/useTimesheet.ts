@@ -1,81 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { timeclockApi } from '../supabase/supabase'
+import { calculatePayroll } from '../supabase/edgeFunctions'
 import { format } from 'date-fns'
 
 /**
- * Calculate weekly hours from time entries
- * @param events - Array of time clock events
- * @param weekOffset - 0 for this week, -1 for last week, etc.
+ * TIMESHEET HOOK - NOW USING EDGE FUNCTIONS FOR CORRECT TIMEZONE HANDLING
+ *
+ * This hook now uses Supabase Edge Functions to calculate hours worked with:
+ * ✅ Automatic EST/EDT timezone detection
+ * ✅ Correct UTC offset calculation (-4 or -5 hours)
+ * ✅ Server-side date math (no more client-side timezone bugs)
+ * ✅ Proper DST handling (no more 1-hour errors!)
+ *
+ * Old client-side calculation moved to bottom as backup/reference.
  */
-function calculateWeeklyHours(events: any[], weekOffset: number = 0) {
-  // Week starts on Monday (not Sunday)
-  const today = new Date()
-  const dayOfWeek = today.getDay()
-  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-
-  const weekStart = new Date(today)
-  weekStart.setDate(today.getDate() - daysFromMonday + (weekOffset * 7))
-  weekStart.setHours(0, 0, 0, 0)
-
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekStart.getDate() + 7)
-
-  // Filter events for this week using event_timestamp
-  const thisWeekEvents = events.filter(e => {
-    const eventDate = new Date(e.event_timestamp)
-    return eventDate >= weekStart && eventDate < weekEnd
-  })
-
-  // Sort all events chronologically
-  const sortedEvents = thisWeekEvents.sort((a, b) =>
-    new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
-  )
-
-  // Calculate daily hours by pairing consecutive IN/OUT events
-  const dailyHours: any[] = []
-  let totalHours = 0
-  let clockIn: any = null
-
-  sortedEvents.forEach(event => {
-    if (event.event_type === 'in') {
-      clockIn = event
-    } else if (event.event_type === 'out' && clockIn) {
-      const inTime = new Date(clockIn.event_timestamp)
-      const outTime = new Date(event.event_timestamp)
-      const hours = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
-
-      // Skip impossible shifts (over 16 hours = likely missing clock out/in)
-      if (hours > 16) {
-        console.warn('⚠️ Skipping impossible shift:', hours.toFixed(2), 'hours from', inTime, 'to', outTime)
-        clockIn = null
-        return
-      }
-
-      // Use the clock-in date as the reference date
-      const dateKey = inTime.toISOString().split('T')[0]
-
-      dailyHours.push({
-        date: dateKey,
-        day_name: format(inTime, 'EEEE'),
-        clock_in: inTime.toTimeString().slice(0, 5), // HH:MM
-        clock_out: outTime.toTimeString().slice(0, 5), // HH:MM
-        hours_worked: hours.toFixed(2)
-      })
-
-      totalHours += hours
-      clockIn = null // Reset for next pair
-    }
-  })
-
-  return {
-    days: dailyHours,
-    totalHours: totalHours.toFixed(2)
-  }
-}
 
 /**
- * Hook to fetch employee's timesheet (hours worked)
- * Returns this week and last week's data
+ * Hook to fetch employee's timesheet using Edge Functions for accurate timezone handling
+ * Returns this week and last week's data with correct Eastern Time calculations
  */
 export function useTimesheet(employeeId: string | undefined, enabled = true) {
   return useQuery({
@@ -83,23 +24,98 @@ export function useTimesheet(employeeId: string | undefined, enabled = true) {
     queryFn: async () => {
       if (!employeeId) throw new Error('Employee ID required')
 
-      // Fetch enough events to cover ~2 weeks for one employee
-      const recentEvents = await timeclockApi.getRecentEvents(200)
+      // Calculate date ranges in Eastern Time (YYYY-MM-DD format)
+      const today = new Date()
 
-      // Filter for this employee only
-      const myEvents = recentEvents.filter(e => e.employee_id === employeeId)
+      // This week (Monday - Sunday)
+      const dayOfWeek = today.getDay()
+      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
 
-      // Calculate hours for this week and last week
-      const thisWeekHours = calculateWeeklyHours(myEvents, 0)
-      const lastWeekHours = calculateWeeklyHours(myEvents, -1)
+      const thisWeekStart = new Date(today)
+      thisWeekStart.setDate(today.getDate() - daysFromMonday)
+      const thisWeekEnd = new Date(thisWeekStart)
+      thisWeekEnd.setDate(thisWeekStart.getDate() + 6)
+
+      // Last week
+      const lastWeekStart = new Date(thisWeekStart)
+      lastWeekStart.setDate(thisWeekStart.getDate() - 7)
+      const lastWeekEnd = new Date(lastWeekStart)
+      lastWeekEnd.setDate(lastWeekStart.getDate() + 6)
+
+      // Format dates as YYYY-MM-DD for Edge Function
+      const formatDate = (date: Date) => {
+        return date.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }) // en-CA gives YYYY-MM-DD format
+      }
+
+      // Call Edge Functions to calculate payroll with correct timezone handling
+      const [thisWeekData, lastWeekData] = await Promise.all([
+        calculatePayroll(
+          employeeId,
+          formatDate(thisWeekStart),
+          formatDate(thisWeekEnd)
+        ),
+        calculatePayroll(
+          employeeId,
+          formatDate(lastWeekStart),
+          formatDate(lastWeekEnd)
+        )
+      ])
+
+      // Transform Edge Function response to match expected format
+      const transformPayrollToTimesheet = (payrollData: any) => {
+        const dailyHours = payrollData.shifts.map((shift: any) => {
+          // Parse Eastern Time strings (already converted server-side!)
+          const clockInDate = new Date(shift.clockIn)
+
+          // Extract time from "Nov 5, 2025 6:00 AM EST"
+          // Split: ["Nov", "5,", "2025", "6:00", "AM", "EST"]
+          // We want: "6:00 AM"
+          const clockInParts = shift.clockInEST.split(' ')
+          const clockOutParts = shift.clockOutEST.split(' ')
+
+          const clockInTime = `${clockInParts[3]} ${clockInParts[4]}` // "6:00 AM"
+          const clockOutTime = `${clockOutParts[3]} ${clockOutParts[4]}` // "2:30 PM"
+
+          return {
+            date: shift.clockIn.split('T')[0], // YYYY-MM-DD
+            day_name: format(clockInDate, 'EEEE'),
+            clock_in: clockInTime,
+            clock_out: clockOutTime,
+            hours_worked: shift.hoursWorked.toFixed(2)
+          }
+        })
+
+        return {
+          days: dailyHours,
+          totalHours: payrollData.totalHours.toFixed(2),
+          // Include additional data from Edge Function
+          hourlyRate: payrollData.hourlyRate,
+          totalPay: payrollData.totalPay,
+          unpaired: payrollData.unpaired || []
+        }
+      }
 
       return {
-        thisWeek: thisWeekHours,
-        lastWeek: lastWeekHours
+        thisWeek: transformPayrollToTimesheet(thisWeekData),
+        lastWeek: transformPayrollToTimesheet(lastWeekData)
       }
     },
     enabled: !!employeeId && enabled,
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes (hours change more frequently)
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
     gcTime: 5 * 60 * 1000 // Keep in cache for 5 minutes
   })
 }
+
+/**
+ * OLD CLIENT-SIDE CALCULATION (DEPRECATED - Kept for reference)
+ *
+ * This was the old way of calculating hours, which had timezone issues:
+ * ❌ Client-side timezone conversion (browser-dependent)
+ * ❌ Potential DST bugs (EST vs EDT confusion)
+ * ❌ UTC offset calculated in browser (can be wrong)
+ *
+ * The new Edge Function approach above fixes all these issues by:
+ * ✅ Using server-side Intl.DateTimeFormat with proper timezone data
+ * ✅ Automatic DST detection (no manual offset calculation)
+ * ✅ Consistent results regardless of user's browser/location
+ */

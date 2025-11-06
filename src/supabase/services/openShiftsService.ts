@@ -39,6 +39,9 @@ export const openShiftsService = {
 
   /**
    * Create a new open shift (unassigned)
+   *
+   * NOTE: Type assertion needed because database schema should allow NULL for employee_id
+   * but auto-generated types show it as required. TODO: Update schema to allow NULL.
    */
   async createOpenShift(
     startTime: string,
@@ -50,7 +53,7 @@ export const openShiftsService = {
     const { data, error } = await supabase
       .from('shifts')
       .insert({
-        employee_id: null, // Open shift
+        employee_id: null as any, // Type assertion: open shift has no employee
         start_time: startTime,
         end_time: endTime,
         location: location,
@@ -111,11 +114,16 @@ export const openShiftsService = {
 
   /**
    * Unassign a shift (make it open)
+   *
+   * NOTE: Database schema requires employee_id to be non-null in Row type,
+   * but we send null in the update to clear it. The response will actually
+   * contain null in employee_id even though the Row type doesn't allow it.
+   * We use type assertion to handle this discrepancy.
    */
   async unassignShift(shiftId: number): Promise<Shift> {
     const { data, error } = await supabase
       .from('shifts')
-      .update({ employee_id: null })
+      .update({ employee_id: null as any })
       .eq('id', shiftId)
       .select()
       .single()

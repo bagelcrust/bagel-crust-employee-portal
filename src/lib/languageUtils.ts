@@ -14,10 +14,16 @@ import type { Employee } from '../supabase/supabase'
  *
  * @param employee - Employee object from database
  * @returns Language code ('en' or 'es')
+ *
+ * NOTE: Database stores preferred_language as string | null
+ * Valid values are 'en' or 'es', defaults to 'en' if null/undefined
  */
 export function getEmployeeLanguage(employee: Employee | null | undefined): 'en' | 'es' {
-  if (!employee) return 'en'
-  return employee.preferred_language || 'en'
+  if (!employee || !employee.preferred_language) return 'en'
+
+  // Type assertion: database stores valid language codes, validate it's 'en' or 'es'
+  const lang = employee.preferred_language as string
+  return (lang === 'es' ? 'es' : 'en')
 }
 
 /**
