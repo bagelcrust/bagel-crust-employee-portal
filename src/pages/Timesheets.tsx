@@ -3,12 +3,14 @@ import { format, startOfWeek, endOfWeek, subWeeks, eachDayOfInterval } from 'dat
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 /**
- * TIMESHEETS V7 - EXPANDABLE TABLE (LIKE SCREENSHOT)
+ * TIMESHEETS V8 - MOBILE-OPTIMIZED EXPANDABLE LIST
  *
- * Layout matches the reference screenshot:
- * - Collapsed: Employee summary row with totals
- * - Expanded: Individual day rows beneath employee
- * - Table columns: Date, Role, Wage rate, Time card, Issues, Scheduled hours, Total paid hours, Estimated wages
+ * Design improvements:
+ * - max-w-2xl container (matches employee portal width - 672px)
+ * - Tighter spacing, less white space
+ * - Better visual separation with borders and backgrounds
+ * - Mobile-first responsive design
+ * - Card-based layout (not table) for better mobile compatibility
  */
 
 interface DayRecord {
@@ -152,32 +154,33 @@ export default function Timesheets() {
   }
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gray-50">
-      <div className="flex-1 overflow-y-auto pb-8 pt-6 px-4">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="mb-6 text-center">
-            <h1 className="text-[32px] font-bold text-slate-900 tracking-tight mb-2">Timesheets</h1>
-            <p className="text-sm text-slate-600 font-medium">{getDateRangeString()}</p>
+    <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
+      <div className="flex-1 overflow-y-auto pb-6 pt-4 px-3">
+        {/* Matches employee portal: max-w-2xl */}
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-4 text-center">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">Timesheets</h1>
+            <p className="text-xs text-slate-600 font-medium">{getDateRangeString()}</p>
           </div>
 
-          {/* Week Selection */}
-          <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200 mb-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex bg-gray-100 rounded-lg p-1 w-full">
-                <button onClick={() => setWeekSelection('this')} className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${weekSelection === 'this' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`} type="button">This Week</button>
-                <button onClick={() => setWeekSelection('last')} className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${weekSelection === 'last' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`} type="button">Last Week</button>
-                <button onClick={() => setWeekSelection('custom')} className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${weekSelection === 'custom' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`} type="button">Custom Range</button>
+          {/* Week Selection - Compact */}
+          <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 shadow-sm border border-white/50 mb-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex bg-gray-100 rounded-md p-0.5 w-full">
+                <button onClick={() => setWeekSelection('this')} className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${weekSelection === 'this' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`} type="button">This Week</button>
+                <button onClick={() => setWeekSelection('last')} className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${weekSelection === 'last' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`} type="button">Last Week</button>
+                <button onClick={() => setWeekSelection('custom')} className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${weekSelection === 'custom' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`} type="button">Custom</button>
               </div>
 
               {weekSelection === 'custom' && (
-                <div className="flex gap-3 items-center">
+                <div className="flex gap-2 items-center">
                   <div className="flex-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Start Date</label>
-                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider block mb-0.5">Start</label>
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">End Date</label>
-                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider block mb-0.5">End</label>
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
                   </div>
                 </div>
               )}
@@ -185,92 +188,115 @@ export default function Timesheets() {
           </div>
 
           {loading && (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <div className="text-base font-semibold text-gray-600">Loading timesheets...</div>
+            <div className="text-center py-8">
+              <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <div className="text-sm font-semibold text-gray-600">Loading...</div>
             </div>
           )}
 
-          {/* EXPANDABLE TABLE */}
+          {/* EXPANDABLE LIST - Card-based for mobile */}
           {!loading && employees.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  {/* Table Header */}
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[200px]">Date</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">Role</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">Wage rate</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[180px]">Time card</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">Issues</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">Scheduled hours</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">Total paid hours</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[140px]">Estimated wages</th>
-                    </tr>
-                  </thead>
+            <div className="space-y-1">
+              {employees.map((emp) => {
+                const isExpanded = expandedEmployees.has(emp.id)
 
-                  <tbody>
-                    {employees.map((emp, idx) => {
-                      const isExpanded = expandedEmployees.has(emp.id)
+                return (
+                  <div key={emp.id} className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Employee Summary Row */}
+                    <div
+                      onClick={() => toggleEmployee(emp.id)}
+                      className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        )}
+                        <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-base flex-shrink-0">
+                          {emp.avatar}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm text-gray-900 truncate">{emp.name}</div>
+                          <div className="text-[10px] text-gray-500">{emp.totalTimeCards} time cards</div>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-2">
+                        <div className="text-xs text-gray-500">Total</div>
+                        <div className="font-bold text-sm text-blue-600">{emp.totalPaidHours.toFixed(1)}h</div>
+                        <div className="font-bold text-xs text-green-600">${emp.totalEstimatedWages.toFixed(2)}</div>
+                      </div>
+                    </div>
 
-                      return (
-                        <>
-                          {/* Employee Summary Row */}
-                          <tr
-                            key={emp.id}
-                            className={`cursor-pointer hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
-                            onClick={() => toggleEmployee(emp.id)}
+                    {/* Expanded Day Details */}
+                    {isExpanded && (
+                      <div className="bg-gray-50">
+                        {/* Column Headers - Mobile optimized */}
+                        <div className="grid grid-cols-12 gap-1 px-3 py-2 bg-gray-100 border-b border-gray-200 text-[10px] font-semibold text-gray-600 uppercase">
+                          <div className="col-span-3">Date</div>
+                          <div className="col-span-2">Role</div>
+                          <div className="col-span-3 text-center">Time</div>
+                          <div className="col-span-2 text-right">Hours</div>
+                          <div className="col-span-2 text-right">Wages</div>
+                        </div>
+
+                        {/* Day Rows */}
+                        {emp.days.map((day, idx) => (
+                          <div
+                            key={idx}
+                            className={`grid grid-cols-12 gap-1 px-3 py-2 text-xs border-b border-gray-100 last:border-b-0 ${
+                              idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                            }`}
                           >
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-3">
-                                {isExpanded ? (
-                                  <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                )}
-                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-lg flex-shrink-0">
-                                  {emp.avatar}
-                                </div>
-                                <span className="font-semibold text-gray-900">{emp.name}</span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="text-gray-600 font-medium">{emp.totalTimeCards} Time Cards</span>
-                            </td>
-                            <td className="py-4 px-4"></td>
-                            <td className="py-4 px-4"></td>
-                            <td className="py-4 px-4"></td>
-                            <td className="py-4 px-4 text-right text-gray-900 font-medium">{emp.totalScheduledHours.toFixed(2)}</td>
-                            <td className="py-4 px-4 text-right text-gray-900 font-bold">{emp.totalPaidHours.toFixed(2)}</td>
-                            <td className="py-4 px-4 text-right text-gray-900 font-bold">${emp.totalEstimatedWages.toFixed(2)}</td>
-                          </tr>
+                            {/* Date */}
+                            <div className="col-span-3 text-gray-700 font-medium">
+                              {day.date}
+                            </div>
 
-                          {/* Expanded Day Rows */}
-                          {isExpanded && emp.days.map((day, dayIdx) => (
-                            <tr key={`${emp.id}-${dayIdx}`} className="bg-white border-t border-gray-100">
-                              <td className="py-3 px-4 pl-16 text-gray-700">{day.date}</td>
-                              <td className="py-3 px-4 text-gray-600">{day.role || '--'}</td>
-                              <td className="py-3 px-4 text-gray-700">${day.wageRate.toFixed(2)}/hr</td>
-                              <td className="py-3 px-4 text-gray-700">{day.clockIn} - {day.clockOut}</td>
-                              <td className="py-3 px-4 text-gray-600">{day.issues || '--'}</td>
-                              <td className="py-3 px-4 text-right text-gray-700">{day.scheduledHours.toFixed(2)}</td>
-                              <td className="py-3 px-4 text-right text-gray-900 font-semibold">{day.totalPaidHours.toFixed(2)}</td>
-                              <td className="py-3 px-4 text-right text-gray-900 font-semibold">${day.estimatedWages.toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            {/* Role */}
+                            <div className="col-span-2 text-gray-600 text-[10px] leading-tight">
+                              {day.role}
+                            </div>
+
+                            {/* Time Card */}
+                            <div className="col-span-3 text-center text-gray-700 text-[10px] leading-tight">
+                              <div>{day.clockIn}</div>
+                              <div>{day.clockOut}</div>
+                            </div>
+
+                            {/* Hours */}
+                            <div className="col-span-2 text-right font-semibold text-gray-900">
+                              {day.totalPaidHours.toFixed(1)}h
+                            </div>
+
+                            {/* Wages */}
+                            <div className="col-span-2 text-right font-semibold text-green-700">
+                              ${day.estimatedWages.toFixed(2)}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Day-level totals footer */}
+                        <div className="px-3 py-2 bg-blue-50 border-t-2 border-blue-200">
+                          <div className="flex justify-between text-xs">
+                            <span className="font-semibold text-gray-700">Week Total</span>
+                            <div className="flex gap-3">
+                              <span className="font-bold text-blue-700">{emp.totalPaidHours.toFixed(1)}h</span>
+                              <span className="font-bold text-green-700">${emp.totalEstimatedWages.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
 
           {!loading && employees.length === 0 && (
-            <div className="bg-white rounded-lg p-12 shadow-sm border border-gray-200 text-center">
-              <p className="text-gray-500 text-base font-medium">No timesheet data available for this period</p>
+            <div className="bg-white/90 backdrop-blur-md rounded-lg p-8 shadow-sm border border-gray-200 text-center">
+              <p className="text-gray-500 text-sm font-medium">No timesheet data available</p>
             </div>
           )}
         </div>
