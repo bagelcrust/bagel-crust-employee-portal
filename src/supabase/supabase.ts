@@ -233,95 +233,17 @@ export const scheduleApi = {
     return data || [];
   },
 
-  // Get this week's schedule (optimized with join)
-  // CRITICAL: Uses Eastern Time to match how shifts are stored
+  // DEPRECATED: Use getSchedule() Edge Function instead
+  // These functions duplicate timezone logic and are error-prone
+  // Kept for backward compatibility only
   async getWeeklySchedule() {
-    // Get current date/time in Eastern Time
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      weekday: 'short'
-    });
-
-    const now = new Date();
-    const parts = formatter.formatToParts(now);
-    const month = parts.find(p => p.type === 'month')?.value || '01';
-    const day = parts.find(p => p.type === 'day')?.value || '01';
-    const year = parts.find(p => p.type === 'year')?.value || '2025';
-
-    // Create Eastern Time date
-    const todayET = new Date(`${year}-${month}-${day}T12:00:00`);
-    const dayOfWeek = todayET.getDay(); // 0 = Sunday
-
-    // Calculate Monday of this week (in ET)
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const startOfWeek = new Date(todayET);
-    startOfWeek.setDate(todayET.getDate() - daysFromMonday);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const { data, error } = await supabase
-      .from('shifts')
-      .select(`
-        *,
-        employee:employees(*)
-      `)
-      .gte('start_time', startOfWeek.toISOString())
-      .lte('start_time', endOfWeek.toISOString())
-      .order('start_time');
-
-    if (error) throw error;
-    return data || [];
+    console.warn('scheduleApi.getWeeklySchedule() is DEPRECATED. Use getSchedule("this-week") Edge Function instead.');
+    throw new Error('Use getSchedule() Edge Function instead of scheduleApi.getWeeklySchedule()');
   },
 
-  // Get next week's schedule (optimized with join)
-  // CRITICAL: Uses Eastern Time to match how shifts are stored
   async getNextWeekSchedule() {
-    // Get current date/time in Eastern Time
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-
-    const now = new Date();
-    const parts = formatter.formatToParts(now);
-    const month = parts.find(p => p.type === 'month')?.value || '01';
-    const day = parts.find(p => p.type === 'day')?.value || '01';
-    const year = parts.find(p => p.type === 'year')?.value || '2025';
-
-    // Create Eastern Time date
-    const todayET = new Date(`${year}-${month}-${day}T12:00:00`);
-    const dayOfWeek = todayET.getDay();
-
-    // Calculate Monday of next week (in ET)
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const startOfNextWeek = new Date(todayET);
-    startOfNextWeek.setDate(todayET.getDate() - daysFromMonday + 7);
-    startOfNextWeek.setHours(0, 0, 0, 0);
-
-    const endOfNextWeek = new Date(startOfNextWeek);
-    endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
-    endOfNextWeek.setHours(23, 59, 59, 999);
-
-    const { data, error} = await supabase
-      .from('shifts')
-      .select(`
-        *,
-        employee:employees(*)
-      `)
-      .gte('start_time', startOfNextWeek.toISOString())
-      .lte('start_time', endOfNextWeek.toISOString())
-      .order('start_time');
-
-    if (error) throw error;
-    return data || [];
+    console.warn('scheduleApi.getNextWeekSchedule() is DEPRECATED. Use getSchedule("next-week") Edge Function instead.');
+    throw new Error('Use getSchedule() Edge Function instead of scheduleApi.getNextWeekSchedule()');
   },
 
   // Get week schedule (with optional join)

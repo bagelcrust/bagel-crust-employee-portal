@@ -108,6 +108,48 @@ export async function formatEasternTime(utcTimestamp: string) {
 }
 
 /**
+ * Get schedule with proper Eastern Time handling
+ *
+ * This Edge Function:
+ * - Automatically handles EST/EDT timezone conversions
+ * - Calculates weeks based on Eastern Time (not server timezone)
+ * - Single source of truth for all schedule queries
+ *
+ * @param query - Query type: 'today', 'this-week', 'next-week', 'date-range'
+ * @param employeeId - Optional: Filter to specific employee
+ * @param startDate - For date-range queries (YYYY-MM-DD in Eastern Time)
+ * @param endDate - For date-range queries (YYYY-MM-DD in Eastern Time)
+ * @returns Schedule data with shifts
+ */
+export async function getSchedule(
+  query: 'today' | 'this-week' | 'next-week' | 'date-range',
+  employeeId?: string,
+  startDate?: string,
+  endDate?: string
+) {
+  const { data, error } = await supabase.functions.invoke('get-schedule', {
+    body: { query, employeeId, startDate, endDate }
+  });
+
+  if (error) {
+    console.error('Schedule fetch failed:', {
+      query,
+      employeeId,
+      startDate,
+      endDate,
+      error
+    });
+    throw new Error(`Failed to fetch schedule: ${error.message || JSON.stringify(error)}`);
+  }
+
+  if (!data || !data.shifts) {
+    throw new Error('Invalid response from get-schedule Edge Function');
+  }
+
+  return data.shifts;
+}
+
+/**
  * Types for Edge Function responses
  */
 export interface TimezoneConversion {

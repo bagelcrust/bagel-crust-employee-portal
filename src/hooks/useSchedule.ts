@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { scheduleApi } from '../supabase/supabase'
+import { getSchedule } from '../supabase/edgeFunctions'
 
 /**
  * Helper to group schedule by day of week
@@ -48,6 +48,7 @@ function groupScheduleByDay(schedules: any[]) {
 /**
  * Hook to fetch employee's personal schedule
  * Returns this week and next week, grouped by day
+ * USES EDGE FUNCTION for proper Eastern Time timezone handling
  */
 export function useEmployeeSchedule(employeeId: string | undefined, enabled = true) {
   return useQuery({
@@ -55,19 +56,15 @@ export function useEmployeeSchedule(employeeId: string | undefined, enabled = tr
     queryFn: async () => {
       if (!employeeId) throw new Error('Employee ID required')
 
-      // Fetch both weeks in parallel
+      // Fetch both weeks in parallel using Edge Function (handles timezone correctly)
       const [thisWeekSchedules, nextWeekSchedules] = await Promise.all([
-        scheduleApi.getWeeklySchedule(),
-        scheduleApi.getNextWeekSchedule()
+        getSchedule('this-week', employeeId),
+        getSchedule('next-week', employeeId)
       ])
 
-      // Filter for this employee only
-      const myThisWeekSchedule = thisWeekSchedules.filter(s => s.employee_id === employeeId)
-      const myNextWeekSchedule = nextWeekSchedules.filter(s => s.employee_id === employeeId)
-
       // Group by day
-      const thisWeekByDay = groupScheduleByDay(myThisWeekSchedule)
-      const nextWeekByDay = groupScheduleByDay(myNextWeekSchedule)
+      const thisWeekByDay = groupScheduleByDay(thisWeekSchedules)
+      const nextWeekByDay = groupScheduleByDay(nextWeekSchedules)
 
       return {
         thisWeek: thisWeekByDay,
@@ -111,15 +108,16 @@ function groupTeamScheduleByDay(schedules: any[]) {
 /**
  * Hook to fetch full team schedule
  * Returns all employees' schedules for this week and next week
+ * USES EDGE FUNCTION for proper Eastern Time timezone handling
  */
 export function useTeamSchedule(enabled = true) {
   return useQuery({
     queryKey: ['team-schedule'],
     queryFn: async () => {
-      // Fetch both weeks in parallel
+      // Fetch both weeks in parallel using Edge Function (handles timezone correctly)
       const [thisWeekSchedules, nextWeekSchedules] = await Promise.all([
-        scheduleApi.getWeeklySchedule(),
-        scheduleApi.getNextWeekSchedule()
+        getSchedule('this-week'), // No employeeId = all employees
+        getSchedule('next-week')
       ])
 
       // Group by day (includes all employees)
