@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getDisplayName, supabase } from '../supabase/supabase'
-import { getEmployeeByPin, clockInOut, getRecentClockEvents } from '../supabase/edgeFunctions'
+import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
 
 /**
@@ -85,53 +85,12 @@ export default function ClockInOut() {
 
   const loadRecentEvents = async () => {
     try {
-      // Use timezone-aware Edge Function that returns pre-formatted Eastern Time strings
-      const events = await getRecentClockEvents(10, true)
+      // Use aggregate Edge Function - returns all terminal data in one call
+      const terminalData = await getClockTerminalData(10)
 
-      const formattedEvents = events.map((event: any) => {
-        // Parse the pre-formatted ET string from database
-        // Format: "Nov 06, 2025 08:49 AM EST"
-        const eventTimeET = event.event_time_et || ''
-        const eventDateET = event.event_date_et || ''
-
-        // Get today's date in YYYY-MM-DD format
-        const today = new Date()
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-
-        // Get yesterday's date
-        const yesterday = new Date(today)
-        yesterday.setDate(today.getDate() - 1)
-        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
-
-        // Extract just the time from the formatted string (e.g., "08:49 AM")
-        const timeMatch = eventTimeET.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i)
-        const timeStr = timeMatch ? timeMatch[1] : eventTimeET
-
-        // Determine display format based on date
-        let displayTime = timeStr
-        if (eventDateET === todayStr) {
-          // Today: just show time
-          displayTime = timeStr
-        } else if (eventDateET === yesterdayStr) {
-          // Yesterday: show "Yesterday 3:45 PM"
-          displayTime = `Yesterday ${timeStr}`
-        } else {
-          // Older: show abbreviated date with time (e.g., "Nov 5, 3:45 PM")
-          const dateObj = new Date(eventDateET)
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-          const month = monthNames[dateObj.getMonth()]
-          const day = dateObj.getDate()
-          displayTime = `${month} ${day}, ${timeStr}`
-        }
-
-        return {
-          id: event.id,
-          name: event.employee ? event.employee.first_name : 'Unknown',
-          action: event.event_type === 'in' ? 'Clock In' : 'Clock Out',
-          time: displayTime
-        }
-      })
-      setRecentEvents(formattedEvents)
+      // Events are already formatted by the Edge Function!
+      // No client-side date parsing or formatting needed
+      setRecentEvents(terminalData.recentEvents)
     } catch (error) {
       console.error('Failed to load recent events:', error)
     }

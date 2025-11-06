@@ -507,3 +507,75 @@ export async function resolveScheduleConflicts(
 
   return data;
 }
+
+// ============================================================================
+// AGGREGATE PAGE-SPECIFIC APIs - Single endpoint per page
+// ============================================================================
+
+/**
+ * Get all data for Employee Portal page
+ * Aggregates: personal schedule, team schedule, timesheet, time-off requests
+ *
+ * Reduces 6 HTTP requests down to 1
+ */
+export async function getEmployeePortalData(employeeId: string) {
+  const { data, error } = await supabase.functions.invoke('employee-portal-data', {
+    body: { employeeId }
+  });
+
+  if (error) throw new Error(`Failed to get employee portal data: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from employee-portal-data Edge Function');
+
+  return data;
+}
+
+/**
+ * Get all data for Schedule Builder page
+ * Aggregates: employees, shifts, open shifts, time-offs, weekly hours, publish status, conflicts
+ *
+ * Reduces 6 HTTP requests down to 1
+ */
+export async function getScheduleBuilderData(startDate: string, endDate: string) {
+  const { data, error } = await supabase.functions.invoke('schedule-builder-data', {
+    body: { startDate, endDate }
+  });
+
+  if (error) throw new Error(`Failed to get schedule builder data: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from schedule-builder-data Edge Function');
+
+  return data;
+}
+
+/**
+ * Get all data for Timesheets page
+ * Aggregates: employees, time entries, pay rates, pre-calculated timesheets
+ *
+ * Reduces 3 HTTP requests down to 1
+ */
+export async function getTimesheetsData(startDate: string, endDate: string) {
+  const { data, error } = await supabase.functions.invoke('timesheets-data', {
+    body: { startDate, endDate }
+  });
+
+  if (error) throw new Error(`Failed to get timesheets data: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from timesheets-data Edge Function');
+
+  return data;
+}
+
+/**
+ * Get all data for Clock Terminal page
+ * Aggregates: recent events, currently working employees, server time
+ *
+ * Single endpoint for terminal display
+ */
+export async function getClockTerminalData(limit = 10) {
+  const { data, error } = await supabase.functions.invoke('clock-terminal-data', {
+    body: { limit }
+  });
+
+  if (error) throw new Error(`Failed to get clock terminal data: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from clock-terminal-data Edge Function');
+
+  return data;
+}
