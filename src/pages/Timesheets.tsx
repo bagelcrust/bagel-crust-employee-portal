@@ -101,11 +101,17 @@ export default function Timesheets() {
       }
 
       // Fetch all data in parallel using timezone-aware API
+      console.log('🔍 Fetching timesheets for date range:', { startDateET, endDateET })
       const [employeesData, eventsInRange, payRatesData] = await Promise.all([
         employeeApi.getAll(),
         timeclockApi.getEventsInRangeET(startDateET, endDateET),
         payRatesApi.getAll()
       ])
+      console.log('📊 Data loaded:', {
+        employeesCount: employeesData.length,
+        eventsCount: eventsInRange.length,
+        payRatesCount: payRatesData.length
+      })
 
       // Create pay rates map
       const payRatesMap = new Map<string, number>()
@@ -245,6 +251,17 @@ export default function Timesheets() {
 
       // Sort by name
       employeeTimesheets.sort((a, b) => a.name.localeCompare(b.name))
+
+      console.log('✅ Processed employee timesheets:', {
+        totalEmployees: employeeTimesheets.length,
+        employeesWithHours: employeeTimesheets.filter(e => e.totalPaidHours > 0).length,
+        employeesWithTimeCards: employeeTimesheets.filter(e => e.totalTimeCards > 0).length,
+        sampleEmployee: employeeTimesheets[0] ? {
+          name: employeeTimesheets[0].name,
+          timeCards: employeeTimesheets[0].totalTimeCards,
+          hours: employeeTimesheets[0].totalPaidHours
+        } : null
+      })
 
       // Auto-expand all
       setEmployees(employeeTimesheets)
