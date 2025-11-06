@@ -163,9 +163,7 @@ export const timeclockApi = {
 
     if (error) throw error;
     return data || [];
-  }
-
-,
+  },
 
   // Get recent events with timezone-aware formatting (uses ET)
   // Returns events from last 3 days with pre-formatted Eastern Time strings
