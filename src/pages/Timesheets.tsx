@@ -1,42 +1,107 @@
 import { useState, useEffect } from 'react'
-import { timeclockApi, employeeApi, getDisplayName } from '../supabase/supabase'
-import { format, startOfWeek, endOfWeek, subWeeks, parseISO } from 'date-fns'
-import { formatHoursMinutes } from '../lib/employeeUtils'
-import { formatInEasternTime } from '../lib/dateUtils'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { format, startOfWeek, endOfWeek, subWeeks, eachDayOfInterval } from 'date-fns'
 
 /**
- * MANAGER/ADMIN TIMESHEETS PAGE - EXPANDABLE LIST (V5)
+ * TIMESHEETS V6 - DENSE SPREADSHEET
  *
- * ✅ Compact collapsed view (name + total)
- * ✅ Click to expand details
- * ✅ Progressive disclosure - clean minimalist
- * ✅ Best for scanning summary, expanding when needed
+ * Full-width table showing:
+ * - Employee name, role, pay rate
+ * - 7 days with clock in/out times
+ * - Issues/warnings
+ * - Total hours & estimated wages
  */
 
-interface DailyHours {
+// Dummy data structure
+interface DayData {
   date: string
-  day_name: string
-  clock_in: string | null
-  clock_out: string | null
-  hours_worked: number
-  incomplete?: boolean
+  dayName: string
+  clockIn: string | null
+  clockOut: string | null
+  hours: number
+  hasIssue: boolean
+  issueText?: string
 }
 
-interface EmployeeTimesheet {
-  employee_id: string
-  employee_name: string
-  daily_hours: DailyHours[]
-  total_hours: number
+interface EmployeeRow {
+  id: string
+  name: string
+  role: string
+  payRate: number
+  days: DayData[]
+  totalHours: number
+  estimatedWages: number
+}
+
+// Generate dummy data
+const generateDummyData = (): EmployeeRow[] => {
+  const employees = [
+    { id: '1', name: 'Juan Garcia', role: 'Baker', payRate: 18.50 },
+    { id: '2', name: 'Carlos Martinez', role: 'Counter Staff', payRate: 16.00 },
+    { id: '3', name: 'Angie Rodriguez', role: 'Manager', payRate: 22.00 },
+    { id: '4', name: 'Maria Lopez', role: 'Baker', payRate: 18.00 },
+    { id: '5', name: 'Emerson Silva', role: 'Counter Staff', payRate: 15.50 },
+    { id: '6', name: 'Sofia Chen', role: 'Baker', payRate: 17.50 },
+    { id: '7', name: 'Luis Mendez', role: 'Prep Cook', payRate: 16.50 },
+    { id: '8', name: 'Isabella Rossi', role: 'Counter Staff', payRate: 15.00 }
+  ]
+
+  const today = new Date()
+  const weekStart = startOfWeek(today, { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(today, { weekStartsOn: 1 })
+  const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd })
+
+  return employees.map((emp, idx) => {
+    const days = daysInWeek.map((day, dayIdx) => {
+      const dateStr = format(day, 'yyyy-MM-dd')
+      const dayName = format(day, 'EEE')
+
+      // Randomly skip some days
+      if (Math.random() < 0.2) {
+        return {
+          date: dateStr,
+          dayName,
+          clockIn: null,
+          clockOut: null,
+          hours: 0,
+          hasIssue: false
+        }
+      }
+
+      // Some days have missing clock out
+      const hasMissingOut = Math.random() < 0.1
+      const clockIn = `${6 + Math.floor(Math.random() * 3)}:${['00', '15', '30', '45'][Math.floor(Math.random() * 4)]}am`
+      const clockOut = hasMissingOut ? null : `${2 + Math.floor(Math.random() * 3)}:${['00', '15', '30', '45'][Math.floor(Math.random() * 4)]}pm`
+      const hours = hasMissingOut ? 0 : 6 + Math.random() * 3
+
+      return {
+        date: dateStr,
+        dayName,
+        clockIn,
+        clockOut,
+        hours,
+        hasIssue: hasMissingOut,
+        issueText: hasMissingOut ? 'Missing clock out' : undefined
+      }
+    })
+
+    const totalHours = days.reduce((sum, day) => sum + day.hours, 0)
+    const estimatedWages = totalHours * emp.payRate
+
+    return {
+      ...emp,
+      days,
+      totalHours,
+      estimatedWages
+    }
+  })
 }
 
 export default function Timesheets() {
   const [loading, setLoading] = useState(true)
-  const [timesheets, setTimesheets] = useState<EmployeeTimesheet[]>([])
+  const [employees, setEmployees] = useState<EmployeeRow[]>([])
   const [weekSelection, setWeekSelection] = useState<'this' | 'last' | 'custom'>('this')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     document.title = 'Bagel Crust - Timesheets'
@@ -48,134 +113,10 @@ export default function Timesheets() {
 
   const loadTimesheets = async () => {
     setLoading(true)
-    try {
-      let rangeStart: Date
-      let rangeEnd: Date
-
-      if (weekSelection === 'this') {
-        const today = new Date()
-        rangeStart = startOfWeek(today, { weekStartsOn: 1 })
-        rangeEnd = endOfWeek(today, { weekStartsOn: 1 })
-      } else if (weekSelection === 'last') {
-        const lastWeek = subWeeks(new Date(), 1)
-        rangeStart = startOfWeek(lastWeek, { weekStartsOn: 1 })
-        rangeEnd = endOfWeek(lastWeek, { weekStartsOn: 1 })
-      } else {
-        if (!startDate || !endDate) {
-          setLoading(false)
-          return
-        }
-        rangeStart = new Date(startDate)
-        rangeEnd = new Date(endDate)
-        rangeEnd.setHours(23, 59, 59, 999)
-      }
-
-      const employees = await employeeApi.getAll()
-      const allEvents = await timeclockApi.getRecentEvents(5000)
-
-      const eventsInRange = allEvents.filter(event => {
-        const eventDate = new Date(event.event_timestamp)
-        return eventDate >= rangeStart && eventDate <= rangeEnd
-      })
-
-      const employeeTimesheets: EmployeeTimesheet[] = employees.map(employee => {
-        const employeeEvents = eventsInRange.filter(e => e.employee_id === employee.id)
-        const sortedEvents = employeeEvents.sort((a, b) =>
-          new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
-        )
-
-        const dailyHoursMap = new Map<string, DailyHours>()
-        let totalHours = 0
-        let clockIn: any = null
-
-        sortedEvents.forEach(event => {
-          if (event.event_type === 'in') {
-            if (clockIn) {
-              const inTime = new Date(clockIn.event_timestamp)
-              const dateKey = formatInEasternTime(inTime, 'date')
-              const clockInFormatted = formatInEasternTime(inTime, 'time')
-              const dayNameET = formatInEasternTime(inTime, 'weekday')
-
-              dailyHoursMap.set(dateKey, {
-                date: dateKey,
-                day_name: dayNameET,
-                clock_in: clockInFormatted,
-                clock_out: null,
-                hours_worked: 0,
-                incomplete: true
-              })
-            }
-            clockIn = event
-          } else if (event.event_type === 'out' && clockIn) {
-            const inTime = new Date(clockIn.event_timestamp)
-            const outTime = new Date(event.event_timestamp)
-            const hours = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
-
-            if (hours > 16) {
-              clockIn = null
-              return
-            }
-
-            const dateKey = formatInEasternTime(inTime, 'date')
-            const clockInFormatted = formatInEasternTime(inTime, 'time')
-            const clockOutFormatted = formatInEasternTime(outTime, 'time')
-            const dayNameET = formatInEasternTime(inTime, 'weekday')
-
-            if (dailyHoursMap.has(dateKey)) {
-              const existing = dailyHoursMap.get(dateKey)!
-              existing.hours_worked += hours
-            } else {
-              dailyHoursMap.set(dateKey, {
-                date: dateKey,
-                day_name: dayNameET,
-                clock_in: clockInFormatted,
-                clock_out: clockOutFormatted,
-                hours_worked: hours,
-                incomplete: false
-              })
-            }
-
-            totalHours += hours
-            clockIn = null
-          }
-        })
-
-        if (clockIn) {
-          const inTime = new Date(clockIn.event_timestamp)
-          const dateKey = formatInEasternTime(inTime, 'date')
-          const clockInFormatted = formatInEasternTime(inTime, 'time')
-          const dayNameET = formatInEasternTime(inTime, 'weekday')
-
-          dailyHoursMap.set(dateKey, {
-            date: dateKey,
-            day_name: dayNameET,
-            clock_in: clockInFormatted,
-            clock_out: null,
-            hours_worked: 0,
-            incomplete: true
-          })
-        }
-
-        const dailyHours = Array.from(dailyHoursMap.values()).sort((a, b) =>
-          a.date.localeCompare(b.date)
-        )
-
-        return {
-          employee_id: employee.id,
-          employee_name: getDisplayName(employee),
-          daily_hours: dailyHours,
-          total_hours: totalHours
-        }
-      })
-
-      employeeTimesheets.sort((a, b) => a.employee_name.localeCompare(b.employee_name))
-      setTimesheets(employeeTimesheets)
-    } catch (error) {
-      console.error('Failed to load timesheets:', error)
-      alert('Failed to load timesheets')
-    } finally {
-      setLoading(false)
-    }
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500))
+    setEmployees(generateDummyData())
+    setLoading(false)
   }
 
   const getDateRangeString = () => {
@@ -195,27 +136,18 @@ export default function Timesheets() {
     }
   }
 
-  const toggleEmployee = (employeeId: string) => {
-    setExpandedEmployees(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(employeeId)) {
-        newSet.delete(employeeId)
-      } else {
-        newSet.add(employeeId)
-      }
-      return newSet
-    })
-  }
+  const daysOfWeek = employees[0]?.days.map(d => d.dayName) || []
 
   return (
     <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
       <div className="flex-1 overflow-y-auto pb-8 pt-6 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="mb-6 text-center">
             <h1 className="text-[32px] font-bold text-slate-900 tracking-tight mb-2">Timesheets</h1>
             <p className="text-sm text-slate-600 font-medium">{getDateRangeString()}</p>
           </div>
 
+          {/* Week Selection */}
           <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 mb-6">
             <div className="flex flex-col gap-4">
               <div className="flex bg-gray-100 rounded-lg p-1 w-full">
@@ -246,81 +178,74 @@ export default function Timesheets() {
             </div>
           )}
 
-          {/* EXPANDABLE LIST */}
-          {!loading && timesheets.length > 0 && (
-            <div className="space-y-2">
-              {timesheets.map(employeeSheet => {
-                const isExpanded = expandedEmployees.has(employeeSheet.employee_id)
-                const hasIncomplete = employeeSheet.daily_hours.some(d => d.incomplete)
+          {/* DENSE SPREADSHEET TABLE */}
+          {!loading && employees.length > 0 && (
+            <div className="bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                      <th className="text-left py-3 px-3 font-bold sticky left-0 bg-blue-600 z-10 min-w-[140px]">Employee</th>
+                      <th className="text-left py-3 px-3 font-semibold min-w-[100px]">Role</th>
+                      <th className="text-center py-3 px-3 font-semibold min-w-[70px]">Pay Rate</th>
+                      {daysOfWeek.map((day, idx) => (
+                        <th key={idx} className="text-center py-3 px-3 font-semibold min-w-[110px]">{day}</th>
+                      ))}
+                      <th className="text-center py-3 px-3 font-semibold min-w-[80px]">Total Hrs</th>
+                      <th className="text-center py-3 px-3 font-semibold min-w-[100px]">Est. Wages</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.map((emp, idx) => (
+                      <tr key={emp.id} className={`border-b border-gray-200 hover:bg-blue-50/50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                        {/* Employee Name */}
+                        <td className="py-3 px-3 font-bold text-gray-900 sticky left-0 bg-inherit z-10">{emp.name}</td>
 
-                return (
-                  <div key={employeeSheet.employee_id} className="bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 overflow-hidden">
-                    {/* Collapsed Summary (Always Visible) */}
-                    <button
-                      onClick={() => toggleEmployee(employeeSheet.employee_id)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
-                      type="button"
-                    >
-                      <div className="flex items-center gap-3">
-                        {isExpanded ? (
-                          <ChevronDown className="w-5 h-5 text-gray-600" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-gray-600" />
-                        )}
-                        <div className="text-left">
-                          <div className="font-bold text-gray-900 flex items-center gap-2">
-                            {employeeSheet.employee_name}
-                            {hasIncomplete && (
-                              <span className="text-red-500 text-xs">⚠️</span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500">{employeeSheet.daily_hours.length} days worked</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600 font-semibold">Total</div>
-                        <div className="text-xl font-bold text-blue-600">{formatHoursMinutes(employeeSheet.total_hours.toFixed(2))}</div>
-                      </div>
-                    </button>
+                        {/* Role */}
+                        <td className="py-3 px-3 text-gray-700">{emp.role}</td>
 
-                    {/* Expanded Details */}
-                    {isExpanded && (
-                      <div className="px-4 pb-4 border-t border-gray-100">
-                        {employeeSheet.daily_hours.length > 0 ? (
-                          <div className="space-y-2 mt-3">
-                            {employeeSheet.daily_hours.map(day => (
-                              <div key={day.date} className={`p-3 rounded-lg flex justify-between items-center ${day.incomplete ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
-                                <div>
-                                  <div className="font-semibold text-gray-800 flex items-center gap-1">
-                                    {day.day_name}
-                                    {day.incomplete && <span className="text-red-500 text-xs">⚠️</span>}
-                                  </div>
-                                  <div className="text-xs text-gray-500 mt-0.5">{format(parseISO(day.date), 'MMM do')}</div>
-                                  {!day.incomplete && day.clock_in && day.clock_out && (
-                                    <div className="text-xs text-gray-500 mt-1">{day.clock_in} - {day.clock_out}</div>
-                                  )}
-                                  {day.incomplete && day.clock_in && (
-                                    <div className="text-xs text-red-500 mt-1">In: {day.clock_in} (Missing OUT)</div>
-                                  )}
-                                </div>
-                                <div className={`text-lg font-bold ${day.incomplete ? 'text-red-600' : 'text-blue-600'}`}>
-                                  {day.incomplete ? 'Incomplete' : formatHoursMinutes(day.hours_worked.toFixed(2))}
-                                </div>
+                        {/* Pay Rate */}
+                        <td className="py-3 px-3 text-center font-semibold text-green-700">${emp.payRate.toFixed(2)}</td>
+
+                        {/* Days of Week */}
+                        {emp.days.map((day, dayIdx) => (
+                          <td key={dayIdx} className="py-2 px-2 text-center align-top">
+                            {day.clockIn ? (
+                              <div className={`rounded-lg p-2 ${day.hasIssue ? 'bg-red-50 border border-red-300' : 'bg-blue-50 border border-blue-200'}`}>
+                                <div className="text-[10px] text-gray-600 font-semibold mb-1">IN: {day.clockIn}</div>
+                                {day.clockOut ? (
+                                  <>
+                                    <div className="text-[10px] text-gray-600 font-semibold mb-1">OUT: {day.clockOut}</div>
+                                    <div className="text-xs font-bold text-blue-700">{day.hours.toFixed(1)}h</div>
+                                  </>
+                                ) : (
+                                  <div className="text-[10px] text-red-600 font-bold">⚠️ Missing OUT</div>
+                                )}
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-6 text-gray-400 text-sm">No hours worked</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                            ) : (
+                              <div className="text-gray-300 text-xs">—</div>
+                            )}
+                          </td>
+                        ))}
+
+                        {/* Total Hours */}
+                        <td className="py-3 px-3 text-center font-bold text-blue-700 text-base">
+                          {emp.totalHours.toFixed(1)}h
+                        </td>
+
+                        {/* Estimated Wages */}
+                        <td className="py-3 px-3 text-center font-bold text-green-700 text-base">
+                          ${emp.estimatedWages.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
-          {!loading && timesheets.length === 0 && (
+          {!loading && employees.length === 0 && (
             <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-12 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 text-center">
               <p className="text-gray-500 text-base font-medium">No timesheet data available for this period</p>
             </div>
