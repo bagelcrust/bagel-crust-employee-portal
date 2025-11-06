@@ -120,7 +120,10 @@ export default function Timesheets() {
   const loadTimesheets = async () => {
     setLoading(true)
     await new Promise(resolve => setTimeout(resolve, 500))
-    setEmployees(generateDummyData())
+    const data = generateDummyData()
+    setEmployees(data)
+    // Auto-expand all employees by default
+    setExpandedEmployees(new Set(data.map(emp => emp.id)))
     setLoading(false)
   }
 
@@ -159,8 +162,8 @@ export default function Timesheets() {
         {/* Matches employee portal: max-w-2xl */}
         <div className="max-w-2xl mx-auto">
           <div className="mb-4 text-center">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">Timesheets</h1>
-            <p className="text-xs text-slate-600 font-medium">{getDateRangeString()}</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">Timesheets</h1>
+            <p className="text-sm text-slate-600 font-medium">{getDateRangeString()}</p>
           </div>
 
           {/* Week Selection - Compact */}
@@ -209,22 +212,22 @@ export default function Timesheets() {
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                          <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                          <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
                         )}
-                        <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-base flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-xl flex-shrink-0">
                           {emp.avatar}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-sm text-gray-900 truncate">{emp.name}</div>
-                          <div className="text-[10px] text-gray-500">{emp.totalTimeCards} time cards</div>
+                          <div className="font-bold text-base text-gray-900 truncate">{emp.name}</div>
+                          <div className="text-xs text-gray-500">{emp.totalTimeCards} time cards</div>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-2">
                         <div className="text-xs text-gray-500">Total</div>
-                        <div className="font-bold text-sm text-blue-600">{emp.totalPaidHours.toFixed(1)}h</div>
-                        <div className="font-bold text-xs text-green-600">${emp.totalEstimatedWages.toFixed(2)}</div>
+                        <div className="font-bold text-lg text-blue-600">{emp.totalPaidHours.toFixed(1)}h</div>
+                        <div className="font-bold text-sm text-green-600">${emp.totalEstimatedWages.toFixed(2)}</div>
                       </div>
                     </div>
 
@@ -232,7 +235,7 @@ export default function Timesheets() {
                     {isExpanded && (
                       <div className="bg-gray-50">
                         {/* Column Headers - Mobile optimized */}
-                        <div className="grid grid-cols-12 gap-1 px-3 py-2 bg-gray-100 border-b border-gray-200 text-[10px] font-semibold text-gray-600 uppercase">
+                        <div className="grid grid-cols-12 gap-1 px-3 py-2 bg-gray-100 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase">
                           <div className="col-span-3">Date</div>
                           <div className="col-span-2">Role</div>
                           <div className="col-span-3 text-center">Time</div>
@@ -244,45 +247,45 @@ export default function Timesheets() {
                         {emp.days.map((day, idx) => (
                           <div
                             key={idx}
-                            className={`grid grid-cols-12 gap-1 px-3 py-2 text-xs border-b border-gray-100 last:border-b-0 ${
+                            className={`grid grid-cols-12 gap-1 px-3 py-2.5 text-sm border-b border-gray-100 last:border-b-0 ${
                               idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                             }`}
                           >
                             {/* Date */}
-                            <div className="col-span-3 text-gray-700 font-medium">
+                            <div className="col-span-3 text-gray-700 font-semibold">
                               {day.date}
                             </div>
 
                             {/* Role */}
-                            <div className="col-span-2 text-gray-600 text-[10px] leading-tight">
+                            <div className="col-span-2 text-gray-600 text-xs leading-tight">
                               {day.role}
                             </div>
 
                             {/* Time Card */}
-                            <div className="col-span-3 text-center text-gray-700 text-[10px] leading-tight">
+                            <div className="col-span-3 text-center text-gray-700 text-xs leading-tight">
                               <div>{day.clockIn}</div>
                               <div>{day.clockOut}</div>
                             </div>
 
                             {/* Hours */}
-                            <div className="col-span-2 text-right font-semibold text-gray-900">
+                            <div className="col-span-2 text-right font-bold text-gray-900 text-base">
                               {day.totalPaidHours.toFixed(1)}h
                             </div>
 
                             {/* Wages */}
-                            <div className="col-span-2 text-right font-semibold text-green-700">
+                            <div className="col-span-2 text-right font-bold text-green-700 text-sm">
                               ${day.estimatedWages.toFixed(2)}
                             </div>
                           </div>
                         ))}
 
                         {/* Day-level totals footer */}
-                        <div className="px-3 py-2 bg-blue-50 border-t-2 border-blue-200">
-                          <div className="flex justify-between text-xs">
-                            <span className="font-semibold text-gray-700">Week Total</span>
-                            <div className="flex gap-3">
-                              <span className="font-bold text-blue-700">{emp.totalPaidHours.toFixed(1)}h</span>
-                              <span className="font-bold text-green-700">${emp.totalEstimatedWages.toFixed(2)}</span>
+                        <div className="px-3 py-3 bg-blue-50 border-t-2 border-blue-200">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-bold text-gray-700">Week Total</span>
+                            <div className="flex gap-4">
+                              <span className="font-bold text-blue-700 text-base">{emp.totalPaidHours.toFixed(1)}h</span>
+                              <span className="font-bold text-green-700 text-base">${emp.totalEstimatedWages.toFixed(2)}</span>
                             </div>
                           </div>
                         </div>
