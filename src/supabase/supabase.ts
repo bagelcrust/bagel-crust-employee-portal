@@ -97,7 +97,7 @@ export const timeclockApi = {
 
     if (error) throw error;
     // RPC function returns TABLE (array), so get first element
-    return (data as TimeEntry[])[0];
+    return Array.isArray(data) ? data[0] : data;
   },
 
   // Get events in date range with employee info (using join - single query!)
