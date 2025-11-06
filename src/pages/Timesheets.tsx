@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, subWeeks, eachDayOfInterval } from 'date-fns'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { supabase, employeeApi, timeclockApi, getDisplayName, type Employee, type TimeEntry } from '../supabase/supabase'
+import { formatInEasternTime } from '../lib/dateUtils'
+import { formatHoursMinutes } from '../lib/employeeUtils'
 
 /**
- * TIMESHEETS V10 - MINIMALIST CLEAN
+ * TIMESHEETS V10 - MINIMALIST CLEAN (WITH REAL DATA)
  *
- * Same foundational structure as V8, but with:
- * - Shadow cards instead of borders
- * - More white space and breathing room
- * - Softer, cleaner aesthetic
- * - No heavy borders, lighter dividers
+ * Connected to Supabase:
+ * - Fetches real employees, time entries, and pay rates
+ * - Calculates hours worked from clock in/out events
+ * - Detects incomplete shifts (missing clock out)
+ * - Displays in Eastern Time
+ * - Shadow cards, clean aesthetic
  */
 
 interface DayRecord {
@@ -36,67 +40,14 @@ interface EmployeeTimesheet {
   totalEstimatedWages: number
 }
 
-// Generate dummy data
-const generateDummyData = (): EmployeeTimesheet[] => {
-  const employees = [
-    { id: '1', name: 'Angie Martinez', avatar: '👩‍🍳', role: 'Manager', wageRate: 22.00 },
-    { id: '2', name: 'Juan Garcia', avatar: '👨‍🍳', role: 'Baker', wageRate: 18.50 },
-    { id: '3', name: 'Carlos Martinez', avatar: '👨', role: 'Counter Staff', wageRate: 16.00 },
-    { id: '4', name: 'Maria Lopez', avatar: '👩', role: 'Baker', wageRate: 18.00 },
-    { id: '5', name: 'Emerson Silva', avatar: '👨', role: 'Counter Staff', wageRate: 15.50 },
-    { id: '6', name: 'Sofia Chen', avatar: '👩', role: 'Baker', wageRate: 17.50 }
-  ]
-
-  const today = new Date()
-  const weekStart = startOfWeek(today, { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(today, { weekStartsOn: 1 })
-  const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd })
-
-  return employees.map((emp) => {
-    const days: DayRecord[] = []
-
-    daysInWeek.forEach((day) => {
-      if (Math.random() < 0.3) return
-
-      const clockInHour = 6 + Math.floor(Math.random() * 2)
-      const clockInMinute = Math.floor(Math.random() * 60)
-      const clockOutHour = 14 + Math.floor(Math.random() * 4)
-      const clockOutMinute = Math.floor(Math.random() * 60)
-
-      const clockIn = `${clockInHour}:${clockInMinute.toString().padStart(2, '0')}am`
-      const clockOut = `${clockOutHour > 12 ? clockOutHour - 12 : clockOutHour}:${clockOutMinute.toString().padStart(2, '0')}pm`
-
-      const hoursWorked = (clockOutHour + clockOutMinute / 60) - (clockInHour + clockInMinute / 60)
-      const estimatedWages = hoursWorked * emp.wageRate
-
-      days.push({
-        date: format(day, 'EEE MMM d'),
-        dayName: format(day, 'EEEE'),
-        role: emp.role,
-        wageRate: emp.wageRate,
-        clockIn,
-        clockOut,
-        scheduledHours: 0,
-        totalPaidHours: parseFloat(hoursWorked.toFixed(2)),
-        estimatedWages: parseFloat(estimatedWages.toFixed(2)),
-        issues: null
-      })
-    })
-
-    const totalPaidHours = days.reduce((sum, day) => sum + day.totalPaidHours, 0)
-    const totalEstimatedWages = days.reduce((sum, day) => sum + day.estimatedWages, 0)
-
-    return {
-      id: emp.id,
-      name: emp.name,
-      avatar: emp.avatar,
-      days,
-      totalTimeCards: days.length,
-      totalScheduledHours: 0,
-      totalPaidHours: parseFloat(totalPaidHours.toFixed(2)),
-      totalEstimatedWages: parseFloat(totalEstimatedWages.toFixed(2))
-    }
-  })
+// Get emoji avatar based on role
+const getAvatarForRole = (role: string): string => {
+  const roleLower = role.toLowerCase()
+  if (roleLower.includes('owner')) return '👑'
+  if (roleLower.includes('manager')) return '👨‍💼'
+  if (roleLower.includes('staff')) return '👨‍🍳'
+  if (roleLower.includes('cashier')) return '💰'
+  return '👤'
 }
 
 export default function Timesheets() {
@@ -117,11 +68,175 @@ export default function Timesheets() {
 
   const loadTimesheets = async () => {
     setLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 500))
-    const data = generateDummyData()
-    setEmployees(data)
-    setExpandedEmployees(new Set(data.map(emp => emp.id)))
-    setLoading(false)
+    try {
+      // Determine date range
+      let rangeStart: Date
+      let rangeEnd: Date
+
+      if (weekSelection === 'this') {
+        const today = new Date()
+        rangeStart = startOfWeek(today, { weekStartsOn: 1 })
+        rangeEnd = endOfWeek(today, { weekStartsOn: 1 })
+      } else if (weekSelection === 'last') {
+        const lastWeek = subWeeks(new Date(), 1)
+        rangeStart = startOfWeek(lastWeek, { weekStartsOn: 1 })
+        rangeEnd = endOfWeek(lastWeek, { weekStartsOn: 1 })
+      } else {
+        if (!startDate || !endDate) {
+          setLoading(false)
+          return
+        }
+        rangeStart = new Date(startDate)
+        rangeEnd = new Date(endDate)
+        rangeEnd.setHours(23, 59, 59, 999)
+      }
+
+      // Fetch all data in parallel
+      const [employeesData, allEvents, payRatesData] = await Promise.all([
+        employeeApi.getAll(),
+        timeclockApi.getRecentEvents(5000),
+        supabase.from('pay_rates').select('*')
+      ])
+
+      if (payRatesData.error) throw payRatesData.error
+
+      // Create pay rates map
+      const payRatesMap = new Map<string, number>()
+      payRatesData.data?.forEach((rate: any) => {
+        payRatesMap.set(rate.employee_id, parseFloat(rate.rate))
+      })
+
+      // Filter events in range
+      const eventsInRange = allEvents.filter(event => {
+        const eventDate = new Date(event.event_timestamp)
+        return eventDate >= rangeStart && eventDate <= rangeEnd
+      })
+
+      // Process each employee
+      const employeeTimesheets: EmployeeTimesheet[] = employeesData.map(employee => {
+        const employeeEvents = eventsInRange.filter(e => e.employee_id === employee.id)
+        const sortedEvents = employeeEvents.sort((a, b) =>
+          new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
+        )
+
+        const dailyHoursMap = new Map<string, DayRecord>()
+        let totalHours = 0
+        let clockIn: TimeEntry | null = null
+        const wageRate = payRatesMap.get(employee.id) || 0
+
+        // Process events to calculate hours
+        sortedEvents.forEach(event => {
+          if (event.event_type === 'in') {
+            // If there's already a clock in without a clock out, record it as incomplete
+            if (clockIn) {
+              const inTime = new Date(clockIn.event_timestamp)
+              const dateKey = formatInEasternTime(inTime, 'date')
+              const clockInFormatted = formatInEasternTime(inTime, 'time')
+              const dayNameET = formatInEasternTime(inTime, 'weekday')
+
+              dailyHoursMap.set(dateKey, {
+                date: dateKey,
+                dayName: dayNameET,
+                role: employee.role,
+                wageRate,
+                clockIn: clockInFormatted,
+                clockOut: null,
+                scheduledHours: 0,
+                totalPaidHours: 0,
+                estimatedWages: 0,
+                issues: 'Missing clock out'
+              })
+            }
+            clockIn = event
+          } else if (event.event_type === 'out' && clockIn) {
+            const inTime = new Date(clockIn.event_timestamp)
+            const outTime = new Date(event.event_timestamp)
+            const hours = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
+
+            // Skip if hours > 16 (likely error)
+            if (hours > 16) {
+              clockIn = null
+              return
+            }
+
+            const dateKey = formatInEasternTime(inTime, 'date')
+            const clockInFormatted = formatInEasternTime(inTime, 'time')
+            const clockOutFormatted = formatInEasternTime(outTime, 'time')
+            const dayNameET = formatInEasternTime(inTime, 'weekday')
+
+            if (dailyHoursMap.has(dateKey)) {
+              const existing = dailyHoursMap.get(dateKey)!
+              existing.totalPaidHours += hours
+              existing.estimatedWages = existing.totalPaidHours * wageRate
+            } else {
+              dailyHoursMap.set(dateKey, {
+                date: dateKey,
+                dayName: dayNameET,
+                role: employee.role,
+                wageRate,
+                clockIn: clockInFormatted,
+                clockOut: clockOutFormatted,
+                scheduledHours: 0,
+                totalPaidHours: hours,
+                estimatedWages: hours * wageRate,
+                issues: null
+              })
+            }
+
+            totalHours += hours
+            clockIn = null
+          }
+        })
+
+        // Handle final unclosed clock in
+        if (clockIn) {
+          const inTime = new Date(clockIn.event_timestamp)
+          const dateKey = formatInEasternTime(inTime, 'date')
+          const clockInFormatted = formatInEasternTime(inTime, 'time')
+          const dayNameET = formatInEasternTime(inTime, 'weekday')
+
+          dailyHoursMap.set(dateKey, {
+            date: dateKey,
+            dayName: dayNameET,
+            role: employee.role,
+            wageRate,
+            clockIn: clockInFormatted,
+            clockOut: null,
+            scheduledHours: 0,
+            totalPaidHours: 0,
+            estimatedWages: 0,
+            issues: 'Missing clock out'
+          })
+        }
+
+        const dailyHours = Array.from(dailyHoursMap.values()).sort((a, b) =>
+          a.date.localeCompare(b.date)
+        )
+
+        return {
+          id: employee.id,
+          name: getDisplayName(employee),
+          avatar: getAvatarForRole(employee.role),
+          days: dailyHours,
+          totalTimeCards: dailyHours.length,
+          totalScheduledHours: 0,
+          totalPaidHours: totalHours,
+          totalEstimatedWages: totalHours * wageRate
+        }
+      })
+
+      // Sort by name
+      employeeTimesheets.sort((a, b) => a.name.localeCompare(b.name))
+
+      // Auto-expand all
+      setEmployees(employeeTimesheets)
+      setExpandedEmployees(new Set(employeeTimesheets.map(emp => emp.id)))
+    } catch (error) {
+      console.error('Failed to load timesheets:', error)
+      alert('Failed to load timesheets')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const toggleEmployee = (employeeId: string) => {
@@ -198,6 +313,7 @@ export default function Timesheets() {
             <div className="space-y-4">
               {employees.map((emp) => {
                 const isExpanded = expandedEmployees.has(emp.id)
+                const hasIssues = emp.days.some(d => d.issues)
 
                 return (
                   <div key={emp.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
@@ -216,13 +332,16 @@ export default function Timesheets() {
                           {emp.avatar}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-base text-gray-900 truncate">{emp.name}</div>
+                          <div className="font-bold text-base text-gray-900 truncate flex items-center gap-2">
+                            {emp.name}
+                            {hasIssues && <span className="text-red-500 text-xs">⚠️</span>}
+                          </div>
                           <div className="text-xs text-gray-400">{emp.totalTimeCards} time cards</div>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-3">
                         <div className="text-xs text-gray-400 mb-0.5">Total</div>
-                        <div className="font-bold text-lg text-blue-600">{emp.totalPaidHours.toFixed(1)}h</div>
+                        <div className="font-bold text-lg text-blue-600">{formatHoursMinutes(emp.totalPaidHours.toFixed(2))}</div>
                         <div className="font-bold text-sm text-green-600">${emp.totalEstimatedWages.toFixed(2)}</div>
                       </div>
                     </div>
@@ -233,17 +352,36 @@ export default function Timesheets() {
                         {emp.days.map((day, idx) => (
                           <div
                             key={idx}
-                            className="bg-white rounded-xl p-3 mb-2 shadow-sm hover:shadow-md transition-shadow"
+                            className={`bg-white rounded-xl p-3 mb-2 shadow-sm hover:shadow-md transition-shadow ${
+                              day.issues ? 'border-2 border-red-300' : ''
+                            }`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1">
-                                <div className="font-bold text-sm text-gray-900 mb-1">{day.date}</div>
-                                <div className="text-xs text-gray-500 mb-1">{day.role}</div>
-                                <div className="text-xs text-gray-400">{day.clockIn} - {day.clockOut}</div>
+                                <div className="font-bold text-sm text-gray-900 mb-1 flex items-center gap-2">
+                                  {day.dayName}
+                                  {day.issues && <span className="text-red-500 text-xs">⚠️</span>}
+                                </div>
+                                <div className="text-xs text-gray-500 mb-1">{day.date}</div>
+                                <div className="text-xs text-gray-400">
+                                  {day.clockIn && (
+                                    <>
+                                      {day.clockIn}
+                                      {day.clockOut ? ` - ${day.clockOut}` : ' (Missing OUT)'}
+                                    </>
+                                  )}
+                                </div>
+                                {day.issues && (
+                                  <div className="text-xs text-red-600 font-semibold mt-1">{day.issues}</div>
+                                )}
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-base text-gray-900 mb-0.5">{day.totalPaidHours.toFixed(1)}h</div>
-                                <div className="text-sm font-semibold text-green-600">${day.estimatedWages.toFixed(2)}</div>
+                                <div className={`font-bold text-base mb-0.5 ${day.issues ? 'text-red-600' : 'text-gray-900'}`}>
+                                  {day.issues ? 'Incomplete' : formatHoursMinutes(day.totalPaidHours.toFixed(2))}
+                                </div>
+                                {!day.issues && (
+                                  <div className="text-sm font-semibold text-green-600">${day.estimatedWages.toFixed(2)}</div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -254,7 +392,7 @@ export default function Timesheets() {
                           <div className="flex justify-between items-center">
                             <span className="font-semibold text-sm text-gray-600">Week Total</span>
                             <div className="flex items-center gap-4">
-                              <span className="font-bold text-base text-blue-600">{emp.totalPaidHours.toFixed(1)}h</span>
+                              <span className="font-bold text-base text-blue-600">{formatHoursMinutes(emp.totalPaidHours.toFixed(2))}</span>
                               <span className="font-bold text-base text-green-600">${emp.totalEstimatedWages.toFixed(2)}</span>
                             </div>
                           </div>
