@@ -30,7 +30,15 @@ serve(async (req) => {
       db: { schema: 'employees' }
     });
 
-    const { limit = 10 } = await req.json();
+    // Parse body safely - handle empty body
+    let limit = 10;
+    try {
+      const body = await req.json();
+      limit = body.limit || 10;
+    } catch {
+      // No body provided, use default
+      limit = 10;
+    }
 
     // Calculate date range: last 3 days (for recent events)
     const today = new Date();
