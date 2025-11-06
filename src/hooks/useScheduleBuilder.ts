@@ -1,7 +1,14 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { employeeApi, scheduleApi } from '../supabase/supabase'
-import type { Shift } from '../supabase/supabase'
+import {
+  employeeApi,
+  timeOffApi,
+  shiftService,
+  openShiftsService,
+  hoursService,
+  publishService
+} from '../supabase/supabase'
+import type { Shift, TimeOff } from '../supabase/supabase'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek } from 'date-fns'
 
 /**
@@ -44,21 +51,67 @@ export function useScheduleBuilder() {
     setCurrentWeekStart(prev => addWeeks(prev, 1))
   }
 
-  // Fetch all active employees
-  const { data: employees = [], isLoading: isLoadingEmployees } = useQuery({
+  // Fetch all active employees (filtered to staff_two role only)
+  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['employees', 'active'],
     queryFn: () => employeeApi.getAll(),
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
 
-  // Fetch shifts for current week
+  // Filter to only show staff_two role
+  const employees = useMemo(() =>
+    allEmployees.filter(emp => emp.role === 'staff_two'),
+    [allEmployees]
+  )
+
+  // Fetch ALL shifts for current week (manager view - both draft and published)
   const { data: shifts = [], isLoading: isLoadingShifts, refetch: refetchShifts } = useQuery({
     queryKey: ['shifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => scheduleApi.getWeekSchedule(
+    queryFn: () => shiftService.getAllShifts(
       currentWeekStart.toISOString(),
       currentWeekEnd.toISOString()
     ),
     staleTime: 2 * 60 * 1000, // 2 minutes
+  })
+
+  // Fetch open shifts (unassigned)
+  const { data: openShifts = [], isLoading: isLoadingOpenShifts, refetch: refetchOpenShifts } = useQuery({
+    queryKey: ['openShifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
+    queryFn: () => openShiftsService.getOpenShifts(
+      currentWeekStart.toISOString(),
+      currentWeekEnd.toISOString()
+    ),
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Fetch time-offs for current week
+  const { data: timeOffs = [], isLoading: isLoadingTimeOffs } = useQuery({
+    queryKey: ['timeoffs', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
+    queryFn: () => timeOffApi.getTimeOffsForRange(
+      currentWeekStart.toISOString(),
+      currentWeekEnd.toISOString()
+    ),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  })
+
+  // Fetch weekly hours for all employees
+  const { data: weeklyHours } = useQuery({
+    queryKey: ['weeklyHours', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
+    queryFn: () => hoursService.calculateAllEmployeeHours(
+      currentWeekStart.toISOString(),
+      currentWeekEnd.toISOString()
+    ),
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Check if week is published
+  const { data: isWeekPublished = false, refetch: refetchPublishStatus } = useQuery({
+    queryKey: ['weekPublished', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
+    queryFn: () => publishService.isWeekPublished(
+      currentWeekStart.toISOString(),
+      currentWeekEnd.toISOString()
+    ),
+    staleTime: 2 * 60 * 1000,
   })
 
   // Generate days of week array with dates
@@ -81,11 +134,14 @@ export function useScheduleBuilder() {
     return days
   }, [currentWeekStart])
 
-  // Organize shifts by employee and day
+  // Organize shifts by employee and day (exclude open shifts - those are shown separately)
   const shiftsByEmployeeAndDay = useMemo(() => {
     const organized: Record<string, Record<number, Shift[]>> = {}
 
     shifts.forEach((shift) => {
+      // Skip open shifts (employee_id is null) - they're shown in open shifts section
+      if (!shift.employee_id) return
+
       const shiftDate = startOfDay(new Date(shift.start_time))
       const dayIndex = daysOfWeek.findIndex(day =>
         startOfDay(day.date).getTime() === shiftDate.getTime()
@@ -105,6 +161,30 @@ export function useScheduleBuilder() {
     return organized
   }, [shifts, daysOfWeek])
 
+  // Organize time-offs by employee and day
+  const timeOffsByEmployeeAndDay = useMemo(() => {
+    const organized: Record<string, Record<number, TimeOff[]>> = {}
+
+    timeOffs.forEach((timeOff) => {
+      const timeOffDate = startOfDay(new Date(timeOff.start_time))
+      const dayIndex = daysOfWeek.findIndex(day =>
+        startOfDay(day.date).getTime() === timeOffDate.getTime()
+      )
+
+      if (dayIndex === -1) return // Time-off not in current week
+
+      if (!organized[timeOff.employee_id]) {
+        organized[timeOff.employee_id] = {}
+      }
+      if (!organized[timeOff.employee_id][dayIndex]) {
+        organized[timeOff.employee_id][dayIndex] = []
+      }
+      organized[timeOff.employee_id][dayIndex].push(timeOff)
+    })
+
+    return organized
+  }, [timeOffs, daysOfWeek])
+
   return {
     // Week data
     currentWeekStart,
@@ -121,14 +201,23 @@ export function useScheduleBuilder() {
     // Data
     employees,
     shifts,
+    openShifts,
+    timeOffs,
     shiftsByEmployeeAndDay,
+    timeOffsByEmployeeAndDay,
+    weeklyHours: weeklyHours || new Map(),
+    isWeekPublished,
 
     // Loading states
-    isLoading: isLoadingEmployees || isLoadingShifts,
+    isLoading: isLoadingEmployees || isLoadingShifts || isLoadingTimeOffs || isLoadingOpenShifts,
     isLoadingEmployees,
     isLoadingShifts,
+    isLoadingTimeOffs,
+    isLoadingOpenShifts,
 
-    // Refetch
-    refetchShifts
+    // Refetch functions
+    refetchShifts,
+    refetchOpenShifts,
+    refetchPublishStatus
   }
 }

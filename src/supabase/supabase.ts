@@ -38,11 +38,21 @@ export interface TimeEntry {
 
 export interface Shift {
   id: number;
-  employee_id: string;
+  employee_id: string | null; // null = open shift (unassigned)
   start_time: string; // Full timestamp (e.g., "2025-10-19 02:00:00+00")
   end_time: string;   // Full timestamp (e.g., "2025-10-19 07:00:00+00")
   location: string;
   role: string | null;
+  status: 'draft' | 'published'; // draft = manager only, published = visible to employees
+}
+
+export interface TimeOff {
+  id: number;
+  employee_id: string;
+  start_time: string; // Full timestamp
+  end_time: string;   // Full timestamp
+  reason: string | null;
+  status: string;     // "pending", "approved", "denied"
 }
 
 // Helper to get display name
@@ -338,3 +348,78 @@ export const scheduleApi = {
     return data;
   }
 };
+
+// Time-off API functions
+export const timeOffApi = {
+  // Get time-offs for a date range
+  async getTimeOffsForRange(startDate: string, endDate: string) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const { data, error } = await supabase
+      .from('time_off_notices')
+      .select('*')
+      .gte('start_time', start.toISOString())
+      .lte('start_time', end.toISOString())
+      .order('start_time');
+
+    if (error) throw error;
+    return data as TimeOff[];
+  }
+};
+
+// Conflict resolution API
+export const conflictApi = {
+  // Delete shifts that conflict with time-offs
+  // Returns the IDs of deleted shifts
+  async resolveConflicts(startDate: string, endDate: string) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    // Get all shifts and time-offs for the date range
+    const [shifts, timeOffs] = await Promise.all([
+      scheduleApi.getWeekSchedule(start.toISOString(), end.toISOString()),
+      timeOffApi.getTimeOffsForRange(start.toISOString(), end.toISOString())
+    ]);
+
+    // Find conflicting shift IDs
+    const conflictingShiftIds: number[] = [];
+
+    shifts.forEach(shift => {
+      const shiftDate = new Date(shift.start_time).toDateString();
+
+      // Check if there's a time-off for this employee on the same day
+      const hasTimeOff = timeOffs.some(timeOff => {
+        const timeOffDate = new Date(timeOff.start_time).toDateString();
+        return timeOff.employee_id === shift.employee_id && timeOffDate === shiftDate;
+      });
+
+      if (hasTimeOff) {
+        conflictingShiftIds.push(shift.id);
+      }
+    });
+
+    // Delete conflicting shifts if any found
+    if (conflictingShiftIds.length > 0) {
+      const { error } = await supabase
+        .from('shifts')
+        .delete()
+        .in('id', conflictingShiftIds);
+
+      if (error) throw error;
+    }
+
+    return conflictingShiftIds;
+  }
+};
+
+// Export new backend services
+export { conflictService } from './services/conflictService';
+export { shiftService } from './services/shiftService';
+export { publishService } from './services/publishService';
+export { openShiftsService } from './services/openShiftsService';
+export { hoursService } from './services/hoursService';
