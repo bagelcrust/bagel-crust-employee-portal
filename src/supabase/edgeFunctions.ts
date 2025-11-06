@@ -188,3 +188,322 @@ export interface PayrollData {
     note: string;
   }>;
 }
+
+// ============================================================================
+// EMPLOYEES API - All employee management operations
+// ============================================================================
+
+/**
+ * Get all employees
+ * @param activeOnly - Only return active employees (default: true)
+ */
+export async function getEmployees(activeOnly = true) {
+  const { data, error } = await supabase.functions.invoke('employees', {
+    body: { operation: 'getAll', activeOnly }
+  });
+
+  if (error) throw new Error(`Failed to get employees: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.employees) throw new Error('Invalid response from employees Edge Function');
+
+  return data.employees;
+}
+
+/**
+ * Get employee by PIN
+ */
+export async function getEmployeeByPin(pin: string) {
+  const { data, error } = await supabase.functions.invoke('employees', {
+    body: { operation: 'getByPin', pin }
+  });
+
+  if (error) throw new Error(`Failed to get employee by PIN: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from employees Edge Function');
+
+  return data.employee;
+}
+
+/**
+ * Get employee by ID
+ */
+export async function getEmployeeById(id: string) {
+  const { data, error } = await supabase.functions.invoke('employees', {
+    body: { operation: 'getById', id }
+  });
+
+  if (error) throw new Error(`Failed to get employee by ID: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.employee) throw new Error('Invalid response from employees Edge Function');
+
+  return data.employee;
+}
+
+/**
+ * Update employee
+ */
+export async function updateEmployee(id: string, updateData: any) {
+  const { data, error } = await supabase.functions.invoke('employees', {
+    body: { operation: 'update', id, data: updateData }
+  });
+
+  if (error) throw new Error(`Failed to update employee: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.employee) throw new Error('Invalid response from employees Edge Function');
+
+  return data.employee;
+}
+
+/**
+ * Create employee
+ */
+export async function createEmployee(employeeData: any) {
+  const { data, error } = await supabase.functions.invoke('employees', {
+    body: { operation: 'create', data: employeeData }
+  });
+
+  if (error) throw new Error(`Failed to create employee: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.employee) throw new Error('Invalid response from employees Edge Function');
+
+  return data.employee;
+}
+
+// ============================================================================
+// TIMECLOCK API - All time tracking operations
+// ============================================================================
+
+/**
+ * Clock in or out (atomic operation)
+ */
+export async function clockInOut(employeeId: string) {
+  const { data, error } = await supabase.functions.invoke('timeclock', {
+    body: { operation: 'clockInOut', employeeId }
+  });
+
+  if (error) throw new Error(`Failed to clock in/out: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.event) throw new Error('Invalid response from timeclock Edge Function');
+
+  return data.event;
+}
+
+/**
+ * Get last clock event for employee
+ */
+export async function getLastClockEvent(employeeId: string) {
+  const { data, error } = await supabase.functions.invoke('timeclock', {
+    body: { operation: 'getLastEvent', employeeId }
+  });
+
+  if (error) throw new Error(`Failed to get last event: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from timeclock Edge Function');
+
+  return data.event;
+}
+
+/**
+ * Get currently working employees
+ */
+export async function getCurrentlyWorking() {
+  const { data, error } = await supabase.functions.invoke('timeclock', {
+    body: { operation: 'getCurrentlyWorking' }
+  });
+
+  if (error) throw new Error(`Failed to get currently working: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.employees) throw new Error('Invalid response from timeclock Edge Function');
+
+  return data.employees;
+}
+
+/**
+ * Get recent clock events
+ * @param limit - Number of events to return (default: 10)
+ * @param inET - Return with Eastern Time formatting (default: true)
+ */
+export async function getRecentClockEvents(limit = 10, inET = true) {
+  const { data, error } = await supabase.functions.invoke('timeclock', {
+    body: { operation: 'getRecentEvents', limit, inET }
+  });
+
+  if (error) throw new Error(`Failed to get recent events: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.events) throw new Error('Invalid response from timeclock Edge Function');
+
+  return data.events;
+}
+
+/**
+ * Get clock events in date range
+ * @param startDate - Start date (YYYY-MM-DD)
+ * @param endDate - End date (YYYY-MM-DD)
+ * @param employeeId - Optional: filter to specific employee
+ * @param inET - Return with Eastern Time formatting (default: true)
+ */
+export async function getClockEventsInRange(
+  startDate: string,
+  endDate: string,
+  employeeId?: string,
+  inET = true
+) {
+  const { data, error } = await supabase.functions.invoke('timeclock', {
+    body: { operation: 'getEventsInRange', startDate, endDate, employeeId, inET }
+  });
+
+  if (error) throw new Error(`Failed to get events in range: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.events) throw new Error('Invalid response from timeclock Edge Function');
+
+  return data.events;
+}
+
+// ============================================================================
+// TIME-OFF API - Time-off request management
+// ============================================================================
+
+/**
+ * Get time-offs for date range
+ * @param startDate - Start date (YYYY-MM-DD)
+ * @param endDate - End date (YYYY-MM-DD)
+ * @param employeeId - Optional: filter to specific employee
+ */
+export async function getTimeOffsForRange(
+  startDate: string,
+  endDate: string,
+  employeeId?: string
+) {
+  const { data, error } = await supabase.functions.invoke('time-off', {
+    body: { operation: 'getForRange', startDate, endDate, employeeId }
+  });
+
+  if (error) throw new Error(`Failed to get time-offs: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.timeOffs) throw new Error('Invalid response from time-off Edge Function');
+
+  return data.timeOffs;
+}
+
+/**
+ * Request time off
+ */
+export async function requestTimeOff(
+  employeeId: string,
+  startDate: string,
+  endDate: string,
+  reason?: string
+) {
+  const { data, error } = await supabase.functions.invoke('time-off', {
+    body: { operation: 'request', employeeId, startDate, endDate, reason }
+  });
+
+  if (error) throw new Error(`Failed to request time off: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.timeOff) throw new Error('Invalid response from time-off Edge Function');
+
+  return data.timeOff;
+}
+
+/**
+ * Approve time-off request
+ */
+export async function approveTimeOff(id: string) {
+  const { data, error } = await supabase.functions.invoke('time-off', {
+    body: { operation: 'approve', id }
+  });
+
+  if (error) throw new Error(`Failed to approve time off: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.timeOff) throw new Error('Invalid response from time-off Edge Function');
+
+  return data.timeOff;
+}
+
+/**
+ * Deny time-off request
+ */
+export async function denyTimeOff(id: string, reason?: string) {
+  const { data, error } = await supabase.functions.invoke('time-off', {
+    body: { operation: 'deny', id, reason }
+  });
+
+  if (error) throw new Error(`Failed to deny time off: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.timeOff) throw new Error('Invalid response from time-off Edge Function');
+
+  return data.timeOff;
+}
+
+// ============================================================================
+// PAY RATES API - Pay rate management
+// ============================================================================
+
+/**
+ * Get all pay rates
+ * @param includeEmployees - Include employee data in response (default: false)
+ */
+export async function getPayRates(includeEmployees = false) {
+  const { data, error } = await supabase.functions.invoke('pay-rates', {
+    body: { operation: 'getAll', includeEmployees }
+  });
+
+  if (error) throw new Error(`Failed to get pay rates: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.payRates) throw new Error('Invalid response from pay-rates Edge Function');
+
+  return data.payRates;
+}
+
+/**
+ * Get pay rate for employee (most recent)
+ */
+export async function getPayRateByEmployeeId(employeeId: string) {
+  const { data, error } = await supabase.functions.invoke('pay-rates', {
+    body: { operation: 'getByEmployeeId', employeeId }
+  });
+
+  if (error) throw new Error(`Failed to get pay rate: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from pay-rates Edge Function');
+
+  return data.payRate;
+}
+
+/**
+ * Update pay rate for employee (creates new rate record)
+ */
+export async function updatePayRate(
+  employeeId: string,
+  rate: number,
+  effectiveDate?: string
+) {
+  const { data, error } = await supabase.functions.invoke('pay-rates', {
+    body: { operation: 'update', employeeId, rate, effectiveDate }
+  });
+
+  if (error) throw new Error(`Failed to update pay rate: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.payRate) throw new Error('Invalid response from pay-rates Edge Function');
+
+  return data.payRate;
+}
+
+// ============================================================================
+// SCHEDULE CONFLICTS API - Conflict detection and resolution
+// ============================================================================
+
+/**
+ * Find schedule conflicts (shifts that overlap with time-off)
+ */
+export async function findScheduleConflicts(startDate: string, endDate: string) {
+  const { data, error } = await supabase.functions.invoke('schedule-conflicts', {
+    body: { operation: 'findConflicts', startDate, endDate }
+  });
+
+  if (error) throw new Error(`Failed to find conflicts: ${error.message || JSON.stringify(error)}`);
+  if (!data || !data.conflicts) throw new Error('Invalid response from schedule-conflicts Edge Function');
+
+  return data.conflicts;
+}
+
+/**
+ * Resolve schedule conflicts (optionally delete conflicting shifts)
+ */
+export async function resolveScheduleConflicts(
+  startDate: string,
+  endDate: string,
+  deleteConflictingShifts = false
+) {
+  const { data, error } = await supabase.functions.invoke('schedule-conflicts', {
+    body: { operation: 'resolveConflicts', startDate, endDate, deleteConflictingShifts }
+  });
+
+  if (error) throw new Error(`Failed to resolve conflicts: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from schedule-conflicts Edge Function');
+
+  return data;
+}
