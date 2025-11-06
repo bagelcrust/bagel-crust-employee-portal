@@ -16,6 +16,15 @@ const corsHeaders = {
  *
  * Reduces multiple requests down to 1
  * Used by ClockInOut page for recent activity feed
+ *
+ * IMPORTANT - PERMISSIONS REQUIRED:
+ * This Edge Function requires service_role to have access to the 'employees' schema.
+ * Permissions are granted in: supabase/migrations/20251106_grant_service_role_permissions.sql
+ *
+ * If you get "permission denied for schema employees", run:
+ *   GRANT USAGE ON SCHEMA employees TO service_role;
+ *   GRANT ALL ON ALL TABLES IN SCHEMA employees TO service_role;
+ *   GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA employees TO service_role;
  */
 
 serve(async (req) => {

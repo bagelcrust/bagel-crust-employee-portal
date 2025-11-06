@@ -19,6 +19,10 @@ const corsHeaders = {
  * - Conflicts (shifts overlapping with time-offs)
  *
  * Reduces 6 HTTP requests down to 1
+ *
+ * IMPORTANT - PERMISSIONS REQUIRED:
+ * This Edge Function requires service_role to have access to the 'employees' schema.
+ * Permissions are granted in: supabase/migrations/20251106_grant_service_role_permissions.sql
  */
 
 serve(async (req) => {
