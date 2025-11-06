@@ -75,14 +75,18 @@ export default function Timesheets() {
 
       if (weekSelection === 'this') {
         // Get current week in Eastern Time
-        const today = new Date()
-        const mondayET = startOfWeek(today, { weekStartsOn: 1 })
-        const sundayET = endOfWeek(today, { weekStartsOn: 1 })
+        // IMPORTANT: We need to get today's date in ET first, not UTC
+        const nowET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
+        const todayET = new Date(nowET)
+        const mondayET = startOfWeek(todayET, { weekStartsOn: 1 })
+        const sundayET = endOfWeek(todayET, { weekStartsOn: 1 })
         startDateET = format(mondayET, 'yyyy-MM-dd')
         endDateET = format(sundayET, 'yyyy-MM-dd')
       } else if (weekSelection === 'last') {
         // Get last week in Eastern Time
-        const lastWeek = subWeeks(new Date(), 1)
+        const nowET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
+        const todayET = new Date(nowET)
+        const lastWeek = subWeeks(todayET, 1)
         const mondayET = startOfWeek(lastWeek, { weekStartsOn: 1 })
         const sundayET = endOfWeek(lastWeek, { weekStartsOn: 1 })
         startDateET = format(mondayET, 'yyyy-MM-dd')
