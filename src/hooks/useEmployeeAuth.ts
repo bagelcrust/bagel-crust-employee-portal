@@ -1,21 +1,22 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { employeeApi } from '../supabase/supabase'
+import { getEmployeeByPin } from '../supabase/edgeFunctions'
 import type { Employee } from '../supabase/supabase'
 
 /**
  * Hook for employee PIN-based authentication
  *
  * Handles login, logout, and authentication state
+ * UPDATED: Uses Edge Function for server-side authentication
  */
 export function useEmployeeAuth() {
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-  // Login mutation with PIN
+  // Login mutation with PIN (uses Edge Function)
   const loginMutation = useMutation({
     mutationFn: async (pin: string) => {
-      const employee = await employeeApi.getByPin(pin)
+      const employee = await getEmployeeByPin(pin)
 
       if (!employee) {
         throw new Error('Invalid PIN')

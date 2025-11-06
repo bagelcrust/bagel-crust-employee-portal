@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { employeeApi, timeclockApi, getDisplayName, supabase } from '../supabase/supabase'
+import { getDisplayName, supabase } from '../supabase/supabase'
+import { getEmployeeByPin, clockInOut, getRecentClockEvents } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
 
 /**
@@ -84,10 +85,10 @@ export default function ClockInOut() {
 
   const loadRecentEvents = async () => {
     try {
-      // Use timezone-aware function that returns pre-formatted Eastern Time strings
-      const events = await timeclockApi.getRecentEventsET(10)
+      // Use timezone-aware Edge Function that returns pre-formatted Eastern Time strings
+      const events = await getRecentClockEvents(10, true)
 
-      const formattedEvents = events.map(event => {
+      const formattedEvents = events.map((event: any) => {
         // Parse the pre-formatted ET string from database
         // Format: "Nov 06, 2025 08:49 AM EST"
         const eventTimeET = event.event_time_et || ''
@@ -138,7 +139,7 @@ export default function ClockInOut() {
 
   const handleClockAction = async (pin: string) => {
     try {
-      const employee = await employeeApi.getByPin(pin)
+      const employee = await getEmployeeByPin(pin)
 
       if (!employee) {
         setMessage('Invalid PIN - Please try again')
@@ -151,7 +152,7 @@ export default function ClockInOut() {
         return
       }
 
-      const event = await timeclockApi.clockInOut(employee.id)
+      const event = await clockInOut(employee.id)
 
       const displayName = getDisplayName(employee)
       const action = event.event_type === 'in' ? 'clocked in' : 'clocked out'

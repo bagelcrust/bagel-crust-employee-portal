@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, subWeeks } from 'date-fns'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { employeeApi, timeclockApi, payRatesApi, getDisplayName, type TimeEntry } from '../supabase/supabase'
+import { getDisplayName, type TimeEntry } from '../supabase/supabase'
+import { getEmployees, getClockEventsInRange, getPayRates } from '../supabase/edgeFunctions'
 import { formatInEasternTime } from '../lib/dateUtils'
 import { formatHoursMinutes } from '../lib/employeeUtils'
 
@@ -100,12 +101,12 @@ export default function Timesheets() {
         endDateET = endDate
       }
 
-      // Fetch all data in parallel using timezone-aware API
+      // Fetch all data in parallel using timezone-aware Edge Functions
       console.log('🔍 Fetching timesheets for date range:', { startDateET, endDateET })
       const [employeesData, eventsInRange, payRatesData] = await Promise.all([
-        employeeApi.getAll(),
-        timeclockApi.getEventsInRangeET(startDateET, endDateET),
-        payRatesApi.getAll()
+        getEmployees(),
+        getClockEventsInRange(startDateET, endDateET, undefined, true),
+        getPayRates()
       ])
       console.log('📊 Data loaded:', {
         employeesCount: employeesData.length,
@@ -115,14 +116,14 @@ export default function Timesheets() {
 
       // Create pay rates map
       const payRatesMap = new Map<string, number>()
-      payRatesData.forEach(rate => {
+      payRatesData.forEach((rate: any) => {
         payRatesMap.set(rate.employee_id, parseFloat(rate.rate.toString()))
       })
 
       // Process each employee
-      const employeeTimesheets: EmployeeTimesheet[] = employeesData.map(employee => {
-        const employeeEvents = eventsInRange.filter(e => e.employee_id === employee.id)
-        const sortedEvents: TimeEntry[] = employeeEvents.sort((a, b) =>
+      const employeeTimesheets: EmployeeTimesheet[] = employeesData.map((employee: any) => {
+        const employeeEvents = eventsInRange.filter((e: any) => e.employee_id === employee.id)
+        const sortedEvents: TimeEntry[] = employeeEvents.sort((a: any, b: any) =>
           new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
         ) as TimeEntry[]
 

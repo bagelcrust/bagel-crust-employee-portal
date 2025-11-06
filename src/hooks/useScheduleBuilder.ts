@@ -1,14 +1,13 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  employeeApi,
-  timeOffApi,
   shiftService,
   openShiftsService,
   hoursService,
   publishService
 } from '../supabase/supabase'
-import type { Shift, TimeOff } from '../supabase/supabase'
+import { getEmployees, getTimeOffsForRange } from '../supabase/edgeFunctions'
+import type { Shift, TimeOff, Employee } from '../supabase/supabase'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek } from 'date-fns'
 
 /**
@@ -51,10 +50,10 @@ export function useScheduleBuilder() {
     setCurrentWeekStart(prev => addWeeks(prev, 1))
   }
 
-  // Fetch all active employees (filtered to staff_two role only)
-  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery({
+  // Fetch all active employees (filtered to staff_two role only) using Edge Function
+  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
     queryKey: ['employees', 'active'],
-    queryFn: () => employeeApi.getAll(),
+    queryFn: () => getEmployees(),
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
 
@@ -84,12 +83,12 @@ export function useScheduleBuilder() {
     staleTime: 2 * 60 * 1000,
   })
 
-  // Fetch time-offs for current week
-  const { data: timeOffs = [], isLoading: isLoadingTimeOffs } = useQuery({
+  // Fetch time-offs for current week using Edge Function
+  const { data: timeOffs = [], isLoading: isLoadingTimeOffs } = useQuery<TimeOff[]>({
     queryKey: ['timeoffs', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => timeOffApi.getTimeOffsForRange(
-      currentWeekStart.toISOString(),
-      currentWeekEnd.toISOString()
+    queryFn: () => getTimeOffsForRange(
+      format(currentWeekStart, 'yyyy-MM-dd'),
+      format(currentWeekEnd, 'yyyy-MM-dd')
     ),
     staleTime: 2 * 60 * 1000, // 2 minutes
   })
