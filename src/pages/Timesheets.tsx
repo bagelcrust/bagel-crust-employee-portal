@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { format, startOfWeek, endOfWeek, subWeeks, eachDayOfInterval } from 'date-fns'
+import { format, startOfWeek, endOfWeek, subWeeks } from 'date-fns'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { supabase, employeeApi, timeclockApi, getDisplayName, type Employee, type TimeEntry } from '../supabase/supabase'
+import { employeeApi, timeclockApi, payRatesApi, getDisplayName, type TimeEntry } from '../supabase/supabase'
 import { formatInEasternTime } from '../lib/dateUtils'
 import { formatHoursMinutes } from '../lib/employeeUtils'
 
@@ -91,33 +91,25 @@ export default function Timesheets() {
         rangeEnd.setHours(23, 59, 59, 999)
       }
 
-      // Fetch all data in parallel
-      const [employeesData, allEvents, payRatesData] = await Promise.all([
+      // Fetch all data in parallel using improved API with joins
+      const [employeesData, eventsInRange, payRatesData] = await Promise.all([
         employeeApi.getAll(),
-        timeclockApi.getRecentEvents(5000),
-        supabase.from('pay_rates').select('*')
+        timeclockApi.getEventsInRange(rangeStart.toISOString(), rangeEnd.toISOString()),
+        payRatesApi.getAll()
       ])
-
-      if (payRatesData.error) throw payRatesData.error
 
       // Create pay rates map
       const payRatesMap = new Map<string, number>()
-      payRatesData.data?.forEach((rate: any) => {
-        payRatesMap.set(rate.employee_id, parseFloat(rate.rate))
-      })
-
-      // Filter events in range
-      const eventsInRange = allEvents.filter(event => {
-        const eventDate = new Date(event.event_timestamp)
-        return eventDate >= rangeStart && eventDate <= rangeEnd
+      payRatesData.forEach(rate => {
+        payRatesMap.set(rate.employee_id, parseFloat(rate.rate.toString()))
       })
 
       // Process each employee
       const employeeTimesheets: EmployeeTimesheet[] = employeesData.map(employee => {
         const employeeEvents = eventsInRange.filter(e => e.employee_id === employee.id)
-        const sortedEvents = employeeEvents.sort((a, b) =>
+        const sortedEvents: TimeEntry[] = employeeEvents.sort((a, b) =>
           new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
-        )
+        ) as TimeEntry[]
 
         const dailyHoursMap = new Map<string, DayRecord>()
         let totalHours = 0
@@ -125,7 +117,7 @@ export default function Timesheets() {
         const wageRate = payRatesMap.get(employee.id) || 0
 
         // Process events to calculate hours
-        sortedEvents.forEach(event => {
+        sortedEvents.forEach((event: TimeEntry) => {
           if (event.event_type === 'in') {
             // If there's already a clock in without a clock out, record it as incomplete
             if (clockIn) {
@@ -190,7 +182,8 @@ export default function Timesheets() {
 
         // Handle final unclosed clock in
         if (clockIn) {
-          const inTime = new Date(clockIn.event_timestamp)
+          const finalClockIn: TimeEntry = clockIn
+          const inTime = new Date(finalClockIn.event_timestamp)
           const dateKey = formatInEasternTime(inTime, 'date')
           const clockInFormatted = formatInEasternTime(inTime, 'time')
           const dayNameET = formatInEasternTime(inTime, 'weekday')

@@ -1,12 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2 } from 'lucide-react'
 import { useScheduleBuilder } from '../hooks'
-import { format } from 'date-fns'
-import { shiftService, publishService, hoursService } from '../supabase/supabase'
+import { shiftService, publishService } from '../supabase/supabase'
 import AddShiftModal from '../components/AddShiftModal'
+import {
+  formatShiftTime,
+  formatShiftHours,
+  isAllDayTimeOff,
+  countDraftShifts,
+  PAGE_TITLES,
+  SCHEDULE_MESSAGES,
+  type Shift
+} from '../lib'
 
 /**
  * SCHEDULE BUILDER - Full-Featured with Draft/Publish Workflow
+ *
+ * ✅ REFACTORED WITH UTILITIES (Nov 6, 2025)
+ * - Uses scheduleUtils for shift formatting, conflict detection, counting
+ * - Uses constants for all messages and page titles
+ * - Uses useCallback for event handler optimization
+ * - Uses useMemo for computed values
+ * - Clean, maintainable, utility-driven code
  *
  * Features:
  * - Real employee data from Supabase
@@ -58,29 +73,18 @@ export default function ScheduleBuilder() {
     timeOffReason: ''
   })
 
-  // Set page title
+  // Set page title using constant
   useEffect(() => {
-    document.title = 'Bagel Crust - Schedule Builder'
+    document.title = PAGE_TITLES.SCHEDULE_BUILDER
   }, [])
 
-  // Format shift time for display (compact version)
-  const formatShiftTime = (startTime: string, endTime: string) => {
-    const start = new Date(startTime)
-    const end = new Date(endTime)
-    return `${format(start, 'h:mm')}-${format(end, 'h:mm a')}`
-  }
-
-  // Check if time-off is all day or partial
-  const isAllDayTimeOff = (timeOff: any) => {
-    const start = new Date(timeOff.start_time)
-    const end = new Date(timeOff.end_time)
-    const startHour = start.getUTCHours()
-    const endHour = end.getUTCHours()
-    return (startHour === 5 && endHour === 4)
-  }
-
-  // Handle cell click (add shift)
-  const handleCellClick = async (employeeId: string, employeeName: string, date: Date, dayIndex: number) => {
+  // Handle cell click (add shift) - memoized with useCallback
+  const handleCellClick = useCallback((
+    employeeId: string,
+    employeeName: string,
+    date: Date,
+    dayIndex: number
+  ) => {
     // Check if employee has time-off on this day
     const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
     const hasTimeOff = timeOffsForDay.length > 0
@@ -94,10 +98,14 @@ export default function ScheduleBuilder() {
       hasTimeOff,
       timeOffReason
     })
-  }
+  }, [timeOffsByEmployeeAndDay])
 
-  // Handle save shift from modal
-  const handleSaveShift = async (startTime: string, endTime: string, location: string) => {
+  // Handle save shift from modal - memoized with useCallback
+  const handleSaveShift = useCallback(async (
+    startTime: string,
+    endTime: string,
+    location: string
+  ) => {
     if (!modalState.employeeId) return
 
     try {
@@ -113,11 +121,11 @@ export default function ScheduleBuilder() {
     } catch (error: any) {
       throw error // Re-throw to let modal handle error display
     }
-  }
+  }, [modalState.employeeId, refetchShifts])
 
-  // Handle publish week
-  const handlePublish = async () => {
-    if (!confirm('Publish this week\'s schedule? Employees will be able to see their shifts.')) {
+  // Handle publish week - memoized with useCallback
+  const handlePublish = useCallback(async () => {
+    if (!confirm(SCHEDULE_MESSAGES.PUBLISH_CONFIRM)) {
       return
     }
 
@@ -134,36 +142,34 @@ export default function ScheduleBuilder() {
         refetchPublishStatus()
       } else {
         alert(`Cannot publish:\n\n${result.message}\n\nConflicts:\n${
-          result.conflicts.map(c => `- ${c.employeeName} on ${c.shiftDate}`).join('\n')
+          result.conflicts.map((c: any) => `- ${c.employeeName} on ${c.shiftDate}`).join('\n')
         }`)
       }
     } catch (error: any) {
-      alert(`Error publishing: ${error.message}`)
+      alert(`${SCHEDULE_MESSAGES.PUBLISH_ERROR}: ${error.message}`)
     }
-  }
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus])
 
-  // Handle delete shift
-  const handleDeleteShift = async (shiftId: number) => {
-    if (!confirm('Delete this shift?')) return
+  // Handle delete shift - memoized with useCallback
+  const handleDeleteShift = useCallback(async (shiftId: number) => {
+    if (!confirm(SCHEDULE_MESSAGES.DELETE_SHIFT_CONFIRM)) return
 
     try {
       await shiftService.deleteShift(shiftId)
       refetchShifts()
       refetchOpenShifts()
     } catch (error: any) {
-      alert(`Error deleting shift: ${error.message}`)
+      alert(`${SCHEDULE_MESSAGES.DELETE_ERROR}: ${error.message}`)
     }
-  }
+  }, [refetchShifts, refetchOpenShifts])
 
-  // Count draft shifts for publish button
-  const draftShiftCount = (shifts: any[]) => {
-    return shifts.filter((s: any) => s.status === 'draft' && s.employee_id).length
-  }
-
-  const allShifts = Object.values(shiftsByEmployeeAndDay).flatMap(days =>
-    Object.values(days).flatMap(shifts => shifts)
-  )
-  const draftCount = draftShiftCount(allShifts)
+  // Calculate draft count using utility - memoized for performance
+  const draftCount = useMemo(() => {
+    const allShifts = Object.values(shiftsByEmployeeAndDay).flatMap(days =>
+      Object.values(days).flatMap(shifts => shifts)
+    ) as Shift[]
+    return countDraftShifts(allShifts)
+  }, [shiftsByEmployeeAndDay])
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
@@ -271,7 +277,7 @@ export default function ScheduleBuilder() {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
-                  <div className="text-sm text-gray-600">Loading schedule...</div>
+                  <div className="text-sm text-gray-600">{SCHEDULE_MESSAGES.LOADING_SCHEDULE}</div>
                 </div>
               </div>
             ) : (
@@ -383,7 +389,7 @@ export default function ScheduleBuilder() {
                     ) : (
                       employees.map((employee) => {
                         const hours = weeklyHours.get(employee.id) || 0
-                        const formattedHours = hoursService.formatHours(hours)
+                        const formattedHours = formatShiftHours(hours)
 
                         return (
                           <tr

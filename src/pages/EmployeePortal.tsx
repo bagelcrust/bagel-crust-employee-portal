@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   useEmployeeAuth,
   useEmployeeSchedule,
@@ -6,7 +6,17 @@ import {
   useTimesheet,
   useTimeOff
 } from '../hooks'
-import { translations } from '../lib/translations'
+import {
+  getEmployeeTranslations,
+  getTabsForRole,
+  getDefaultTabForRole,
+  validateTabForRole,
+  validateTimeOffRequest,
+  createTimeOffResetHandler,
+  PAGE_TITLES,
+  ALERTS,
+  type TabKey
+} from '../lib'
 import { EmployeeLogin } from '../components/EmployeeLogin'
 import { BottomNav } from '../components/BottomNav'
 import { ScheduleTab } from '../components/tabs/ScheduleTab'
@@ -22,6 +32,13 @@ import { ProfileTab } from '../components/tabs/ProfileTab'
  * - Removed ~400 lines of manual state management
  * - Auto caching, refetching, and error handling
  * - Cleaner, more maintainable code
+ *
+ * ✅ ROLE-BASED TABS & AUTOMATIC LANGUAGE (Nov 6, 2025)
+ * - Tabs dynamically filtered based on employee role
+ * - staff_one: Only Hours tab (typically Spanish-speaking)
+ * - staff_two, Staff, Owner, cashier: All tabs (Schedule, Time Off, Hours, Profile)
+ * - Language automatically set from employee.preferred_language (database field)
+ * - No manual language toggle needed
  *
  * A sophisticated, professional employee self-service portal with:
  * - Subtle glass effects (90% opacity, 10px blur)
@@ -95,65 +112,96 @@ export default function EmployeePortal() {
   } = useTimeOff(employee?.id)
 
   // ============================================================================
+  // ROLE-BASED TAB CONFIGURATION
+  // ============================================================================
+  // Get tabs that this employee's role can access
+  const availableTabs = useMemo(() => {
+    if (!employee) return []
+    return getTabsForRole(employee.role)
+  }, [employee?.role])
+
+  // Get default tab for this role (first available tab)
+  const defaultTab = useMemo(() => {
+    if (!employee) return 'timesheet' as TabKey
+    return getDefaultTabForRole(employee.role)
+  }, [employee?.role])
+
+  // ============================================================================
   // LOCAL UI STATE (not data fetching)
   // ============================================================================
-  const [activeTab, setActiveTab] = useState<'weeklySchedule' | 'teamSchedule' | 'openShifts' | 'timeOff' | 'timesheet' | 'profile'>('weeklySchedule')
-  const [language, _setLanguage] = useState<'en' | 'es'>('en')
+  const [activeTab, setActiveTab] = useState<TabKey>(defaultTab)
   const [timeOffStartDate, setTimeOffStartDate] = useState('')
   const [timeOffEndDate, setTimeOffEndDate] = useState('')
   const [timeOffReason, setTimeOffReason] = useState('')
 
-  // Get current translations
-  const t = translations[language]
+  // Get translations automatically based on employee's preferred language
+  const t = useMemo(() => getEmployeeTranslations(employee), [employee])
 
-  // Set page title
+  // Create form reset handler using utility
+  const resetTimeOffForm = useMemo(
+    () => createTimeOffResetHandler({
+      setStartDate: setTimeOffStartDate,
+      setEndDate: setTimeOffEndDate,
+      setReason: setTimeOffReason
+    }),
+    []
+  )
+
+  // Validate active tab when employee or role changes
   useEffect(() => {
-    document.title = 'Bagel Crust - Employee Portal'
+    if (employee) {
+      const validTab = validateTabForRole(employee.role, activeTab)
+      if (validTab !== activeTab) {
+        setActiveTab(validTab)
+      }
+    }
+  }, [employee, activeTab])
+
+  // Set page title using constant
+  useEffect(() => {
+    document.title = PAGE_TITLES.EMPLOYEE_PORTAL
   }, [])
 
   // ============================================================================
-  // EVENT HANDLERS - Simplified with hooks
+  // EVENT HANDLERS - Using utilities for clean, maintainable code
   // ============================================================================
-  const handlePinLogin = async (pin: string) => {
+  const handlePinLogin = useCallback(async (pin: string) => {
     try {
       await login(pin)
     } catch (error) {
       // Error is handled by useEmployeeAuth hook
     }
-  }
+  }, [login])
 
-  const handleTimeOffSubmit = async () => {
-    if (!timeOffStartDate || !timeOffEndDate || !employee?.id) {
-      alert('Please select both start and end dates')
-      return
-    }
+  const handleTimeOffSubmit = useCallback(async () => {
+    // Validate form using validation utility
+    const validation = validateTimeOffRequest(
+      timeOffStartDate,
+      timeOffEndDate,
+      employee?.id
+    )
 
-    const startDate = new Date(timeOffStartDate)
-    const endDate = new Date(timeOffEndDate)
-
-    if (endDate < startDate) {
-      alert('End date must be after start date')
+    if (!validation.isValid) {
+      alert(validation.errorMessage)
       return
     }
 
     try {
       await submitTimeOffRequest({
-        employee_id: employee.id,
+        employee_id: employee!.id, // Safe to use ! because validation passed
         start_date: timeOffStartDate,
         end_date: timeOffEndDate,
         reason: timeOffReason
       })
 
-      // Clear form
-      setTimeOffStartDate('')
-      setTimeOffEndDate('')
-      setTimeOffReason('')
+      // Clear form using state utility
+      resetTimeOffForm()
 
-      alert('Time off request submitted!')
+      alert(ALERTS.TIME_OFF.SUCCESS)
     } catch (error) {
-      alert('Failed to submit request')
+      alert(ALERTS.TIME_OFF.FAILED)
     }
-  }
+  }, [timeOffStartDate, timeOffEndDate, timeOffReason, employee, submitTimeOffRequest, resetTimeOffForm])
 
   // ============================================================================
   // LOADING & LOGIN STATES
@@ -253,8 +301,8 @@ export default function EmployeePortal() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Bottom Navigation - Dynamic tabs based on role */}
+      <BottomNav tabs={availableTabs} activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabKey)} />
     </div>
   )
 }

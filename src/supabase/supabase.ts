@@ -27,6 +27,7 @@ export interface Employee {
   pin: string;
   phone_number: string | null;
   user_id: string;
+  preferred_language: 'en' | 'es';
 }
 
 export interface TimeEntry {
@@ -53,6 +54,13 @@ export interface TimeOff {
   end_time: string;   // Full timestamp
   reason: string | null;
   status: string;     // "pending", "approved", "denied"
+}
+
+export interface PayRate {
+  id: number;
+  employee_id: string;
+  rate: number;
+  effective_date: string;
 }
 
 // Helper to get display name
@@ -131,16 +139,35 @@ export const timeclockApi = {
     return data as TimeEntry;
   },
 
-  // Get currently working employees
+  // Get events in date range with employee info (using join - single query!)
+  async getEventsInRange(startDate: string, endDate: string) {
+    const { data, error } = await supabase
+      .from('time_entries')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
+      .gte('event_timestamp', startDate)
+      .lte('event_timestamp', endDate)
+      .order('event_timestamp', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get currently working employees (optimized with join)
   async getCurrentlyWorking() {
-    // Get all time entries from today
+    // Get all time entries from today with employee data in one query
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString();
 
     const { data, error } = await supabase
       .from('time_entries')
-      .select('*')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
       .gte('event_timestamp', todayISO)
       .order('event_timestamp', { ascending: false });
 
@@ -152,70 +179,41 @@ export const timeclockApi = {
     data?.forEach((event: any) => {
       if (!employeeStatus.has(event.employee_id)) {
         employeeStatus.set(event.employee_id, {
-          employee_id: event.employee_id,
+          employee: event.employee,
           last_event: event.event_type,
           clock_in_time: event.event_type === 'in' ? event.event_timestamp : null
         });
       }
     });
 
-    // Get employee details for those currently clocked in
-    const clockedInIds = Array.from(employeeStatus.values())
+    // Return employees currently clocked in
+    return Array.from(employeeStatus.values())
       .filter(emp => emp.last_event === 'in')
-      .map(emp => emp.employee_id);
-
-    if (clockedInIds.length === 0) return [];
-
-    const { data: employees, error: empError } = await supabase
-      .from('employees')
-      .select('*')
-      .in('id', clockedInIds);
-
-    if (empError) throw empError;
-
-    return employees?.map(emp => ({
-      ...emp,
-      clock_in_time: employeeStatus.get(emp.id).clock_in_time
-    })) || [];
+      .map(emp => ({
+        ...emp.employee,
+        clock_in_time: emp.clock_in_time
+      }));
   },
 
-  // Get recent events (last N events with employee info)
+  // Get recent events (with employee info using join - single query!)
   async getRecentEvents(limit = 10) {
-    const { data: events, error } = await supabase
+    const { data, error } = await supabase
       .from('time_entries')
-      .select('*')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
       .order('event_timestamp', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
-
-    // Get employee IDs
-    const employeeIds = [...new Set(events?.map(e => e.employee_id) || [])];
-
-    if (employeeIds.length === 0) return [];
-
-    // Fetch employee details
-    const { data: employees, error: empError } = await supabase
-      .from('employees')
-      .select('*')
-      .in('id', employeeIds);
-
-    if (empError) throw empError;
-
-    // Create employee lookup map
-    const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
-
-    // Combine events with employee data
-    return events?.map(event => ({
-      ...event,
-      employee: employeeMap.get(event.employee_id)
-    })) || [];
+    return data || [];
   }
 };
 
 // Schedule API functions
 export const scheduleApi = {
-  // Get today's schedule
+  // Get today's schedule (optimized with join)
   async getTodaySchedule() {
     const today = new Date();
     const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
@@ -223,34 +221,19 @@ export const scheduleApi = {
 
     const { data, error } = await supabase
       .from('shifts')
-      .select('*')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
       .gte('start_time', todayStart)
       .lte('start_time', todayEnd)
       .order('start_time');
 
     if (error) throw error;
-
-    // Get employee details
-    if (!data || data.length === 0) return [];
-
-    const employeeIds = [...new Set(data.map(s => s.employee_id))];
-
-    const { data: employees, error: empError } = await supabase
-      .from('employees')
-      .select('*')
-      .in('id', employeeIds);
-
-    if (empError) throw empError;
-
-    const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
-
-    return data.map(shift => ({
-      ...shift,
-      employee: employeeMap.get(shift.employee_id)
-    }));
+    return data || [];
   },
 
-  // Get this week's schedule
+  // Get this week's schedule (optimized with join)
   async getWeeklySchedule() {
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -263,34 +246,19 @@ export const scheduleApi = {
 
     const { data, error } = await supabase
       .from('shifts')
-      .select('*')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
       .gte('start_time', startOfWeek.toISOString())
       .lte('start_time', endOfWeek.toISOString())
       .order('start_time');
 
     if (error) throw error;
-
-    // Get employee details
-    if (!data || data.length === 0) return [];
-
-    const employeeIds = [...new Set(data.map(s => s.employee_id))];
-
-    const { data: employees, error: empError } = await supabase
-      .from('employees')
-      .select('*')
-      .in('id', employeeIds);
-
-    if (empError) throw empError;
-
-    const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
-
-    return data.map(shift => ({
-      ...shift,
-      employee: employeeMap.get(shift.employee_id)
-    }));
+    return data || [];
   },
 
-  // Get next week's schedule
+  // Get next week's schedule (optimized with join)
   async getNextWeekSchedule() {
     const today = new Date();
     const startOfNextWeek = new Date(today);
@@ -303,49 +271,36 @@ export const scheduleApi = {
 
     const { data, error } = await supabase
       .from('shifts')
-      .select('*')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
       .gte('start_time', startOfNextWeek.toISOString())
       .lte('start_time', endOfNextWeek.toISOString())
       .order('start_time');
 
     if (error) throw error;
-
-    // Get employee details
-    if (!data || data.length === 0) return [];
-
-    const employeeIds = [...new Set(data.map(s => s.employee_id))];
-
-    const { data: employees, error: empError } = await supabase
-      .from('employees')
-      .select('*')
-      .in('id', employeeIds);
-
-    if (empError) throw empError;
-
-    const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
-
-    return data.map(shift => ({
-      ...shift,
-      employee: employeeMap.get(shift.employee_id)
-    }));
+    return data || [];
   },
 
-  // Get week schedule
-  async getWeekSchedule(startDate: string, endDate: string) {
+  // Get week schedule (with optional join)
+  async getWeekSchedule(startDate: string, endDate: string, includeEmployee = false) {
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
+    const selectQuery = includeEmployee ? `*, employee:employees(*)` : '*';
+
     const { data, error } = await supabase
       .from('shifts')
-      .select('*')
+      .select(selectQuery)
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString())
       .order('start_time');
 
     if (error) throw error;
-    return data;
+    return data || [];
   }
 };
 
@@ -382,14 +337,14 @@ export const conflictApi = {
 
     // Get all shifts and time-offs for the date range
     const [shifts, timeOffs] = await Promise.all([
-      scheduleApi.getWeekSchedule(start.toISOString(), end.toISOString()),
+      scheduleApi.getWeekSchedule(start.toISOString(), end.toISOString(), false),
       timeOffApi.getTimeOffsForRange(start.toISOString(), end.toISOString())
     ]);
 
     // Find conflicting shift IDs
     const conflictingShiftIds: number[] = [];
 
-    shifts.forEach(shift => {
+    (shifts as unknown as Shift[]).forEach(shift => {
       const shiftDate = new Date(shift.start_time).toDateString();
 
       // Check if there's a time-off for this employee on the same day
@@ -414,6 +369,48 @@ export const conflictApi = {
     }
 
     return conflictingShiftIds;
+  }
+};
+
+// Pay Rates API functions
+export const payRatesApi = {
+  // Get all pay rates
+  async getAll() {
+    const { data, error } = await supabase
+      .from('pay_rates')
+      .select('*')
+      .order('employee_id');
+
+    if (error) throw error;
+    return data as PayRate[];
+  },
+
+  // Get pay rate for specific employee (most recent)
+  async getByEmployeeId(employeeId: string) {
+    const { data, error } = await supabase
+      .from('pay_rates')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .order('effective_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data as PayRate | null;
+  },
+
+  // Get pay rates with employee info (using join)
+  async getAllWithEmployees() {
+    const { data, error } = await supabase
+      .from('pay_rates')
+      .select(`
+        *,
+        employee:employees(*)
+      `)
+      .order('employee_id');
+
+    if (error) throw error;
+    return data || [];
   }
 };
 
