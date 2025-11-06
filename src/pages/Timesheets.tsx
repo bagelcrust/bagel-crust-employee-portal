@@ -1,48 +1,49 @@
 import { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, subWeeks, eachDayOfInterval } from 'date-fns'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 
 /**
- * TIMESHEETS V6 - DENSE SPREADSHEET
+ * TIMESHEETS V7 - EXPANDABLE TABLE (LIKE SCREENSHOT)
  *
- * Full-width table showing:
- * - Employee name, role, pay rate
- * - 7 days with clock in/out times
- * - Issues/warnings
- * - Total hours & estimated wages
+ * Layout matches the reference screenshot:
+ * - Collapsed: Employee summary row with totals
+ * - Expanded: Individual day rows beneath employee
+ * - Table columns: Date, Role, Wage rate, Time card, Issues, Scheduled hours, Total paid hours, Estimated wages
  */
 
-// Dummy data structure
-interface DayData {
+interface DayRecord {
   date: string
   dayName: string
+  role: string
+  wageRate: number
   clockIn: string | null
   clockOut: string | null
-  hours: number
-  hasIssue: boolean
-  issueText?: string
+  scheduledHours: number
+  totalPaidHours: number
+  estimatedWages: number
+  issues: string | null
 }
 
-interface EmployeeRow {
+interface EmployeeTimesheet {
   id: string
   name: string
-  role: string
-  payRate: number
-  days: DayData[]
-  totalHours: number
-  estimatedWages: number
+  avatar: string
+  days: DayRecord[]
+  totalTimeCards: number
+  totalScheduledHours: number
+  totalPaidHours: number
+  totalEstimatedWages: number
 }
 
 // Generate dummy data
-const generateDummyData = (): EmployeeRow[] => {
+const generateDummyData = (): EmployeeTimesheet[] => {
   const employees = [
-    { id: '1', name: 'Juan Garcia', role: 'Baker', payRate: 18.50 },
-    { id: '2', name: 'Carlos Martinez', role: 'Counter Staff', payRate: 16.00 },
-    { id: '3', name: 'Angie Rodriguez', role: 'Manager', payRate: 22.00 },
-    { id: '4', name: 'Maria Lopez', role: 'Baker', payRate: 18.00 },
-    { id: '5', name: 'Emerson Silva', role: 'Counter Staff', payRate: 15.50 },
-    { id: '6', name: 'Sofia Chen', role: 'Baker', payRate: 17.50 },
-    { id: '7', name: 'Luis Mendez', role: 'Prep Cook', payRate: 16.50 },
-    { id: '8', name: 'Isabella Rossi', role: 'Counter Staff', payRate: 15.00 }
+    { id: '1', name: 'Angie Martinez', avatar: '👩‍🍳', role: 'Manager', wageRate: 22.00 },
+    { id: '2', name: 'Juan Garcia', avatar: '👨‍🍳', role: 'Baker', wageRate: 18.50 },
+    { id: '3', name: 'Carlos Martinez', avatar: '👨', role: 'Counter Staff', wageRate: 16.00 },
+    { id: '4', name: 'Maria Lopez', avatar: '👩', role: 'Baker', wageRate: 18.00 },
+    { id: '5', name: 'Emerson Silva', avatar: '👨', role: 'Counter Staff', wageRate: 15.50 },
+    { id: '6', name: 'Sofia Chen', avatar: '👩', role: 'Baker', wageRate: 17.50 }
   ]
 
   const today = new Date()
@@ -50,55 +51,58 @@ const generateDummyData = (): EmployeeRow[] => {
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 })
   const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd })
 
-  return employees.map((emp, idx) => {
-    const days = daysInWeek.map((day, dayIdx) => {
-      const dateStr = format(day, 'yyyy-MM-dd')
-      const dayName = format(day, 'EEE')
+  return employees.map((emp) => {
+    const days: DayRecord[] = []
 
+    daysInWeek.forEach((day) => {
       // Randomly skip some days
-      if (Math.random() < 0.2) {
-        return {
-          date: dateStr,
-          dayName,
-          clockIn: null,
-          clockOut: null,
-          hours: 0,
-          hasIssue: false
-        }
-      }
+      if (Math.random() < 0.3) return
 
-      // Some days have missing clock out
-      const hasMissingOut = Math.random() < 0.1
-      const clockIn = `${6 + Math.floor(Math.random() * 3)}:${['00', '15', '30', '45'][Math.floor(Math.random() * 4)]}am`
-      const clockOut = hasMissingOut ? null : `${2 + Math.floor(Math.random() * 3)}:${['00', '15', '30', '45'][Math.floor(Math.random() * 4)]}pm`
-      const hours = hasMissingOut ? 0 : 6 + Math.random() * 3
+      const clockInHour = 6 + Math.floor(Math.random() * 2)
+      const clockInMinute = Math.floor(Math.random() * 60)
+      const clockOutHour = 14 + Math.floor(Math.random() * 4)
+      const clockOutMinute = Math.floor(Math.random() * 60)
 
-      return {
-        date: dateStr,
-        dayName,
+      const clockIn = `${clockInHour}:${clockInMinute.toString().padStart(2, '0')}am`
+      const clockOut = `${clockOutHour > 12 ? clockOutHour - 12 : clockOutHour}:${clockOutMinute.toString().padStart(2, '0')}pm`
+
+      const hoursWorked = (clockOutHour + clockOutMinute / 60) - (clockInHour + clockInMinute / 60)
+      const estimatedWages = hoursWorked * emp.wageRate
+
+      days.push({
+        date: format(day, 'EEE MMM d'),
+        dayName: format(day, 'EEEE'),
+        role: emp.role,
+        wageRate: emp.wageRate,
         clockIn,
         clockOut,
-        hours,
-        hasIssue: hasMissingOut,
-        issueText: hasMissingOut ? 'Missing clock out' : undefined
-      }
+        scheduledHours: 0,
+        totalPaidHours: parseFloat(hoursWorked.toFixed(2)),
+        estimatedWages: parseFloat(estimatedWages.toFixed(2)),
+        issues: null
+      })
     })
 
-    const totalHours = days.reduce((sum, day) => sum + day.hours, 0)
-    const estimatedWages = totalHours * emp.payRate
+    const totalPaidHours = days.reduce((sum, day) => sum + day.totalPaidHours, 0)
+    const totalEstimatedWages = days.reduce((sum, day) => sum + day.estimatedWages, 0)
 
     return {
-      ...emp,
+      id: emp.id,
+      name: emp.name,
+      avatar: emp.avatar,
       days,
-      totalHours,
-      estimatedWages
+      totalTimeCards: days.length,
+      totalScheduledHours: 0,
+      totalPaidHours: parseFloat(totalPaidHours.toFixed(2)),
+      totalEstimatedWages: parseFloat(totalEstimatedWages.toFixed(2))
     }
   })
 }
 
 export default function Timesheets() {
   const [loading, setLoading] = useState(true)
-  const [employees, setEmployees] = useState<EmployeeRow[]>([])
+  const [employees, setEmployees] = useState<EmployeeTimesheet[]>([])
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set())
   const [weekSelection, setWeekSelection] = useState<'this' | 'last' | 'custom'>('this')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -113,10 +117,21 @@ export default function Timesheets() {
 
   const loadTimesheets = async () => {
     setLoading(true)
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500))
     setEmployees(generateDummyData())
     setLoading(false)
+  }
+
+  const toggleEmployee = (employeeId: string) => {
+    setExpandedEmployees(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(employeeId)) {
+        newSet.delete(employeeId)
+      } else {
+        newSet.add(employeeId)
+      }
+      return newSet
+    })
   }
 
   const getDateRangeString = () => {
@@ -136,19 +151,17 @@ export default function Timesheets() {
     }
   }
 
-  const daysOfWeek = employees[0]?.days.map(d => d.dayName) || []
-
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gray-50">
       <div className="flex-1 overflow-y-auto pb-8 pt-6 px-4">
-        <div className="max-w-[1400px] mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           <div className="mb-6 text-center">
             <h1 className="text-[32px] font-bold text-slate-900 tracking-tight mb-2">Timesheets</h1>
             <p className="text-sm text-slate-600 font-medium">{getDateRangeString()}</p>
           </div>
 
           {/* Week Selection */}
-          <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 mb-6">
+          <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200 mb-6">
             <div className="flex flex-col gap-4">
               <div className="flex bg-gray-100 rounded-lg p-1 w-full">
                 <button onClick={() => setWeekSelection('this')} className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${weekSelection === 'this' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`} type="button">This Week</button>
@@ -178,67 +191,77 @@ export default function Timesheets() {
             </div>
           )}
 
-          {/* DENSE SPREADSHEET TABLE */}
+          {/* EXPANDABLE TABLE */}
           {!loading && employees.length > 0 && (
-            <div className="bg-white/90 backdrop-blur-md rounded-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
+                <table className="w-full border-collapse">
+                  {/* Table Header */}
                   <thead>
-                    <tr className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                      <th className="text-left py-3 px-3 font-bold sticky left-0 bg-blue-600 z-10 min-w-[140px]">Employee</th>
-                      <th className="text-left py-3 px-3 font-semibold min-w-[100px]">Role</th>
-                      <th className="text-center py-3 px-3 font-semibold min-w-[70px]">Pay Rate</th>
-                      {daysOfWeek.map((day, idx) => (
-                        <th key={idx} className="text-center py-3 px-3 font-semibold min-w-[110px]">{day}</th>
-                      ))}
-                      <th className="text-center py-3 px-3 font-semibold min-w-[80px]">Total Hrs</th>
-                      <th className="text-center py-3 px-3 font-semibold min-w-[100px]">Est. Wages</th>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[200px]">Date</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">Role</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">Wage rate</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[180px]">Time card</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">Issues</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">Scheduled hours</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">Total paid hours</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[140px]">Estimated wages</th>
                     </tr>
                   </thead>
+
                   <tbody>
-                    {employees.map((emp, idx) => (
-                      <tr key={emp.id} className={`border-b border-gray-200 hover:bg-blue-50/50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                        {/* Employee Name */}
-                        <td className="py-3 px-3 font-bold text-gray-900 sticky left-0 bg-inherit z-10">{emp.name}</td>
+                    {employees.map((emp, idx) => {
+                      const isExpanded = expandedEmployees.has(emp.id)
 
-                        {/* Role */}
-                        <td className="py-3 px-3 text-gray-700">{emp.role}</td>
-
-                        {/* Pay Rate */}
-                        <td className="py-3 px-3 text-center font-semibold text-green-700">${emp.payRate.toFixed(2)}</td>
-
-                        {/* Days of Week */}
-                        {emp.days.map((day, dayIdx) => (
-                          <td key={dayIdx} className="py-2 px-2 text-center align-top">
-                            {day.clockIn ? (
-                              <div className={`rounded-lg p-2 ${day.hasIssue ? 'bg-red-50 border border-red-300' : 'bg-blue-50 border border-blue-200'}`}>
-                                <div className="text-[10px] text-gray-600 font-semibold mb-1">IN: {day.clockIn}</div>
-                                {day.clockOut ? (
-                                  <>
-                                    <div className="text-[10px] text-gray-600 font-semibold mb-1">OUT: {day.clockOut}</div>
-                                    <div className="text-xs font-bold text-blue-700">{day.hours.toFixed(1)}h</div>
-                                  </>
+                      return (
+                        <>
+                          {/* Employee Summary Row */}
+                          <tr
+                            key={emp.id}
+                            className={`cursor-pointer hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                            onClick={() => toggleEmployee(emp.id)}
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-3">
+                                {isExpanded ? (
+                                  <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
                                 ) : (
-                                  <div className="text-[10px] text-red-600 font-bold">⚠️ Missing OUT</div>
+                                  <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
                                 )}
+                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-lg flex-shrink-0">
+                                  {emp.avatar}
+                                </div>
+                                <span className="font-semibold text-gray-900">{emp.name}</span>
                               </div>
-                            ) : (
-                              <div className="text-gray-300 text-xs">—</div>
-                            )}
-                          </td>
-                        ))}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="text-gray-600 font-medium">{emp.totalTimeCards} Time Cards</span>
+                            </td>
+                            <td className="py-4 px-4"></td>
+                            <td className="py-4 px-4"></td>
+                            <td className="py-4 px-4"></td>
+                            <td className="py-4 px-4 text-right text-gray-900 font-medium">{emp.totalScheduledHours.toFixed(2)}</td>
+                            <td className="py-4 px-4 text-right text-gray-900 font-bold">{emp.totalPaidHours.toFixed(2)}</td>
+                            <td className="py-4 px-4 text-right text-gray-900 font-bold">${emp.totalEstimatedWages.toFixed(2)}</td>
+                          </tr>
 
-                        {/* Total Hours */}
-                        <td className="py-3 px-3 text-center font-bold text-blue-700 text-base">
-                          {emp.totalHours.toFixed(1)}h
-                        </td>
-
-                        {/* Estimated Wages */}
-                        <td className="py-3 px-3 text-center font-bold text-green-700 text-base">
-                          ${emp.estimatedWages.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
+                          {/* Expanded Day Rows */}
+                          {isExpanded && emp.days.map((day, dayIdx) => (
+                            <tr key={`${emp.id}-${dayIdx}`} className="bg-white border-t border-gray-100">
+                              <td className="py-3 px-4 pl-16 text-gray-700">{day.date}</td>
+                              <td className="py-3 px-4 text-gray-600">{day.role || '--'}</td>
+                              <td className="py-3 px-4 text-gray-700">${day.wageRate.toFixed(2)}/hr</td>
+                              <td className="py-3 px-4 text-gray-700">{day.clockIn} - {day.clockOut}</td>
+                              <td className="py-3 px-4 text-gray-600">{day.issues || '--'}</td>
+                              <td className="py-3 px-4 text-right text-gray-700">{day.scheduledHours.toFixed(2)}</td>
+                              <td className="py-3 px-4 text-right text-gray-900 font-semibold">{day.totalPaidHours.toFixed(2)}</td>
+                              <td className="py-3 px-4 text-right text-gray-900 font-semibold">${day.estimatedWages.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -246,7 +269,7 @@ export default function Timesheets() {
           )}
 
           {!loading && employees.length === 0 && (
-            <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-12 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 text-center">
+            <div className="bg-white rounded-lg p-12 shadow-sm border border-gray-200 text-center">
               <p className="text-gray-500 text-base font-medium">No timesheet data available for this period</p>
             </div>
           )}
