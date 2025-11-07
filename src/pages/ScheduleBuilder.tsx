@@ -160,6 +160,26 @@ export default function ScheduleBuilder() {
     }
   }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus])
 
+  // Handle clear drafts - memoized with useCallback
+  const handleClearDrafts = useCallback(async () => {
+    if (!confirm('Clear all draft shifts for this week? This cannot be undone.')) {
+      return
+    }
+
+    try {
+      const clearedCount = await publishService.clearDrafts(
+        currentWeekStart.toISOString().split('T')[0],
+        currentWeekEnd.toISOString().split('T')[0]
+      )
+
+      alert(`Cleared ${clearedCount} draft shift(s)`)
+      refetchShifts()
+      refetchPublishStatus()
+    } catch (error: any) {
+      alert(`Error clearing drafts: ${error.message}`)
+    }
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus])
+
   // Handle delete shift - memoized with useCallback
   const handleDeleteShift = useCallback(async (shiftId: number) => {
     if (!confirm(SCHEDULE_MESSAGES.DELETE_SHIFT_CONFIRM)) return
@@ -297,6 +317,20 @@ export default function ScheduleBuilder() {
             >
               <Send className="w-4 h-4" />
               Publish ({draftCount})
+            </button>
+
+            {/* Clear Drafts Button */}
+            <button
+              onClick={handleClearDrafts}
+              disabled={draftCount === 0}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all ${
+                draftCount > 0
+                  ? 'bg-red-600 text-white hover:bg-red-700 shadow-md'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear
             </button>
           </div>
         </div>
