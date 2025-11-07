@@ -436,7 +436,7 @@ export default function ScheduleBuilder() {
                       </tr>
                     ) : (
                       employees.map((employee) => {
-                        const hours = weeklyHours.get(employee.id) || 0
+                        const hours = weeklyHours[employee.id] || 0
                         const formattedHours = formatShiftHours(hours)
 
                         return (
