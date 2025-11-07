@@ -233,17 +233,24 @@ export function PayrollTab() {
                       {/* Shifts Worked */}
                       {employee.workedShifts.length > 0 && (
                         <div>
-                          <div className="font-semibold text-gray-700 mb-1.5">Shifts Worked</div>
-                          {employee.workedShifts.map((shift, idx) => (
-                            <div key={idx} className="flex justify-between items-center py-1.5 text-gray-600">
-                              <span className="text-[13px]">
-                                {shift.dayName}: {shift.clockIn} - {shift.clockOut}
-                              </span>
-                              <span className="text-[13px] font-medium text-gray-700">
-                                {formatHoursMinutes(shift.hoursWorked)}
-                              </span>
-                            </div>
-                          ))}
+                          <div className="font-semibold text-gray-700 mb-2">Shifts Worked</div>
+                          <div className="space-y-0.5">
+                            {employee.workedShifts.map((shift, idx) => (
+                              <div
+                                key={idx}
+                                className={`flex justify-between items-center py-2 px-3 rounded ${
+                                  idx % 2 === 0 ? 'bg-white' : 'bg-gray-100/50'
+                                }`}
+                              >
+                                <span className="text-[13px] text-gray-700">
+                                  <span className="font-semibold">{shift.dayName}</span>: {shift.clockIn} - {shift.clockOut}
+                                </span>
+                                <span className="text-[14px] font-bold text-gray-800">
+                                  {formatHoursMinutes(shift.hoursWorked)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
