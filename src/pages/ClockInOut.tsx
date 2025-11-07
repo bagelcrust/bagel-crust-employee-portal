@@ -6,6 +6,9 @@ import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/
 import { Keypad } from '../components/Keypad'
 import { AnimatedDigit } from '../components/AnimatedDigit'
 
+// CRITICAL TEST: This should fire immediately when file loads
+console.log('🔴 ClockInOut.tsx loaded at', new Date().toISOString())
+
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
  *
@@ -68,6 +71,9 @@ const logWarning = (context: string, message: string, data?: any) => {
 }
 
 export default function ClockInOut() {
+  // CRITICAL TEST: This should fire when component renders
+  console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
+
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error' | 'clockout' | ''>('')
   const [currentTime, setCurrentTime] = useState('')
