@@ -50,9 +50,12 @@ serve(async (req) => {
       throw new Error('startDate and endDate are required (ISO format)');
     }
 
-    // Parse dates
+    // Parse dates and set to end of day for weekEnd to include entire last day
     const weekStart = new Date(startDate);
+    weekStart.setHours(0, 0, 0, 0); // Start of first day
+
     const weekEnd = new Date(endDate);
+    weekEnd.setHours(23, 59, 59, 999); // End of last day
 
     // ===================================================================
     // FETCH ALL DATA IN PARALLEL
