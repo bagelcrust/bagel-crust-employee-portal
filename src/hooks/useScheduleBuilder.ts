@@ -7,8 +7,16 @@ import {
   publishService
 } from '../supabase/supabase'
 import { getEmployees, getTimeOffsForRange } from '../supabase/edgeFunctions'
-import type { Shift, TimeOff, Employee } from '../supabase/supabase'
+import type { DraftShift, PublishedShift, TimeOff, Employee } from '../supabase/supabase'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek } from 'date-fns'
+
+/**
+ * Combined shift type for Schedule Builder UI
+ * Can be either a draft shift or a published shift
+ */
+export type ScheduleShift = (DraftShift | PublishedShift) & {
+  status: 'draft' | 'published'
+}
 
 /**
  * Custom hook for Schedule Builder
@@ -63,15 +71,44 @@ export function useScheduleBuilder() {
     [allEmployees]
   )
 
-  // Fetch ALL shifts for current week (manager view - both draft and published)
-  const { data: shifts = [], isLoading: isLoadingShifts, refetch: refetchShifts } = useQuery({
-    queryKey: ['shifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
+  // Fetch DRAFT shifts for current week
+  const { data: draftShifts = [], isLoading: isLoadingDrafts, refetch: refetchDrafts } = useQuery({
+    queryKey: ['draftShifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
     queryFn: () => shiftService.getAllShifts(
       currentWeekStart.toISOString(),
       currentWeekEnd.toISOString()
     ),
     staleTime: 2 * 60 * 1000, // 2 minutes
   })
+
+  // Fetch PUBLISHED shifts for current week
+  const { data: publishedShifts = [], isLoading: isLoadingPublished, refetch: refetchPublished } = useQuery({
+    queryKey: ['publishedShifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
+    queryFn: () => shiftService.getPublishedShifts(
+      currentWeekStart.toISOString(),
+      currentWeekEnd.toISOString()
+    ),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  })
+
+  // Combine draft and published shifts with status field
+  const shifts: ScheduleShift[] = useMemo(() => {
+    const drafts: ScheduleShift[] = draftShifts.map(shift => ({
+      ...shift,
+      status: 'draft' as const
+    }))
+    const published: ScheduleShift[] = publishedShifts.map(shift => ({
+      ...shift,
+      status: 'published' as const
+    }))
+    return [...drafts, ...published]
+  }, [draftShifts, publishedShifts])
+
+  const isLoadingShifts = isLoadingDrafts || isLoadingPublished
+  const refetchShifts = () => {
+    refetchDrafts()
+    refetchPublished()
+  }
 
   // Fetch open shifts (unassigned)
   const { data: openShifts = [], isLoading: isLoadingOpenShifts, refetch: refetchOpenShifts } = useQuery({
@@ -135,7 +172,7 @@ export function useScheduleBuilder() {
 
   // Organize shifts by employee and day (exclude open shifts - those are shown separately)
   const shiftsByEmployeeAndDay = useMemo(() => {
-    const organized: Record<string, Record<number, Shift[]>> = {}
+    const organized: Record<string, Record<number, ScheduleShift[]>> = {}
 
     shifts.forEach((shift) => {
       // Skip open shifts (employee_id is null) - they're shown in open shifts section

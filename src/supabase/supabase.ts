@@ -17,7 +17,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 // These provide cleaner names and match your existing code
 export type Employee = Database['employees']['Tables']['employees']['Row'];
 export type TimeEntry = Database['employees']['Tables']['time_entries']['Row'];
-export type Shift = Database['employees']['Tables']['shifts']['Row'];
+export type Shift = Database['employees']['Tables']['shifts']['Row']; // Old archive table
+export type DraftShift = Database['employees']['Tables']['draft_shifts']['Row'];
+export type PublishedShift = Database['employees']['Tables']['published_shifts']['Row'];
 export type TimeOff = Database['employees']['Tables']['time_off_notices']['Row'];
 export type PayRate = Database['employees']['Tables']['pay_rates']['Row'];
 export type Availability = Database['employees']['Tables']['availability']['Row'];
@@ -26,6 +28,8 @@ export type Availability = Database['employees']['Tables']['availability']['Row'
 export type EmployeeInsert = Database['employees']['Tables']['employees']['Insert'];
 export type TimeEntryInsert = Database['employees']['Tables']['time_entries']['Insert'];
 export type ShiftInsert = Database['employees']['Tables']['shifts']['Insert'];
+export type DraftShiftInsert = Database['employees']['Tables']['draft_shifts']['Insert'];
+export type PublishedShiftInsert = Database['employees']['Tables']['published_shifts']['Insert'];
 export type TimeOffInsert = Database['employees']['Tables']['time_off_notices']['Insert'];
 export type PayRateInsert = Database['employees']['Tables']['pay_rates']['Insert'];
 
@@ -33,6 +37,8 @@ export type PayRateInsert = Database['employees']['Tables']['pay_rates']['Insert
 export type EmployeeUpdate = Database['employees']['Tables']['employees']['Update'];
 export type TimeEntryUpdate = Database['employees']['Tables']['time_entries']['Update'];
 export type ShiftUpdate = Database['employees']['Tables']['shifts']['Update'];
+export type DraftShiftUpdate = Database['employees']['Tables']['draft_shifts']['Update'];
+export type PublishedShiftUpdate = Database['employees']['Tables']['published_shifts']['Update'];
 export type TimeOffUpdate = Database['employees']['Tables']['time_off_notices']['Update'];
 export type PayRateUpdate = Database['employees']['Tables']['pay_rates']['Update'];
 

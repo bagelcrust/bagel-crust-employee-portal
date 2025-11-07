@@ -100,6 +100,47 @@ export type Database = {
         }
         Relationships: []
       }
+      draft_shifts: {
+        Row: {
+          created_at: string | null
+          employee_id: string | null
+          end_time: string
+          id: number
+          location: string | null
+          role: string | null
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id?: string | null
+          end_time: string
+          id?: number
+          location?: string | null
+          role?: string | null
+          start_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string | null
+          end_time?: string
+          id?: number
+          location?: string | null
+          role?: string | null
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_shifts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pay_rates: {
         Row: {
           effective_date: string
@@ -125,6 +166,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pay_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      published_shifts: {
+        Row: {
+          employee_id: string | null
+          end_time: string
+          id: number
+          location: string | null
+          published_at: string | null
+          role: string | null
+          start_time: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          employee_id?: string | null
+          end_time: string
+          id?: number
+          location?: string | null
+          published_at?: string | null
+          role?: string | null
+          start_time: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          employee_id?: string | null
+          end_time?: string
+          id?: number
+          location?: string | null
+          published_at?: string | null
+          role?: string | null
+          start_time?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "published_shifts_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"

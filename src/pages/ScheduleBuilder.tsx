@@ -1,16 +1,16 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2 } from 'lucide-react'
-import { useScheduleBuilder } from '../hooks'
+import { useScheduleBuilder, type ScheduleShift } from '../hooks'
 import { shiftService, publishService } from '../supabase/supabase'
 import AddShiftModal from '../components/AddShiftModal'
+import EditShiftModal from '../components/EditShiftModal'
 import {
   formatShiftTime,
   formatShiftHours,
   isAllDayTimeOff,
   countDraftShifts,
   PAGE_TITLES,
-  SCHEDULE_MESSAGES,
-  type Shift
+  SCHEDULE_MESSAGES
 } from '../lib'
 
 /**
@@ -73,6 +73,17 @@ export default function ScheduleBuilder() {
     timeOffReason: ''
   })
 
+  // Edit modal state
+  const [editModalState, setEditModalState] = useState<{
+    isOpen: boolean
+    shift: ScheduleShift | null
+    employeeName: string
+  }>({
+    isOpen: false,
+    shift: null,
+    employeeName: ''
+  })
+
   // Set page title using constant
   useEffect(() => {
     document.title = PAGE_TITLES.SCHEDULE_BUILDER
@@ -113,8 +124,7 @@ export default function ScheduleBuilder() {
         employee_id: modalState.employeeId,
         start_time: startTime,
         end_time: endTime,
-        location: location,
-        status: 'draft'
+        location: location
       })
 
       refetchShifts()
@@ -163,11 +173,42 @@ export default function ScheduleBuilder() {
     }
   }, [refetchShifts, refetchOpenShifts])
 
+  // Handle click on shift to edit - memoized with useCallback
+  const handleShiftClick = useCallback((shift: ScheduleShift, employeeName: string) => {
+    setEditModalState({
+      isOpen: true,
+      shift,
+      employeeName
+    })
+  }, [])
+
+  // Handle save edited shift - memoized with useCallback
+  // When a shift is edited, it automatically becomes a draft (even if it was published)
+  const handleEditShift = useCallback(async (
+    shiftId: number,
+    startTime: string,
+    endTime: string,
+    location: string
+  ) => {
+    try {
+      await shiftService.updateShift(shiftId, {
+        start_time: startTime,
+        end_time: endTime,
+        location: location
+      })
+
+      refetchShifts()
+      refetchPublishStatus()
+    } catch (error: any) {
+      throw error // Re-throw to let modal handle error display
+    }
+  }, [refetchShifts, refetchPublishStatus])
+
   // Calculate draft count using utility - memoized for performance
   const draftCount = useMemo(() => {
     const allShifts = Object.values(shiftsByEmployeeAndDay).flatMap(days =>
       Object.values(days).flatMap(shifts => shifts)
-    ) as Shift[]
+    ) as ScheduleShift[]
     return countDraftShifts(allShifts)
   }, [shiftsByEmployeeAndDay])
 
@@ -355,16 +396,23 @@ export default function ScheduleBuilder() {
                                       key={shift.id}
                                       className="rounded px-2 py-1 cursor-pointer hover:shadow-md transition-shadow text-center group relative"
                                       style={{
-                                        background: 'rgba(234, 179, 8, 0.15)',
-                                        border: '1px solid rgba(234, 179, 8, 0.3)',
+                                        background: 'rgba(147, 197, 253, 0.5)', // Light blue for draft (open shifts are always drafts)
+                                        border: '1px solid rgba(147, 197, 253, 0.8)',
                                         backdropFilter: 'blur(5px)'
                                       }}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleShiftClick({ ...shift, status: 'draft' } as ScheduleShift, 'Open Shift')
+                                      }}
                                     >
-                                      <div className="text-xs font-medium text-yellow-900">
+                                      <div className="text-xs font-medium text-blue-900">
                                         {formatShiftTime(shift.start_time, shift.end_time)}
                                       </div>
                                       <button
-                                        onClick={() => handleDeleteShift(shift.id)}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDeleteShift(shift.id)
+                                        }}
                                         className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
                                         <Trash2 className="w-3 h-3" />
@@ -437,22 +485,28 @@ export default function ScheduleBuilder() {
                                           className="rounded px-2 py-1 cursor-pointer hover:shadow-md transition-shadow text-center group relative"
                                           style={{
                                             background: shift.status === 'published'
-                                              ? 'rgba(34, 197, 94, 0.15)'
-                                              : 'rgba(37, 99, 235, 0.12)',
+                                              ? 'rgba(30, 64, 175, 0.85)' // Dark blue for published
+                                              : 'rgba(147, 197, 253, 0.5)', // Light blue for draft
                                             border: shift.status === 'published'
-                                              ? '1px solid rgba(34, 197, 94, 0.3)'
-                                              : '1px solid rgba(37, 99, 235, 0.25)',
+                                              ? '1px solid rgba(30, 64, 175, 1)'
+                                              : '1px solid rgba(147, 197, 253, 0.8)',
                                             backdropFilter: 'blur(5px)'
                                           }}
-                                          onClick={(e) => e.stopPropagation()}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleShiftClick(shift, employee.first_name)
+                                          }}
                                         >
                                           <div className={`text-xs font-medium ${
-                                            shift.status === 'published' ? 'text-green-900' : 'text-blue-900'
+                                            shift.status === 'published' ? 'text-white' : 'text-blue-900'
                                           }`}>
                                             {formatShiftTime(shift.start_time, shift.end_time)}
                                           </div>
                                           <button
-                                            onClick={() => handleDeleteShift(shift.id)}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleDeleteShift(shift.id)
+                                            }}
                                             className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                                           >
                                             <Trash2 className="w-3 h-3" />
@@ -511,6 +565,15 @@ export default function ScheduleBuilder() {
         date={modalState.date}
         hasTimeOff={modalState.hasTimeOff}
         timeOffReason={modalState.timeOffReason}
+      />
+
+      {/* Edit Shift Modal */}
+      <EditShiftModal
+        isOpen={editModalState.isOpen}
+        onClose={() => setEditModalState({ ...editModalState, isOpen: false })}
+        onSave={handleEditShift}
+        shift={editModalState.shift}
+        employeeName={editModalState.employeeName}
       />
     </div>
   )

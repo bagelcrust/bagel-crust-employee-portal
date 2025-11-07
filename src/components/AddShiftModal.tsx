@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
+import TimeInput from './TimeInput'
 
 interface AddShiftModalProps {
   isOpen: boolean
@@ -27,7 +28,7 @@ export default function AddShiftModal({
 }: AddShiftModalProps) {
   const [startTime, setStartTime] = useState('08:00')
   const [endTime, setEndTime] = useState('12:00')
-  const [location, setLocation] = useState('Bagel Crust')
+  const [location, setLocation] = useState('Calder')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,7 +49,7 @@ export default function AddShiftModal({
       // Reset form
       setStartTime('08:00')
       setEndTime('12:00')
-      setLocation('Bagel Crust')
+      setLocation('Calder')
       onClose()
     } catch (err: any) {
       setError(err.message || 'Failed to create shift')
@@ -61,7 +62,7 @@ export default function AddShiftModal({
     setError(null)
     setStartTime('08:00')
     setEndTime('12:00')
-    setLocation('Bagel Crust')
+    setLocation('Calder')
     onClose()
   }
 
@@ -106,32 +107,20 @@ export default function AddShiftModal({
         {/* Form */}
         <div className="space-y-4">
           {/* Start Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Time
-            </label>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={hasTimeOff || isSaving}
-            />
-          </div>
+          <TimeInput
+            label="Start Time"
+            value={startTime}
+            onChange={setStartTime}
+            disabled={hasTimeOff || isSaving}
+          />
 
           {/* End Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Time
-            </label>
-            <input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={hasTimeOff || isSaving}
-            />
-          </div>
+          <TimeInput
+            label="End Time"
+            value={endTime}
+            onChange={setEndTime}
+            disabled={hasTimeOff || isSaving}
+          />
 
           {/* Location */}
           <div>
@@ -144,8 +133,9 @@ export default function AddShiftModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={hasTimeOff || isSaving}
             >
+              <option value="Calder">Calder</option>
+              <option value="Beaver">Beaver</option>
               <option value="Bagel Crust">Bagel Crust</option>
-              <option value="Other Location">Other Location</option>
             </select>
           </div>
         </div>

@@ -89,10 +89,10 @@ export function isAllDayTimeOff(timeOff: TimeOff): boolean {
 /**
  * Count draft shifts in an array
  *
- * @param shifts - Array of shifts
+ * @param shifts - Array of shifts (can be ScheduleShift with status field)
  * @returns Number of draft shifts with assigned employees
  */
-export function countDraftShifts(shifts: Shift[]): number {
+export function countDraftShifts(shifts: Array<{ status: string, employee_id: string | null }>): number {
   return shifts.filter(s => s.status === 'draft' && s.employee_id).length
 }
 
