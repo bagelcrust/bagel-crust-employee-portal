@@ -4,6 +4,7 @@ import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { getDisplayName, supabase } from '../supabase/supabase'
 import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
+import { MorphingText } from '../components/MorphingText'
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
@@ -237,7 +238,7 @@ export default function ClockInOut() {
         )}
       </div>
 
-      {/* Success/Error Message Display with Mobile Safe Area - Bounce Animation */}
+      {/* Success/Error Message Display with Morphing Text Animation */}
       {message && (
         <div className={`fixed bottom-[calc(32px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-[10px] text-[15px] font-medium backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.12)] z-50 text-white animate-bounce-in ${
           messageType === 'success'
@@ -246,7 +247,7 @@ export default function ClockInOut() {
             ? 'bg-orange-500/90'
             : 'bg-red-500/90'
         }`}>
-          {message}
+          <MorphingText text={message} />
         </div>
       )}
     </div>
