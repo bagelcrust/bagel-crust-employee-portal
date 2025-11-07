@@ -14,8 +14,9 @@ interface WorkedShift {
   date: string
   dayName: string
   clockIn: string
-  clockOut: string
+  clockOut: string | null  // null if still clocked in
   hoursWorked: number
+  isIncomplete?: boolean  // true if missing clock-out
 }
 
 interface EmployeePayroll {
@@ -103,9 +104,18 @@ export function PayrollTab() {
             }
           })
 
-          // If there's an unclosed clock-in, mark as incomplete
+          // If there's an unclosed clock-in, mark as incomplete and add to shifts list
           if (clockIn) {
             hasIncompleteShifts = true
+            const inTime = new Date(clockIn.event_timestamp)
+            workedShifts.push({
+              date: format(inTime, 'yyyy-MM-dd'),
+              dayName: format(inTime, 'EEEE'),
+              clockIn: format(inTime, 'h:mm a'),
+              clockOut: null,  // Still clocked in
+              hoursWorked: 0,
+              isIncomplete: true
+            })
           }
 
           const hourlyRate = payRatesMap.get(employee.id) || 0
@@ -239,14 +249,17 @@ export function PayrollTab() {
                               <div
                                 key={idx}
                                 className={`flex justify-between items-center py-2 px-3 rounded ${
-                                  idx % 2 === 0 ? 'bg-white' : 'bg-gray-100/50'
+                                  shift.isIncomplete
+                                    ? 'bg-orange-50 border border-orange-200'
+                                    : idx % 2 === 0 ? 'bg-white' : 'bg-gray-100/50'
                                 }`}
                               >
-                                <span className="text-[13px] text-gray-700">
-                                  <span className="font-semibold">{shift.dayName}</span>: {shift.clockIn} - {shift.clockOut}
+                                <span className={`text-[13px] ${shift.isIncomplete ? 'text-orange-700' : 'text-gray-700'}`}>
+                                  <span className="font-semibold">{shift.dayName}</span>: {shift.clockIn} - {shift.clockOut || '???'}
+                                  {shift.isIncomplete && <span className="ml-2 text-[11px] font-semibold">MISSING CLOCK-OUT</span>}
                                 </span>
-                                <span className="text-[14px] font-bold text-gray-800">
-                                  {formatHoursMinutes(shift.hoursWorked)}
+                                <span className={`text-[14px] font-bold ${shift.isIncomplete ? 'text-orange-600' : 'text-gray-800'}`}>
+                                  {shift.isIncomplete ? 'Incomplete' : formatHoursMinutes(shift.hoursWorked)}
                                 </span>
                               </div>
                             ))}
