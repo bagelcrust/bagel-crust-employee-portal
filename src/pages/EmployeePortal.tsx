@@ -22,6 +22,7 @@ import { BottomNav } from '../components/BottomNav'
 import { ScheduleTab } from '../components/tabs/ScheduleTab'
 import { TimeOffTab } from '../components/tabs/TimeOffTab'
 import { TimesheetTab } from '../components/tabs/TimesheetTab'
+import { PayrollTab } from '../components/tabs/PayrollTab'
 import { ProfileTab } from '../components/tabs/ProfileTab'
 
 /**
@@ -299,6 +300,11 @@ export default function EmployeePortal() {
           {/* TIMESHEET TAB */}
           {activeTab === 'timesheet' && timesheetData && (
             <TimesheetTab timesheetData={timesheetData} t={t} />
+          )}
+
+          {/* PAYROLL TAB (Owner Only) */}
+          {activeTab === 'payroll' && (
+            <PayrollTab />
           )}
 
           {/* PROFILE TAB */}

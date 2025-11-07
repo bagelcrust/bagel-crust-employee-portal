@@ -5,22 +5,32 @@
  *
  * ROLE PERMISSIONS:
  * - staff_one: Only Hours tab (typically Spanish-speaking production staff)
- * - staff_two, Staff, Owner, cashier: All tabs (Schedule, Time Off, Hours, Profile)
+ * - staff_two, cashier: Standard tabs (Schedule, Time Off, Hours, Profile)
+ * - owner: All tabs including Payroll (Schedule, Time Off, Hours, Payroll, Profile)
  */
 
-export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'profile'
+export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile'
 
 export interface TabConfig {
   key: TabKey
   label: string
-  iconName: 'calendar' | 'map-pin' | 'clock' | 'user'
+  iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user'
 }
 
-// All available tabs
-const ALL_TABS: TabConfig[] = [
+// Standard tabs (staff_two, cashier, etc.)
+const STANDARD_TABS: TabConfig[] = [
   { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
   { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
   { key: 'timesheet', label: 'Hours', iconName: 'clock' },
+  { key: 'profile', label: 'Profile', iconName: 'user' }
+]
+
+// Owner gets all tabs including Payroll
+const OWNER_TABS: TabConfig[] = [
+  { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
+  { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
+  { key: 'timesheet', label: 'Hours', iconName: 'clock' },
+  { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 
@@ -41,8 +51,13 @@ export function getTabsForRole(role: string): TabConfig[] {
     return STAFF_ONE_TABS
   }
 
-  // Everyone else gets all tabs
-  return ALL_TABS
+  // Owner gets all tabs including Payroll
+  if (role === 'owner') {
+    return OWNER_TABS
+  }
+
+  // Everyone else gets standard tabs
+  return STANDARD_TABS
 }
 
 /**

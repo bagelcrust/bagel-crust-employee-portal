@@ -14,7 +14,7 @@
  * - Staff 2, Owner, cashier, Staff see all tabs (Schedule, Time Off, Hours, Profile)
  */
 
-import { Calendar, Clock, User, MapPin } from 'lucide-react'
+import { Calendar, Clock, User, MapPin, DollarSign } from 'lucide-react'
 import type { TabConfig } from '../lib/roleConfig'
 
 interface BottomNavProps {
@@ -28,7 +28,8 @@ const iconMap = {
   calendar: Calendar,
   clock: Clock,
   user: User,
-  'map-pin': MapPin
+  'map-pin': MapPin,
+  'dollar-sign': DollarSign
 }
 
 /**
