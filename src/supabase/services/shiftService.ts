@@ -167,32 +167,14 @@ export const shiftService = {
 
   /**
    * Delete shift by ID (checks both draft and published tables)
+   * Uses edge function with service_role key to bypass RLS
    */
   async deleteShift(shiftId: number): Promise<void> {
-    // Try deleting from draft_shifts first
-    const { error: draftError, count: draftCount } = await supabase
-      .from('draft_shifts')
-      .delete({ count: 'exact' })
-      .eq('id', shiftId)
-
-    // If found and deleted from drafts, we're done
-    if (!draftError && draftCount && draftCount > 0) {
-      return
-    }
-
-    // If not in drafts, try published_shifts
-    const { error: publishedError, count: publishedCount } = await supabase
-      .from('published_shifts')
-      .delete({ count: 'exact' })
-      .eq('id', shiftId)
-
-    if (publishedError) {
-      console.error('Error deleting published shift:', publishedError)
-      throw publishedError
-    }
-
-    if (!publishedCount || publishedCount === 0) {
-      throw new Error('Shift not found in drafts or published shifts')
+    try {
+      await deleteShiftEdgeFunction(shiftId)
+    } catch (error: any) {
+      console.error('Error deleting shift:', error)
+      throw error
     }
   },
 
