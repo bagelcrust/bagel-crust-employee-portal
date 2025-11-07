@@ -225,6 +225,55 @@ export default function ScheduleBuilder() {
     })
   }, [])
 
+  // Handle repeat last week - memoized with useCallback
+  const handleRepeatLastWeek = useCallback(async () => {
+    if (!confirm('Copy all published shifts from last week to this week as drafts?')) {
+      return
+    }
+
+    try {
+      // Calculate last week's dates
+      const lastWeekStart = new Date(currentWeekStart)
+      lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+      const lastWeekEnd = new Date(currentWeekEnd)
+      lastWeekEnd.setDate(lastWeekEnd.getDate() - 7)
+
+      // Fetch published shifts from last week
+      const lastWeekShifts = await shiftService.getPublishedShifts(
+        lastWeekStart.toISOString().split('T')[0],
+        lastWeekEnd.toISOString().split('T')[0]
+      )
+
+      if (lastWeekShifts.length === 0) {
+        alert('No published shifts found in last week')
+        return
+      }
+
+      // Create draft shifts for this week (adjust dates by +7 days)
+      let createdCount = 0
+      for (const shift of lastWeekShifts) {
+        const startDate = new Date(shift.start_time)
+        startDate.setDate(startDate.getDate() + 7)
+        const endDate = new Date(shift.end_time)
+        endDate.setDate(endDate.getDate() + 7)
+
+        await shiftService.createShift({
+          employee_id: shift.employee_id,
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+          location: shift.location || 'Calder',
+          role: shift.role
+        })
+        createdCount++
+      }
+
+      alert(`Created ${createdCount} draft shift(s) from last week`)
+      refetchShifts()
+    } catch (error: any) {
+      alert(`Error repeating last week: ${error.message}`)
+    }
+  }, [currentWeekStart, currentWeekEnd, refetchShifts])
+
   // Handle click on shift to edit - memoized with useCallback
   const handleShiftClick = useCallback((shift: ScheduleShift, employeeName: string) => {
     setEditModalState({
@@ -326,6 +375,15 @@ export default function ScheduleBuilder() {
                 <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
             </div>
+
+            {/* Repeat Last Week Button */}
+            <button
+              onClick={handleRepeatLastWeek}
+              className="px-4 py-2 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold text-sm hover:bg-purple-50 transition-all flex items-center gap-2"
+            >
+              <Repeat className="w-4 h-4" />
+              Repeat Last Week
+            </button>
 
             {/* Spacer */}
             <div className="flex-1" />
