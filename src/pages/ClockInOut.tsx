@@ -207,9 +207,18 @@ export default function ClockInOut() {
       // No client-side date parsing or formatting needed
       setRecentEvents(terminalData.recentEvents)
       log('State', 'Recent events state updated', { count: terminalData.recentEvents.length })
-    } catch (error) {
+    } catch (error: any) {
       const duration = Math.round(performance.now() - startTime)
       logError('API', `Failed to load recent events after ${duration}ms`, error)
+
+      // CRITICAL: Show error to user for debugging
+      console.error('🚨🚨🚨 CRITICAL ERROR - Recent events failed to load:', {
+        errorMessage: error?.message || String(error),
+        errorStack: error?.stack,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      })
+
       // Graceful degradation: Keep showing old events, don't crash
     }
   }
