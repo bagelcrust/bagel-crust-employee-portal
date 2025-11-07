@@ -80,19 +80,46 @@ export const shiftService = {
   },
 
   /**
-   * Update existing DRAFT shift with conflict validation
+   * Update existing shift with conflict validation
+   *
+   * HYBRID ARCHITECTURE BEHAVIOR:
+   * - If shift exists in draft_shifts: Update it
+   * - If shift doesn't exist (it's published): Create new draft with updated data
+   * - This allows editing published shifts (they become drafts on edit)
    */
   async updateShift(shiftId: number, updates: UpdateShiftInput): Promise<DraftShift> {
-    // If changing employee or times, validate no conflict
-    if (updates.employee_id !== undefined || updates.start_time || updates.end_time) {
-      // Get current draft shift data to merge with updates
-      const { data: currentShift, error: fetchError } = await supabase
-        .from('draft_shifts')
+    // Try to get current draft shift data
+    const { data: currentShift, error: fetchError } = await supabase
+      .from('draft_shifts')
+      .select('*')
+      .eq('id', shiftId)
+      .single()
+
+    // If shift doesn't exist in drafts, it's a published shift
+    // Get it from published_shifts and create a new draft
+    if (fetchError?.code === 'PGRST116') {
+      const { data: publishedShift, error: pubError } = await supabase
+        .from('published_shifts')
         .select('*')
         .eq('id', shiftId)
         .single()
 
-      if (fetchError) throw fetchError
+      if (pubError) throw new Error('Shift not found in drafts or published shifts')
+
+      // Create new draft with published shift data + updates
+      return this.createShift({
+        employee_id: updates.employee_id !== undefined ? updates.employee_id : publishedShift.employee_id,
+        start_time: updates.start_time || publishedShift.start_time,
+        end_time: updates.end_time || publishedShift.end_time,
+        location: updates.location || publishedShift.location || 'Calder',
+        role: updates.role !== undefined ? updates.role : publishedShift.role
+      })
+    }
+
+    if (fetchError) throw fetchError
+
+    // If changing employee or times, validate no conflict
+    if (updates.employee_id !== undefined || updates.start_time || updates.end_time) {
 
       const employeeId = updates.employee_id !== undefined
         ? updates.employee_id
