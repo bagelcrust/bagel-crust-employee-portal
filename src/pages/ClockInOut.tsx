@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { getDisplayName, supabase } from '../supabase/supabase'
 import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
@@ -35,6 +35,9 @@ export default function ClockInOut() {
   const [currentDate, setCurrentDate] = useState('')
   const [recentEvents, setRecentEvents] = useState<any[]>([])
   const [keypadKey, setKeypadKey] = useState(0)
+
+  // AutoAnimate ref for smooth Recent Activity transitions
+  const [activityListRef] = useAutoAnimate()
 
   useEffect(() => {
     // Set page title for clock terminal
@@ -139,54 +142,7 @@ export default function ClockInOut() {
   }
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center px-5 pt-6 relative">
-      {/* Animated Gradient Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 animate-gradient-shift" style={{ backgroundSize: '200% 200%' }}></div>
-
-      {/* Floating Shapes - Framer Motion Animations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {/* Orb 1 - Blue (less blur so movement is visible) */}
-        <motion.div
-          className="absolute top-20 left-10 w-80 h-80 bg-blue-300/35 rounded-full blur-2xl"
-          animate={{
-            x: [0, 60, -30, 0],
-            y: [0, -80, -40, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-
-        {/* Orb 2 - Purple */}
-        <motion.div
-          className="absolute top-40 right-20 w-96 h-96 bg-purple-300/30 rounded-full blur-2xl"
-          animate={{
-            x: [0, -70, 30, 0],
-            y: [0, -60, -90, 0],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-
-        {/* Orb 3 - Pink */}
-        <motion.div
-          className="absolute bottom-20 left-1/4 w-96 h-96 bg-pink-300/35 rounded-full blur-2xl"
-          animate={{
-            x: [0, 50, -20, 0],
-            y: [0, -100, -50, 0],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-      </div>
+    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 relative">
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* Page Title - Makes it clear this is Clock In/Out page */}
@@ -197,8 +153,8 @@ export default function ClockInOut() {
         </div>
 
         {/* Clock Display - Eastern Time - Made 1.5x larger for visibility */}
-        <div className="mb-6 text-center animate-fade-in-up">
-          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2 transition-all duration-300 animate-pulse-subtle">
+        <div className="mb-6 text-center">
+          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2">
             {currentTime || '--:--:--'}
           </div>
           <div className="text-[15px] text-slate-500 font-medium">
@@ -214,19 +170,18 @@ export default function ClockInOut() {
         />
       </div>
 
-      {/* Recent Activity - Enhanced Glass Effect with Mobile Safe Area */}
-      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/60 backdrop-blur-xl border border-white/50 rounded-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-4 max-h-[400px] overflow-y-auto animate-slide-in-right relative z-20">
+      {/* Recent Activity - Glass Effect with Mobile Safe Area + AutoAnimate */}
+      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 max-h-[400px] overflow-y-auto">
         <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
           Recent Activity
         </h3>
 
         {recentEvents.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {recentEvents.slice(0, 5).map((event, index) => (
+          <div ref={activityListRef} className="flex flex-col gap-2">
+            {recentEvents.slice(0, 5).map((event) => (
               <div
                 key={event.id}
-                className="flex items-center justify-between py-2 border-b border-black/5 animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="flex items-center justify-between py-2 border-b border-black/5"
               >
                 <div className="flex-1 min-w-0 mr-2">
                   <div className="text-[13px] font-medium text-slate-800 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -253,9 +208,9 @@ export default function ClockInOut() {
         )}
       </div>
 
-      {/* Success/Error Message Display with Mobile Safe Area */}
+      {/* Success/Error Message Display with Mobile Safe Area - Bounce Animation */}
       {message && (
-        <div className={`fixed bottom-[calc(32px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-[16px] text-[15px] font-medium backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] z-50 text-white animate-bounce-in ${
+        <div className={`fixed bottom-[calc(32px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-[10px] text-[15px] font-medium backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.12)] z-50 text-white animate-bounce-in ${
           messageType === 'success'
             ? 'bg-green-500/90'
             : messageType === 'clockout'
