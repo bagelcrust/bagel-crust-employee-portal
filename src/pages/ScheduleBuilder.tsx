@@ -293,7 +293,7 @@ export default function ScheduleBuilder() {
 
   // Handle drag end - memoized with useCallback
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-    const { active, over } = event
+    const { over } = event
     setActiveShift(null)
 
     if (!over || !activeShift) return
