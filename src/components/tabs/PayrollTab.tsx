@@ -217,18 +217,19 @@ export function PayrollTab() {
                     {employee.workedShifts.map((shift, idx) => (
                       <div
                         key={idx}
-                        className={`flex justify-between items-center py-2.5 px-3 rounded ${
+                        className={`grid grid-cols-[1fr_auto] gap-2 items-center py-2.5 px-3 rounded ${
                           shift.isIncomplete
                             ? 'bg-orange-100 border-2 border-orange-400'
                             : idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                         }`}
                       >
-                        <span className={`text-[16px] ${shift.isIncomplete ? 'text-orange-800 font-semibold' : 'text-gray-800'}`}>
-                          <span className="font-bold">{shift.dayName}</span>: {shift.clockIn} - {shift.clockOut || '???'}
-                        </span>
-                        <span className={`text-[16px] font-bold ${shift.isIncomplete ? 'text-orange-700' : 'text-gray-900'}`}>
+                        <div className={`text-[15px] ${shift.isIncomplete ? 'text-orange-800 font-semibold' : 'text-gray-800'}`}>
+                          <div className="font-bold">{shift.dayName}</div>
+                          <div className="text-[14px] text-gray-600">{shift.clockIn} - {shift.clockOut || '???'}</div>
+                        </div>
+                        <div className={`text-[17px] font-bold text-right ${shift.isIncomplete ? 'text-orange-700' : 'text-gray-900'}`}>
                           {shift.isIncomplete ? '' : formatHoursMinutes(shift.hoursWorked)}
-                        </span>
+                        </div>
                       </div>
                     ))}
                   </div>
