@@ -4,17 +4,18 @@
  */
 
 import { useState, useEffect } from 'react'
-import { format, startOfWeek, endOfWeek, subWeeks, parseISO } from 'date-fns'
+import { format, startOfWeek, endOfWeek, subWeeks } from 'date-fns'
 import { ChevronDown, ChevronRight, DollarSign } from 'lucide-react'
 import { getDisplayName } from '../../supabase/supabase'
-import { getEmployees, getClockEventsInRange, getPayRates, getSchedule } from '../../supabase/edgeFunctions'
+import { getEmployees, getClockEventsInRange, getPayRates } from '../../supabase/edgeFunctions'
 import { formatHoursMinutes } from '../../lib/employeeUtils'
 
-interface Shift {
-  start_time: string
-  end_time: string
-  location: string
-  wasWorked: boolean
+interface WorkedShift {
+  date: string
+  dayName: string
+  clockIn: string
+  clockOut: string
+  hoursWorked: number
 }
 
 interface EmployeePayroll {
@@ -25,8 +26,7 @@ interface EmployeePayroll {
   hourlyRate: number
   totalPay: number
   hasIncompleteShifts: boolean
-  scheduledShifts: Shift[]
-  missedShifts: number
+  workedShifts: WorkedShift[]
 }
 
 export function PayrollTab() {
@@ -52,11 +52,10 @@ export function PayrollTab() {
       const endDateET = format(sundayET, 'yyyy-MM-dd')
 
       // Fetch data in parallel
-      const [employeesData, eventsInRange, payRatesData, shiftsData] = await Promise.all([
+      const [employeesData, eventsInRange, payRatesData] = await Promise.all([
         getEmployees(),
         getClockEventsInRange(startDateET, endDateET, undefined, true),
-        getPayRates(),
-        getSchedule('date-range', undefined, startDateET, endDateET)
+        getPayRates()
       ])
 
       // Create pay rates map
@@ -73,15 +72,12 @@ export function PayrollTab() {
             new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
           )
 
-          // Get employee's scheduled shifts
-          const employeeShifts = shiftsData.filter((s: any) => s.employee_id === employee.id)
-
           let totalHours = 0
           let hasIncompleteShifts = false
           let clockIn: any | null = null
-          const workedPeriods: Array<{start: Date, end: Date}> = []
+          const workedShifts: WorkedShift[] = []
 
-          // Calculate hours from clock in/out pairs
+          // Calculate hours from clock in/out pairs and build shift list
           sortedEvents.forEach((event: any) => {
             if (event.event_type === 'in') {
               if (clockIn) {
@@ -93,7 +89,16 @@ export function PayrollTab() {
               const outTime = new Date(event.event_timestamp)
               const hours = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
               totalHours += hours
-              workedPeriods.push({ start: inTime, end: outTime })
+
+              // Add to worked shifts list
+              workedShifts.push({
+                date: format(inTime, 'yyyy-MM-dd'),
+                dayName: format(inTime, 'EEEE'),
+                clockIn: format(inTime, 'h:mm a'),
+                clockOut: format(outTime, 'h:mm a'),
+                hoursWorked: hours
+              })
+
               clockIn = null
             }
           })
@@ -102,29 +107,6 @@ export function PayrollTab() {
           if (clockIn) {
             hasIncompleteShifts = true
           }
-
-          // Check which shifts were worked
-          const shiftsWithStatus = employeeShifts.map((shift: any) => {
-            const shiftStart = parseISO(shift.start_time)
-            const shiftEnd = parseISO(shift.end_time)
-
-            // Check if this shift overlaps with any worked period (within 30 minutes tolerance)
-            const wasWorked = workedPeriods.some(period => {
-              const tolerance = 30 * 60 * 1000 // 30 minutes in milliseconds
-              const startMatch = Math.abs(period.start.getTime() - shiftStart.getTime()) < tolerance
-              const endMatch = Math.abs(period.end.getTime() - shiftEnd.getTime()) < tolerance
-              return startMatch || endMatch
-            })
-
-            return {
-              start_time: shift.start_time,
-              end_time: shift.end_time,
-              location: shift.location,
-              wasWorked
-            }
-          })
-
-          const missedShifts = shiftsWithStatus.filter((s: Shift) => !s.wasWorked).length
 
           const hourlyRate = payRatesMap.get(employee.id) || 0
           const totalPay = totalHours * hourlyRate
@@ -137,11 +119,10 @@ export function PayrollTab() {
             hourlyRate,
             totalPay,
             hasIncompleteShifts,
-            scheduledShifts: shiftsWithStatus,
-            missedShifts
+            workedShifts
           }
         })
-        .filter((emp: EmployeePayroll) => emp.totalHours > 0 || emp.hasIncompleteShifts || emp.scheduledShifts.length > 0) // Show employees with hours or scheduled shifts
+        .filter((emp: EmployeePayroll) => emp.totalHours > 0 || emp.hasIncompleteShifts) // Show employees with hours
         .sort((a: EmployeePayroll, b: EmployeePayroll) => a.name.localeCompare(b.name)) // Sort alphabetically by name
 
       setEmployees(payrollData)
@@ -263,30 +244,20 @@ export function PayrollTab() {
                         <span className="text-gray-800 font-medium">${employee.hourlyRate.toFixed(2)}</span>
                       </div>
 
-                      {/* Scheduled Shifts */}
-                      {employee.scheduledShifts.length > 0 && (
+                      {/* Shifts Worked */}
+                      {employee.workedShifts.length > 0 && (
                         <div className="pt-2 border-t border-gray-200">
-                          <div className="font-semibold text-gray-700 mb-1.5">Scheduled Shifts ({employee.scheduledShifts.length})</div>
-                          {employee.scheduledShifts.map((shift, idx) => {
-                            const startTime = format(parseISO(shift.start_time), 'EEE h:mm a')
-                            const endTime = format(parseISO(shift.end_time), 'h:mm a')
-                            return (
-                              <div key={idx} className={`flex justify-between items-center py-1 ${shift.wasWorked ? 'text-gray-600' : 'text-red-600'}`}>
-                                <span className="text-[12px]">
-                                  {startTime} - {endTime}
-                                  {shift.location && ` (${shift.location})`}
-                                </span>
-                                <span className="text-[11px] font-medium">
-                                  {shift.wasWorked ? '✓ Worked' : '✗ Missed'}
-                                </span>
-                              </div>
-                            )
-                          })}
-                          {employee.missedShifts > 0 && (
-                            <div className="mt-1 text-red-600 font-medium text-[12px]">
-                              {employee.missedShifts} shift{employee.missedShifts !== 1 ? 's' : ''} missed
+                          <div className="font-semibold text-gray-700 mb-1.5">Shifts Worked ({employee.workedShifts.length})</div>
+                          {employee.workedShifts.map((shift, idx) => (
+                            <div key={idx} className="flex justify-between items-center py-1 text-gray-600">
+                              <span className="text-[12px]">
+                                {shift.dayName}: {shift.clockIn} - {shift.clockOut}
+                              </span>
+                              <span className="text-[11px] font-medium text-gray-500">
+                                {formatHoursMinutes(shift.hoursWorked)}
+                              </span>
                             </div>
-                          )}
+                          ))}
                         </div>
                       )}
 
