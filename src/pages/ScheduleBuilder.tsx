@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy, Repeat } from 'lucide-react'
+import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
 import { useScheduleBuilder, type ScheduleShift } from '../hooks'
 import { shiftService, publishService } from '../supabase/supabase'
 import AddShiftModal from '../components/AddShiftModal'
@@ -86,6 +87,9 @@ export default function ScheduleBuilder() {
     shift: null,
     employeeName: ''
   })
+
+  // Drag state for drag-and-drop
+  const [activeShift, setActiveShift] = useState<ScheduleShift | null>(null)
 
   // Set page title using constant
   useEffect(() => {
@@ -274,6 +278,69 @@ export default function ScheduleBuilder() {
     }
   }, [currentWeekStart, currentWeekEnd, refetchShifts])
 
+  // Handle drag start - memoized with useCallback
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const shiftId = event.active.id as number
+    // Find shift from all employees and days
+    const allShifts = Object.values(shiftsByEmployeeAndDay).flatMap(days =>
+      Object.values(days).flatMap(shifts => shifts)
+    ) as ScheduleShift[]
+    const shift = allShifts.find(s => s.id === shiftId)
+    if (shift) {
+      setActiveShift(shift)
+    }
+  }, [shiftsByEmployeeAndDay])
+
+  // Handle drag end - memoized with useCallback
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveShift(null)
+
+    if (!over || !activeShift) return
+
+    // Parse drop target ID (format: "cell-{employeeId}-{dayIndex}")
+    const dropId = over.id as string
+    if (!dropId.startsWith('cell-')) return
+
+    const [, targetEmployeeId, targetDayIndexStr] = dropId.split('-')
+    const targetDayIndex = parseInt(targetDayIndexStr, 10)
+
+    // Get target date from daysOfWeek
+    const targetDay = daysOfWeek[targetDayIndex]
+    if (!targetDay) return
+
+    // Check if employee has time-off on target day
+    const timeOffsForDay = timeOffsByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
+    if (timeOffsForDay.length > 0) {
+      alert('Cannot move shift to a day with time-off')
+      return
+    }
+
+    try {
+      // Calculate new start/end times for target day
+      const originalStartDate = new Date(activeShift.start_time)
+      const originalEndDate = new Date(activeShift.end_time)
+      const targetDate = new Date(targetDay.date)
+
+      // Preserve the time of day, change only the date
+      const newStartDate = new Date(targetDate)
+      newStartDate.setHours(originalStartDate.getHours(), originalStartDate.getMinutes(), 0, 0)
+      const newEndDate = new Date(targetDate)
+      newEndDate.setHours(originalEndDate.getHours(), originalEndDate.getMinutes(), 0, 0)
+
+      // Update shift with new employee and/or date
+      await shiftService.updateShift(activeShift.id, {
+        employee_id: targetEmployeeId,
+        start_time: newStartDate.toISOString(),
+        end_time: newEndDate.toISOString()
+      })
+
+      refetchShifts()
+    } catch (error: any) {
+      alert(`Error moving shift: ${error.message}`)
+    }
+  }, [activeShift, daysOfWeek, timeOffsByEmployeeAndDay, refetchShifts])
+
   // Handle click on shift to edit - memoized with useCallback
   const handleShiftClick = useCallback((shift: ScheduleShift, employeeName: string) => {
     setEditModalState({
@@ -312,6 +379,104 @@ export default function ScheduleBuilder() {
     ) as ScheduleShift[]
     return countDraftShifts(allShifts)
   }, [shiftsByEmployeeAndDay])
+
+  // Helper component: Draggable Shift
+  const DraggableShift = ({ shift, employeeName }: { shift: ScheduleShift; employeeName: string }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: shift.id,
+      data: { shift }
+    })
+
+    const style = transform ? {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      opacity: isDragging ? 0.5 : 1
+    } : undefined
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...listeners}
+        {...attributes}
+        className="rounded px-2 py-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-center group relative"
+        onClick={(e) => {
+          if (!isDragging) {
+            e.stopPropagation()
+            handleShiftClick(shift, employeeName)
+          }
+        }}
+      >
+        <div
+          style={{
+            background: shift.status === 'published'
+              ? 'rgba(30, 64, 175, 0.85)' // Dark blue for published
+              : 'rgba(147, 197, 253, 0.5)', // Light blue for draft
+            border: shift.status === 'published'
+              ? '1px solid rgba(30, 64, 175, 1)'
+              : '1px solid rgba(147, 197, 253, 0.8)',
+            backdropFilter: 'blur(5px)',
+            borderRadius: '0.375rem',
+            padding: '0.25rem 0.5rem'
+          }}
+        >
+          <div className={`text-xs font-medium ${
+            shift.status === 'published' ? 'text-white' : 'text-blue-900'
+          }`}>
+            {formatShiftTime(shift.start_time, shift.end_time)}
+          </div>
+          {/* Duplicate button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDuplicateShift(shift, employeeName)
+            }}
+            className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Duplicate shift"
+          >
+            <Copy className="w-3 h-3" />
+          </button>
+          {/* Delete button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDeleteShift(shift.id)
+            }}
+            className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Delete shift"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Helper component: Droppable Cell
+  const DroppableCell = ({ employeeId, employeeName, dayIndex, children, className, style, hasTimeOff }: {
+    employeeId: string
+    employeeName: string
+    dayIndex: number
+    children: React.ReactNode
+    className?: string
+    style?: React.CSSProperties
+    hasTimeOff: boolean
+  }) => {
+    const { setNodeRef, isOver } = useDroppable({
+      id: `cell-${employeeId}-${dayIndex}`,
+      disabled: hasTimeOff
+    })
+
+    return (
+      <td
+        ref={setNodeRef}
+        className={`${className} ${isOver && !hasTimeOff ? 'bg-blue-100/50 ring-2 ring-blue-400' : ''}`}
+        style={style}
+        onClick={() => !hasTimeOff && handleCellClick(employeeId, employeeName, daysOfWeek[dayIndex]?.date || new Date(), dayIndex)}
+      >
+        {children}
+      </td>
+    )
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
@@ -446,8 +611,9 @@ export default function ScheduleBuilder() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-auto h-full">
-                <table className="w-full border-collapse">
+              <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="overflow-auto h-full">
+                  <table className="w-full border-collapse">
                   <thead>
                     <tr>
                       <th
@@ -602,9 +768,12 @@ export default function ScheduleBuilder() {
                               const hasTimeOff = timeOffsForDay.length > 0
 
                               return (
-                                <td
+                                <DroppableCell
                                   key={dayIndex}
-                                  onClick={() => !hasTimeOff && handleCellClick(employee.id, employee.first_name, day.date, dayIndex)}
+                                  employeeId={employee.id}
+                                  employeeName={employee.first_name}
+                                  dayIndex={dayIndex}
+                                  hasTimeOff={hasTimeOff}
                                   className={`border-r border-b p-1.5 min-h-[50px] align-top ${
                                     !hasTimeOff ? 'cursor-pointer hover:bg-blue-50/30' : ''
                                   }`}
@@ -617,51 +786,11 @@ export default function ScheduleBuilder() {
                                     <div className="space-y-1">
                                       {/* Shifts */}
                                       {shiftsForDay.map((shift) => (
-                                        <div
+                                        <DraggableShift
                                           key={shift.id}
-                                          className="rounded px-2 py-1 cursor-pointer hover:shadow-md transition-shadow text-center group relative"
-                                          style={{
-                                            background: shift.status === 'published'
-                                              ? 'rgba(30, 64, 175, 0.85)' // Dark blue for published
-                                              : 'rgba(147, 197, 253, 0.5)', // Light blue for draft
-                                            border: shift.status === 'published'
-                                              ? '1px solid rgba(30, 64, 175, 1)'
-                                              : '1px solid rgba(147, 197, 253, 0.8)',
-                                            backdropFilter: 'blur(5px)'
-                                          }}
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleShiftClick(shift, employee.first_name)
-                                          }}
-                                        >
-                                          <div className={`text-xs font-medium ${
-                                            shift.status === 'published' ? 'text-white' : 'text-blue-900'
-                                          }`}>
-                                            {formatShiftTime(shift.start_time, shift.end_time)}
-                                          </div>
-                                          {/* Duplicate button */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleDuplicateShift(shift, employee.first_name)
-                                            }}
-                                            className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            title="Duplicate shift"
-                                          >
-                                            <Copy className="w-3 h-3" />
-                                          </button>
-                                          {/* Delete button */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleDeleteShift(shift.id)
-                                            }}
-                                            className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            title="Delete shift"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
-                                        </div>
+                                          shift={shift}
+                                          employeeName={employee.first_name}
+                                        />
                                       ))}
                                       {/* Time-offs */}
                                       {timeOffsForDay.map((timeOff) => {
@@ -691,7 +820,7 @@ export default function ScheduleBuilder() {
                                       )}
                                     </div>
                                   )}
-                                </td>
+                                </DroppableCell>
                               )
                             })}
                           </tr>
@@ -701,6 +830,25 @@ export default function ScheduleBuilder() {
                   </tbody>
                 </table>
               </div>
+              <DragOverlay>
+                {activeShift ? (
+                  <div className="rounded px-2 py-1 shadow-lg" style={{
+                    background: activeShift.status === 'published'
+                      ? 'rgba(30, 64, 175, 0.85)'
+                      : 'rgba(147, 197, 253, 0.5)',
+                    border: activeShift.status === 'published'
+                      ? '1px solid rgba(30, 64, 175, 1)'
+                      : '1px solid rgba(147, 197, 253, 0.8)'
+                  }}>
+                    <div className={`text-xs font-medium ${
+                      activeShift.status === 'published' ? 'text-white' : 'text-blue-900'
+                    }`}>
+                      {formatShiftTime(activeShift.start_time, activeShift.end_time)}
+                    </div>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
             )}
           </div>
         </div>
