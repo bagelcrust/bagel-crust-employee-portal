@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getScheduleBuilderData } from '../supabase/edgeFunctions'
 import type { DraftShift, PublishedShift, TimeOff, Employee } from '../supabase/supabase'
-import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek } from 'date-fns'
+import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek, addDays } from 'date-fns'
 
 /**
  * Combined shift type for Schedule Builder UI
@@ -72,19 +72,23 @@ export function useScheduleBuilder() {
   const weeklyHours = scheduleData?.weeklyHours || {}
   const isWeekPublished = scheduleData?.isPublished || false
 
+  // Use pre-computed organization from edge function (avoid duplicate work)
+  const shiftsByEmployeeAndDayFromServer = (scheduleData?.shiftsByEmployeeAndDay || {}) as Record<string, Record<number, ScheduleShift[]>>
+  const timeOffsByEmployeeAndDayFromServer = (scheduleData?.timeOffsByEmployeeAndDay || {}) as Record<string, Record<number, TimeOff[]>>
+
   // Refetch functions for backward compatibility
   const refetchShifts = refetch
   const refetchOpenShifts = refetch
   const refetchPublishStatus = refetch
 
   // Generate days of week array with dates
+  // FIXED: Use addDays() instead of mutation (was: addWeeks(..., 0) then mutating)
   const daysOfWeek = useMemo(() => {
     const days = []
     const today = startOfDay(new Date())
 
     for (let i = 0; i < 7; i++) {
-      const date = addWeeks(currentWeekStart, 0)
-      date.setDate(date.getDate() + i)
+      const date = addDays(currentWeekStart, i)
 
       days.push({
         date: date,
@@ -97,56 +101,10 @@ export function useScheduleBuilder() {
     return days
   }, [currentWeekStart])
 
-  // Organize shifts by employee and day (exclude open shifts - those are shown separately)
-  const shiftsByEmployeeAndDay = useMemo(() => {
-    const organized: Record<string, Record<number, ScheduleShift[]>> = {}
-
-    shifts.forEach((shift) => {
-      // Skip open shifts (employee_id is null) - they're shown in open shifts section
-      if (!shift.employee_id) return
-
-      const shiftDate = startOfDay(new Date(shift.start_time))
-      const dayIndex = daysOfWeek.findIndex(day =>
-        startOfDay(day.date).getTime() === shiftDate.getTime()
-      )
-
-      if (dayIndex === -1) return // Shift not in current week
-
-      if (!organized[shift.employee_id]) {
-        organized[shift.employee_id] = {}
-      }
-      if (!organized[shift.employee_id][dayIndex]) {
-        organized[shift.employee_id][dayIndex] = []
-      }
-      organized[shift.employee_id][dayIndex].push(shift)
-    })
-
-    return organized
-  }, [shifts, daysOfWeek])
-
-  // Organize time-offs by employee and day
-  const timeOffsByEmployeeAndDay = useMemo(() => {
-    const organized: Record<string, Record<number, TimeOff[]>> = {}
-
-    timeOffs.forEach((timeOff) => {
-      const timeOffDate = startOfDay(new Date(timeOff.start_time))
-      const dayIndex = daysOfWeek.findIndex(day =>
-        startOfDay(day.date).getTime() === timeOffDate.getTime()
-      )
-
-      if (dayIndex === -1) return // Time-off not in current week
-
-      if (!organized[timeOff.employee_id]) {
-        organized[timeOff.employee_id] = {}
-      }
-      if (!organized[timeOff.employee_id][dayIndex]) {
-        organized[timeOff.employee_id][dayIndex] = []
-      }
-      organized[timeOff.employee_id][dayIndex].push(timeOff)
-    })
-
-    return organized
-  }, [timeOffs, daysOfWeek])
+  // Use pre-organized data from edge function instead of recalculating
+  // Edge function already computed these - no need to do it again client-side
+  const shiftsByEmployeeAndDay = shiftsByEmployeeAndDayFromServer
+  const timeOffsByEmployeeAndDay = timeOffsByEmployeeAndDayFromServer
 
   return {
     // Week data
