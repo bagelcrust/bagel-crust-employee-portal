@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { getDisplayName, supabase } from '../supabase/supabase'
 import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
@@ -142,12 +143,49 @@ export default function ClockInOut() {
       {/* Animated Gradient Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 animate-gradient-shift" style={{ backgroundSize: '200% 200%' }}></div>
 
-      {/* Floating Shapes - Continuously Animating */}
+      {/* Floating Shapes - Framer Motion Animations */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-300/30 rounded-full blur-3xl animate-float will-change-transform"></div>
-        <div className="absolute top-40 right-20 w-[28rem] h-[28rem] bg-purple-300/28 rounded-full blur-3xl animate-float-delayed will-change-transform"></div>
-        <div className="absolute bottom-20 left-1/4 w-[26rem] h-[26rem] bg-pink-300/30 rounded-full blur-3xl animate-float-slow will-change-transform"></div>
-        <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-indigo-300/25 rounded-full blur-2xl animate-float will-change-transform"></div>
+        {/* Orb 1 - Blue (less blur so movement is visible) */}
+        <motion.div
+          className="absolute top-20 left-10 w-80 h-80 bg-blue-300/35 rounded-full blur-2xl"
+          animate={{
+            x: [0, 60, -30, 0],
+            y: [0, -80, -40, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+
+        {/* Orb 2 - Purple */}
+        <motion.div
+          className="absolute top-40 right-20 w-96 h-96 bg-purple-300/30 rounded-full blur-2xl"
+          animate={{
+            x: [0, -70, 30, 0],
+            y: [0, -60, -90, 0],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+
+        {/* Orb 3 - Pink */}
+        <motion.div
+          className="absolute bottom-20 left-1/4 w-96 h-96 bg-pink-300/35 rounded-full blur-2xl"
+          animate={{
+            x: [0, 50, -20, 0],
+            y: [0, -100, -50, 0],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </div>
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">

@@ -126,11 +126,15 @@ serve(async (req) => {
     }
 
     // Step 5: DELETE old published shifts for this week first (prevents duplicates)
+    // Use week_start/week_end columns to ensure we delete ALL shifts for this week
+    const weekStartDate = weekStart.toISOString().split('T')[0];
+    const weekEndDate = weekEnd.toISOString().split('T')[0];
+
     const { error: deleteError } = await supabase
       .from('published_shifts')
       .delete()
-      .gte('start_time', weekStart.toISOString())
-      .lte('start_time', weekEnd.toISOString());
+      .eq('week_start', weekStartDate)
+      .eq('week_end', weekEndDate);
 
     if (deleteError) throw deleteError;
 
