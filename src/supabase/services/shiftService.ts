@@ -165,17 +165,33 @@ export const shiftService = {
   },
 
   /**
-   * Delete DRAFT shift by ID
+   * Delete shift by ID (checks both draft and published tables)
    */
   async deleteShift(shiftId: number): Promise<void> {
-    const { error } = await supabase
+    // Try deleting from draft_shifts first
+    const { error: draftError, count: draftCount } = await supabase
       .from('draft_shifts')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', shiftId)
 
-    if (error) {
-      console.error('Error deleting draft shift:', error)
-      throw error
+    // If found and deleted from drafts, we're done
+    if (!draftError && draftCount && draftCount > 0) {
+      return
+    }
+
+    // If not in drafts, try published_shifts
+    const { error: publishedError, count: publishedCount } = await supabase
+      .from('published_shifts')
+      .delete({ count: 'exact' })
+      .eq('id', shiftId)
+
+    if (publishedError) {
+      console.error('Error deleting published shift:', publishedError)
+      throw publishedError
+    }
+
+    if (!publishedCount || publishedCount === 0) {
+      throw new Error('Shift not found in drafts or published shifts')
     }
   },
 
