@@ -149,7 +149,16 @@ export default function EmployeePortal() {
     []
   )
 
-  // Validate active tab when employee or role changes
+  // Set default tab when employee logs in, validate on role/tab changes
+  useEffect(() => {
+    if (employee && employee.role) {
+      // On initial login, always set to default tab for role
+      const defaultTabForRole = getDefaultTabForRole(employee.role)
+      setActiveTab(defaultTabForRole)
+    }
+  }, [employee?.id]) // Only run when employee changes (login/logout)
+
+  // Validate active tab if it changes manually
   useEffect(() => {
     if (employee && employee.role) {
       const validTab = validateTabForRole(employee.role, activeTab)
@@ -157,7 +166,7 @@ export default function EmployeePortal() {
         setActiveTab(validTab)
       }
     }
-  }, [employee, activeTab])
+  }, [employee?.role, activeTab])
 
   // Set page title using constant
   useEffect(() => {
