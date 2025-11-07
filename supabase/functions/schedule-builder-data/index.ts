@@ -11,14 +11,21 @@ const corsHeaders = {
  *
  * Single endpoint that returns ALL data needed for Schedule Builder page:
  * - Employees (staff_two role only)
- * - Shifts for date range (all shifts, draft + published)
- * - Open shifts (unassigned)
+ * - Draft shifts (experimental workspace)
+ * - Published shifts (immutable historical record)
+ * - Combined shifts with status discriminator
+ * - Open shifts (unassigned drafts)
  * - Time-offs for date range
  * - Weekly hours per employee
  * - Week published status
  * - Conflicts (shifts overlapping with time-offs)
  *
- * Reduces 6 HTTP requests down to 1
+ * Reduces 7+ HTTP requests down to 1
+ *
+ * HYBRID ARCHITECTURE:
+ * - draft_shifts: Manager's experimental workspace (can freely edit/delete)
+ * - published_shifts: Immutable historical record (visible to employees)
+ * - Publishing copies draft_shifts → published_shifts
  *
  * IMPORTANT - PERMISSIONS REQUIRED:
  * This Edge Function requires service_role to have access to the 'employees' schema.
@@ -52,10 +59,10 @@ serve(async (req) => {
     // ===================================================================
     const [
       employeesResult,
-      shiftsResult,
+      draftShiftsResult,
+      publishedShiftsResult,
       openShiftsResult,
-      timeOffsResult,
-      publishedWeeksResult
+      timeOffsResult
     ] = await Promise.all([
       // Get all active employees with staff_two role
       supabase
@@ -65,17 +72,25 @@ serve(async (req) => {
         .eq('role', 'staff_two')
         .order('first_name'),
 
-      // Get all shifts for date range (both draft and published - manager view)
+      // Get draft shifts for date range (experimental workspace)
       supabase
-        .from('shifts')
+        .from('draft_shifts')
         .select('*')
         .gte('start_time', weekStart.toISOString())
         .lte('start_time', weekEnd.toISOString())
         .order('start_time'),
 
-      // Get open shifts (unassigned)
+      // Get published shifts for date range (immutable historical record)
       supabase
-        .from('shifts')
+        .from('published_shifts')
+        .select('*')
+        .gte('start_time', weekStart.toISOString())
+        .lte('start_time', weekEnd.toISOString())
+        .order('start_time'),
+
+      // Get open shifts (unassigned drafts only)
+      supabase
+        .from('draft_shifts')
         .select('*')
         .is('employee_id', null)
         .gte('start_time', weekStart.toISOString())
@@ -88,28 +103,30 @@ serve(async (req) => {
         .select('*')
         .gte('start_time', weekStart.toISOString())
         .lte('start_time', weekEnd.toISOString())
-        .order('start_time'),
-
-      // Check if week is published
-      supabase
-        .from('published_weeks')
-        .select('week_start')
-        .eq('week_start', weekStart.toISOString().split('T')[0]) // YYYY-MM-DD
-        .maybeSingle()
+        .order('start_time')
     ]);
 
     // Check for errors
     if (employeesResult.error) throw employeesResult.error;
-    if (shiftsResult.error) throw shiftsResult.error;
+    if (draftShiftsResult.error) throw draftShiftsResult.error;
+    if (publishedShiftsResult.error) throw publishedShiftsResult.error;
     if (openShiftsResult.error) throw openShiftsResult.error;
     if (timeOffsResult.error) throw timeOffsResult.error;
-    if (publishedWeeksResult.error) throw publishedWeeksResult.error;
 
     const employees = employeesResult.data || [];
-    const shifts = shiftsResult.data || [];
+    const draftShifts = draftShiftsResult.data || [];
+    const publishedShifts = publishedShiftsResult.data || [];
     const openShifts = openShiftsResult.data || [];
     const timeOffs = timeOffsResult.data || [];
-    const isPublished = !!publishedWeeksResult.data;
+
+    // Combine draft and published shifts with status discriminator
+    const shifts = [
+      ...draftShifts.map(shift => ({ ...shift, status: 'draft' })),
+      ...publishedShifts.map(shift => ({ ...shift, status: 'published' }))
+    ];
+
+    // Check if week has any published shifts
+    const isPublished = publishedShifts.length > 0;
 
     // ===================================================================
     // CALCULATE WEEKLY HOURS PER EMPLOYEE

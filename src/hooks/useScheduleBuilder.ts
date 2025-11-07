@@ -1,12 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  shiftService,
-  openShiftsService,
-  hoursService,
-  publishService
-} from '../supabase/supabase'
-import { getEmployees, getTimeOffsForRange } from '../supabase/edgeFunctions'
+import { getScheduleBuilderData } from '../supabase/edgeFunctions'
 import type { DraftShift, PublishedShift, TimeOff, Employee } from '../supabase/supabase'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek } from 'date-fns'
 
@@ -58,97 +52,30 @@ export function useScheduleBuilder() {
     setCurrentWeekStart(prev => addWeeks(prev, 1))
   }
 
-  // Fetch all active employees (filtered to staff_two role only) using Edge Function
-  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
-    queryKey: ['employees', 'active'],
-    queryFn: () => getEmployees(),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  })
-
-  // Filter to only show staff_two role
-  const employees = useMemo(() =>
-    allEmployees.filter(emp => emp.role === 'staff_two'),
-    [allEmployees]
-  )
-
-  // Fetch DRAFT shifts for current week
-  const { data: draftShifts = [], isLoading: isLoadingDrafts, refetch: refetchDrafts } = useQuery({
-    queryKey: ['draftShifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => shiftService.getAllShifts(
-      currentWeekStart.toISOString(),
-      currentWeekEnd.toISOString()
-    ),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  })
-
-  // Fetch PUBLISHED shifts for current week
-  const { data: publishedShifts = [], isLoading: isLoadingPublished, refetch: refetchPublished } = useQuery({
-    queryKey: ['publishedShifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => shiftService.getPublishedShifts(
-      currentWeekStart.toISOString(),
-      currentWeekEnd.toISOString()
-    ),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  })
-
-  // Combine draft and published shifts with status field
-  const shifts: ScheduleShift[] = useMemo(() => {
-    const drafts: ScheduleShift[] = draftShifts.map(shift => ({
-      ...shift,
-      status: 'draft' as const
-    }))
-    const published: ScheduleShift[] = publishedShifts.map(shift => ({
-      ...shift,
-      status: 'published' as const
-    }))
-    return [...drafts, ...published]
-  }, [draftShifts, publishedShifts])
-
-  const isLoadingShifts = isLoadingDrafts || isLoadingPublished
-  const refetchShifts = () => {
-    refetchDrafts()
-    refetchPublished()
-  }
-
-  // Fetch open shifts (unassigned)
-  const { data: openShifts = [], isLoading: isLoadingOpenShifts, refetch: refetchOpenShifts } = useQuery({
-    queryKey: ['openShifts', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => openShiftsService.getOpenShifts(
-      currentWeekStart.toISOString(),
-      currentWeekEnd.toISOString()
-    ),
-    staleTime: 2 * 60 * 1000,
-  })
-
-  // Fetch time-offs for current week using Edge Function
-  const { data: timeOffs = [], isLoading: isLoadingTimeOffs } = useQuery<TimeOff[]>({
-    queryKey: ['timeoffs', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => getTimeOffsForRange(
+  // Fetch ALL schedule builder data in a single HTTP request using Edge Function
+  // This aggregates: employees, draft shifts, published shifts, open shifts, time-offs, weekly hours, publish status
+  // Reduces 7+ HTTP requests down to 1
+  const { data: scheduleData, isLoading, refetch } = useQuery({
+    queryKey: ['scheduleBuilderData', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
+    queryFn: () => getScheduleBuilderData(
       format(currentWeekStart, 'yyyy-MM-dd'),
       format(currentWeekEnd, 'yyyy-MM-dd')
     ),
     staleTime: 2 * 60 * 1000, // 2 minutes
   })
 
-  // Fetch weekly hours for all employees
-  const { data: weeklyHours } = useQuery({
-    queryKey: ['weeklyHours', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => hoursService.calculateAllEmployeeHours(
-      currentWeekStart.toISOString(),
-      currentWeekEnd.toISOString()
-    ),
-    staleTime: 2 * 60 * 1000,
-  })
+  // Extract data from edge function response
+  const employees = (scheduleData?.employees || []) as Employee[]
+  const shifts = (scheduleData?.shifts || []) as ScheduleShift[]
+  const openShifts = (scheduleData?.openShifts || []) as DraftShift[]
+  const timeOffs = (scheduleData?.timeOffs || []) as TimeOff[]
+  const weeklyHours = scheduleData?.weeklyHours || {}
+  const isWeekPublished = scheduleData?.isPublished || false
 
-  // Check if week is published
-  const { data: isWeekPublished = false, refetch: refetchPublishStatus } = useQuery({
-    queryKey: ['weekPublished', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => publishService.isWeekPublished(
-      currentWeekStart.toISOString(),
-      currentWeekEnd.toISOString()
-    ),
-    staleTime: 2 * 60 * 1000,
-  })
+  // Refetch functions for backward compatibility
+  const refetchShifts = refetch
+  const refetchOpenShifts = refetch
+  const refetchPublishStatus = refetch
 
   // Generate days of week array with dates
   const daysOfWeek = useMemo(() => {
@@ -241,15 +168,15 @@ export function useScheduleBuilder() {
     timeOffs,
     shiftsByEmployeeAndDay,
     timeOffsByEmployeeAndDay,
-    weeklyHours: weeklyHours || new Map(),
+    weeklyHours: weeklyHours || {},
     isWeekPublished,
 
-    // Loading states
-    isLoading: isLoadingEmployees || isLoadingShifts || isLoadingTimeOffs || isLoadingOpenShifts,
-    isLoadingEmployees,
-    isLoadingShifts,
-    isLoadingTimeOffs,
-    isLoadingOpenShifts,
+    // Loading states (single query via edge function)
+    isLoading,
+    isLoadingEmployees: isLoading,
+    isLoadingShifts: isLoading,
+    isLoadingTimeOffs: isLoading,
+    isLoadingOpenShifts: isLoading,
 
     // Refetch functions
     refetchShifts,
