@@ -40,7 +40,12 @@ import { AnimatedDigit } from '../components/AnimatedDigit'
  * - Detailed error messages for debugging
  */
 
-// Error logging utility with timestamp and context
+// Comprehensive logging utility with timestamp and context
+const log = (context: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[ClockInOut] ${timestamp} - ${context}: ${message}`, data || '')
+}
+
 const logError = (context: string, error: any, details?: any) => {
   const timestamp = new Date().toISOString()
   console.error(`[ClockInOut Error] ${timestamp} - ${context}:`, {
@@ -50,6 +55,16 @@ const logError = (context: string, error: any, details?: any) => {
     userAgent: navigator.userAgent,
     online: navigator.onLine
   })
+}
+
+const logSuccess = (context: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.log(`%c[ClockInOut Success] ${timestamp} - ${context}: ${message}`, 'color: green; font-weight: bold', data || '')
+}
+
+const logWarning = (context: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.warn(`[ClockInOut Warning] ${timestamp} - ${context}: ${message}`, data || '')
 }
 
 export default function ClockInOut() {
@@ -66,6 +81,11 @@ export default function ClockInOut() {
   const [activityListRef] = useAutoAnimate()
 
   useEffect(() => {
+    log('Lifecycle', '🚀 Component mounted - Clock Terminal initializing')
+    log('Environment', 'User agent', { userAgent: navigator.userAgent })
+    log('Environment', 'Network status', { online: navigator.onLine })
+    log('Environment', 'Timezone', { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
+
     // Set page title for clock terminal
     document.title = 'Bagel Crust - Clock In/Out'
 
@@ -86,13 +106,16 @@ export default function ClockInOut() {
     }
 
     updateTime()
+    log('Clock', 'Clock display initialized', { time: currentTime, date: currentDate })
     const timer = setInterval(updateTime, 1000)
 
     // Initial load with error handling
+    log('Data', 'Loading initial recent events...')
     loadRecentEvents()
 
     // REAL-TIME SUBSCRIPTION: Listen for new clock in/out events
     // When someone clocks in or out, instantly update the recent activity feed
+    log('Realtime', '📡 Setting up Realtime subscription for time_entries')
     const subscription = supabase
       .channel('time_entries_changes')
       .on(
@@ -103,36 +126,60 @@ export default function ClockInOut() {
           table: 'time_entries'
         },
         (payload) => {
-          console.log('[Realtime] New time entry received:', payload)
+          logSuccess('Realtime', '🔔 New time entry received via Realtime', payload)
           // Reload recent events when new entry is inserted
           loadRecentEvents()
         }
       )
       .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status)
+        log('Realtime', `Subscription status changed: ${status}`)
         if (status === 'SUBSCRIBED') {
+          logSuccess('Realtime', '✅ Realtime connected successfully')
           setRealtimeStatus('connected')
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          logError('Realtime', 'Subscription failed', { status })
           setRealtimeStatus('error')
-          logError('Realtime subscription failed', new Error(`Status: ${status}`))
+        } else {
+          log('Realtime', `Status: ${status}`)
+          setRealtimeStatus('disconnected')
         }
       })
 
     // Health check: Verify realtime connection every 30 seconds
+    log('Health Check', '🏥 Starting health monitoring (30s interval)')
     const healthCheck = setInterval(() => {
+      log('Health Check', '💓 Checking system health', {
+        realtimeStatus,
+        online: navigator.onLine,
+        recentEventsCount: recentEvents.length
+      })
       if (realtimeStatus === 'error') {
-        logError('Realtime health check', new Error('Realtime connection is in error state'))
+        logError('Health Check', 'Realtime connection is in error state')
       }
     }, 30000)
 
+    // Network status monitoring
+    const handleOnline = () => logSuccess('Network', '🌐 Network back online')
+    const handleOffline = () => logWarning('Network', '📵 Network went offline')
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
     return () => {
+      log('Lifecycle', '🛑 Component unmounting - cleaning up')
       clearInterval(timer)
       clearInterval(healthCheck)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+      log('Realtime', 'Unsubscribing from Realtime channel')
       subscription.unsubscribe()
     }
   }, [realtimeStatus])
 
   const loadRecentEvents = async () => {
+    const startTime = performance.now()
+    log('API', '📥 Loading recent events from Edge Function...')
+
     try {
       // Use aggregate Edge Function - returns all terminal data in one call
       // Timeout protection: 15 seconds
@@ -144,26 +191,39 @@ export default function ClockInOut() {
 
       const terminalData = await Promise.race([dataPromise, timeoutPromise]) as any
 
+      const duration = Math.round(performance.now() - startTime)
+      logSuccess('API', `✅ Recent events loaded in ${duration}ms`, {
+        eventCount: terminalData.recentEvents.length,
+        duration: `${duration}ms`
+      })
+
       // Events are already formatted by the Edge Function!
       // No client-side date parsing or formatting needed
       setRecentEvents(terminalData.recentEvents)
+      log('State', 'Recent events state updated', { count: terminalData.recentEvents.length })
     } catch (error) {
-      logError('Failed to load recent events', error)
+      const duration = Math.round(performance.now() - startTime)
+      logError('API', `Failed to load recent events after ${duration}ms`, error)
       // Graceful degradation: Keep showing old events, don't crash
     }
   }
 
   const handleClockAction = async (pin: string) => {
+    const operationStartTime = performance.now()
+    log('Clock Action', '⏰ Clock action initiated', { pin: `****` }) // Don't log actual PIN
+
     // Prevent double-submission
     if (isProcessing) {
-      console.warn('[ClockInOut] Ignoring duplicate clock request (already processing)')
+      logWarning('Clock Action', '🚫 Duplicate request blocked (already processing)')
       return
     }
 
     setIsProcessing(true)
+    log('State', 'isProcessing = true')
 
     try {
-      console.log(`[ClockInOut] Starting clock action for PIN: ${pin}`)
+      log('Clock Action', '📍 Step 1/3: Looking up employee by PIN...')
+      const lookupStartTime = performance.now()
 
       // Step 1: Verify employee exists (with timeout)
       const timeoutPromise = new Promise((_, reject) =>
@@ -173,8 +233,10 @@ export default function ClockInOut() {
       const employeePromise = getEmployeeByPin(pin)
       const employee = await Promise.race([employeePromise, timeoutPromise]) as any
 
+      const lookupDuration = Math.round(performance.now() - lookupStartTime)
+
       if (!employee) {
-        console.warn(`[ClockInOut] Invalid PIN entered: ${pin}`)
+        logWarning('Clock Action', `❌ Invalid PIN entered (lookup took ${lookupDuration}ms)`)
         setMessage('Invalid PIN - Please try again')
         setMessageType('error')
         setKeypadKey(prev => prev + 1)
@@ -186,14 +248,23 @@ export default function ClockInOut() {
         return
       }
 
-      console.log(`[ClockInOut] Employee found: ${employee.first_name} ${employee.last_name} (${employee.id})`)
+      logSuccess('Clock Action', `✅ Employee found in ${lookupDuration}ms`, {
+        employee: `${employee.first_name} ${employee.last_name}`,
+        id: employee.id,
+        duration: `${lookupDuration}ms`
+      })
 
       // Step 2: Perform clock action (with timeout and retry)
+      log('Clock Action', '📍 Step 2/3: Performing clock in/out operation...')
       let event
       let retryCount = 0
       const maxRetries = 2
 
       while (retryCount <= maxRetries) {
+        const attemptNumber = retryCount + 1
+        const clockStartTime = performance.now()
+        log('Clock Action', `Attempt ${attemptNumber}/${maxRetries + 1}`)
+
         try {
           const clockPromise = clockInOut(employee.id)
           const clockTimeout = new Promise((_, reject) =>
@@ -202,15 +273,26 @@ export default function ClockInOut() {
 
           event = await Promise.race([clockPromise, clockTimeout]) as any
 
-          console.log(`[ClockInOut] Clock action successful:`, event)
+          const clockDuration = Math.round(performance.now() - clockStartTime)
+          logSuccess('Clock Action', `✅ Clock operation successful in ${clockDuration}ms`, {
+            eventType: event.event_type,
+            eventId: event.id,
+            attempt: attemptNumber,
+            duration: `${clockDuration}ms`
+          })
           break // Success, exit retry loop
 
         } catch (retryError) {
+          const clockDuration = Math.round(performance.now() - clockStartTime)
           retryCount++
           if (retryCount > maxRetries) {
+            logError('Clock Action', `❌ All ${maxRetries + 1} attempts failed`, { totalDuration: `${clockDuration}ms` })
             throw retryError // Give up after max retries
           }
-          console.warn(`[ClockInOut] Retry ${retryCount}/${maxRetries} after error:`, retryError)
+          logWarning('Clock Action', `⚠️ Attempt ${attemptNumber} failed, retrying in 1s...`, {
+            error: retryError,
+            duration: `${clockDuration}ms`
+          })
           await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second before retry
         }
       }
@@ -218,43 +300,68 @@ export default function ClockInOut() {
       const displayName = getDisplayName(employee)
       const action = event.event_type === 'in' ? 'clocked in' : 'clocked out'
 
+      log('Clock Action', '📍 Step 3/3: Updating UI and refreshing events...')
       setMessage(`${displayName} successfully ${action}`)
       setMessageType(event.event_type === 'in' ? 'success' : 'clockout')
+      log('State', 'Success message displayed to user')
 
       // Real-time subscription will handle updating the list automatically
       // But also manually refresh as fallback
-      setTimeout(() => loadRecentEvents(), 500)
+      log('Clock Action', 'Scheduling fallback refresh in 500ms')
+      setTimeout(() => {
+        log('Clock Action', 'Executing fallback refresh')
+        loadRecentEvents()
+      }, 500)
 
       setTimeout(() => {
         setMessage('')
         setMessageType('')
+        log('State', 'Success message cleared')
       }, 4000)
 
+      const totalDuration = Math.round(performance.now() - operationStartTime)
+      logSuccess('Clock Action', `🎉 COMPLETE clock operation in ${totalDuration}ms`, {
+        employee: displayName,
+        action,
+        totalDuration: `${totalDuration}ms`
+      })
+
     } catch (error: any) {
-      logError('Clock action failed', error, { pin, isOnline: navigator.onLine })
+      const totalDuration = Math.round(performance.now() - operationStartTime)
+      logError('Clock Action', `❌ Clock action failed after ${totalDuration}ms`, {
+        error,
+        isOnline: navigator.onLine,
+        totalDuration: `${totalDuration}ms`
+      })
 
       // User-friendly error message with more context
       let errorMessage = 'Clock action failed - Please try again'
 
       if (!navigator.onLine) {
         errorMessage = 'No internet connection - Please check your network'
+        logWarning('Clock Action', '📵 Device is offline')
       } else if (error?.message?.includes('timeout')) {
         errorMessage = 'Request timed out - Please try again'
+        logWarning('Clock Action', '⏱️ Operation timed out')
       } else if (error?.message?.includes('Failed to fetch')) {
         errorMessage = 'Network error - Please check your connection'
+        logWarning('Clock Action', '🌐 Network fetch failed')
       }
 
       setMessage(errorMessage)
       setMessageType('error')
       setKeypadKey(prev => prev + 1)
+      log('State', 'Error message displayed to user')
 
       setTimeout(() => {
         setMessage('')
         setMessageType('')
+        log('State', 'Error message cleared')
       }, 5000) // Show error longer (5 seconds)
 
     } finally {
       setIsProcessing(false)
+      log('State', 'isProcessing = false')
     }
   }
 
