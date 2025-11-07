@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy, Repeat } from 'lucide-react'
 import { useScheduleBuilder, type ScheduleShift } from '../hooks'
 import { shiftService, publishService } from '../supabase/supabase'
 import AddShiftModal from '../components/AddShiftModal'
@@ -188,6 +188,55 @@ export default function ScheduleBuilder() {
       alert(`Error clearing drafts: ${error.message}`)
     }
   }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus])
+
+  // Handle repeat last week - memoized with useCallback
+  const handleRepeatLastWeek = useCallback(async () => {
+    if (!confirm('Copy all published shifts from last week to this week as drafts?')) {
+      return
+    }
+
+    try {
+      // Calculate last week's dates
+      const lastWeekStart = new Date(currentWeekStart)
+      lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+      const lastWeekEnd = new Date(currentWeekEnd)
+      lastWeekEnd.setDate(lastWeekEnd.getDate() - 7)
+
+      // Fetch published shifts from last week
+      const lastWeekShifts = await shiftService.getPublishedShifts(
+        lastWeekStart.toISOString().split('T')[0],
+        lastWeekEnd.toISOString().split('T')[0]
+      )
+
+      if (lastWeekShifts.length === 0) {
+        alert('No published shifts found in last week')
+        return
+      }
+
+      // Create draft shifts for this week (adjust dates by +7 days)
+      let createdCount = 0
+      for (const shift of lastWeekShifts) {
+        const startDate = new Date(shift.start_time)
+        startDate.setDate(startDate.getDate() + 7)
+        const endDate = new Date(shift.end_time)
+        endDate.setDate(endDate.getDate() + 7)
+
+        await shiftService.createShift({
+          employee_id: shift.employee_id,
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+          location: shift.location || 'Calder',
+          role: shift.role
+        })
+        createdCount++
+      }
+
+      alert(`Created ${createdCount} draft shift(s) from last week`)
+      refetchShifts()
+    } catch (error: any) {
+      alert(`Error repeating last week: ${error.message}`)
+    }
+  }, [currentWeekStart, currentWeekEnd, refetchShifts])
 
   // Handle delete shift - memoized with useCallback
   const handleDeleteShift = useCallback(async (shiftId: number) => {

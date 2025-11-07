@@ -4,6 +4,7 @@ import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { getDisplayName, supabase } from '../supabase/supabase'
 import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
+import { AnimatedDigit } from '../components/AnimatedDigit'
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
@@ -181,10 +182,16 @@ export default function ClockInOut() {
           </h1>
         </div>
 
-        {/* Clock Display - Eastern Time - Made 1.5x larger for visibility */}
+        {/* Clock Display - Eastern Time - Animated flip numbers */}
         <div className="mb-6 text-center">
-          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2">
-            {currentTime || '--:--:--'}
+          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2 flex justify-center">
+            {(currentTime || '--:--:--').split('').map((char, index) => (
+              <AnimatedDigit
+                key={`${index}-${char}`}
+                value={char}
+                className="text-[57px]"
+              />
+            ))}
           </div>
           <div className="text-[15px] text-slate-500 font-medium">
             {currentDate || 'Loading...'}
