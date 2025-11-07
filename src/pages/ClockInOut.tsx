@@ -181,7 +181,7 @@ export default function ClockInOut() {
       log('Realtime', 'Unsubscribing from Realtime channel')
       subscription.unsubscribe()
     }
-  }, [realtimeStatus])
+  }, []) // Empty dependency array - only run once on mount
 
   const loadRecentEvents = async () => {
     const startTime = performance.now()
