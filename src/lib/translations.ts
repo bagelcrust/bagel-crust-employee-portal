@@ -57,7 +57,7 @@ export const translations = {
     teamSchedule: 'Horario del Equipo',
     openShifts: 'Turnos Abiertos',
     timeOff: 'Tiempo Libre',
-    timesheet: 'Horas Trabajadas',
+    timesheet: 'Horas',
     payroll: 'Nómina',
     profile: 'Perfil',
     feedback: 'Comentarios',
