@@ -12,18 +12,22 @@ export default {
           '50%': { backgroundPosition: '100% 50%' },
         },
         'float': {
-          '0%, 100%': { transform: 'translateY(0px) translateX(0px)' },
-          '33%': { transform: 'translateY(-20px) translateX(10px)' },
-          '66%': { transform: 'translateY(-10px) translateX(-10px)' },
+          '0%, 100%': { transform: 'translateY(0px) translateX(0px) scale(1)' },
+          '33%': { transform: 'translateY(-50px) translateX(40px) scale(1.1)' },
+          '66%': { transform: 'translateY(-25px) translateX(-30px) scale(0.9)' },
         },
         'float-delayed': {
-          '0%, 100%': { transform: 'translateY(0px) translateX(0px)' },
-          '33%': { transform: 'translateY(-15px) translateX(-15px)' },
-          '66%': { transform: 'translateY(-25px) translateX(5px)' },
+          '0%, 100%': { transform: 'translateY(0px) translateX(0px) scale(1)' },
+          '33%': { transform: 'translateY(-40px) translateX(-50px) scale(1.15)' },
+          '66%': { transform: 'translateY(-70px) translateX(20px) scale(0.85)' },
         },
         'float-slow': {
           '0%, 100%': { transform: 'translateY(0px) translateX(0px) scale(1)' },
-          '50%': { transform: 'translateY(-30px) translateX(15px) scale(1.1)' },
+          '50%': { transform: 'translateY(-80px) translateX(40px) scale(1.2)' },
+        },
+        'pulse-subtle': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.8' },
         },
         'fade-in-up': {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
@@ -44,6 +48,7 @@ export default {
         'float': 'float 8s ease-in-out infinite',
         'float-delayed': 'float-delayed 10s ease-in-out infinite',
         'float-slow': 'float-slow 12s ease-in-out infinite',
+        'pulse-subtle': 'pulse-subtle 3s ease-in-out infinite',
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
         'slide-in-right': 'slide-in-right 0.6s ease-out forwards',
         'bounce-in': 'bounce-in 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards',

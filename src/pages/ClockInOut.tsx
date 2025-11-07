@@ -142,11 +142,12 @@ export default function ClockInOut() {
       {/* Animated Gradient Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 animate-gradient-shift" style={{ backgroundSize: '200% 200%' }}></div>
 
-      {/* Floating Shapes */}
+      {/* Floating Shapes - Much More Visible */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-blue-300/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute top-40 right-20 w-80 h-80 bg-purple-300/20 rounded-full blur-3xl animate-float-delayed"></div>
-        <div className="absolute bottom-20 left-1/4 w-72 h-72 bg-pink-300/20 rounded-full blur-3xl animate-float-slow"></div>
+        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-400/40 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-40 right-20 w-[28rem] h-[28rem] bg-purple-400/35 rounded-full blur-3xl animate-float-delayed"></div>
+        <div className="absolute bottom-20 left-1/4 w-[26rem] h-[26rem] bg-pink-400/40 rounded-full blur-3xl animate-float-slow"></div>
+        <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-indigo-300/30 rounded-full blur-2xl animate-float"></div>
       </div>
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
@@ -159,7 +160,7 @@ export default function ClockInOut() {
 
         {/* Clock Display - Eastern Time - Made 1.5x larger for visibility */}
         <div className="mb-6 text-center animate-fade-in-up">
-          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2 transition-all duration-300">
+          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2 transition-all duration-300 animate-pulse-subtle">
             {currentTime || '--:--:--'}
           </div>
           <div className="text-[15px] text-slate-500 font-medium">

@@ -125,7 +125,16 @@ serve(async (req) => {
       );
     }
 
-    // Step 5: Copy draft shifts to published_shifts
+    // Step 5: DELETE old published shifts for this week first (prevents duplicates)
+    const { error: deleteError } = await supabase
+      .from('published_shifts')
+      .delete()
+      .gte('start_time', weekStart.toISOString())
+      .lte('start_time', weekEnd.toISOString());
+
+    if (deleteError) throw deleteError;
+
+    // Step 6: Copy draft shifts to published_shifts
     const publishedShiftsData = draftShifts.map(draft => ({
       employee_id: draft.employee_id,
       start_time: draft.start_time,
