@@ -149,14 +149,14 @@ export default function EmployeePortal() {
     []
   )
 
-  // Set default tab when employee logs in, validate on role/tab changes
+  // Set default tab when employee logs in
   useEffect(() => {
-    if (employee && employee.role) {
-      // On initial login, always set to default tab for role
+    if (isLoggedIn && employee && employee.role) {
+      // Always set to default tab when logged in
       const defaultTabForRole = getDefaultTabForRole(employee.role)
       setActiveTab(defaultTabForRole)
     }
-  }, [employee?.id]) // Only run when employee changes (login/logout)
+  }, [isLoggedIn, employee?.role]) // Trigger on login state change
 
   // Validate active tab if it changes manually
   useEffect(() => {
