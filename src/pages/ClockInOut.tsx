@@ -125,7 +125,7 @@ export default function ClockInOut() {
       setMessage(`${displayName} successfully ${action}`)
       setMessageType(event.event_type === 'in' ? 'success' : 'clockout')
 
-      await loadRecentEvents()
+      // Real-time subscription will handle updating the list automatically
 
       setTimeout(() => {
         setMessage('')
