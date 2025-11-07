@@ -3,8 +3,11 @@ import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy,
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
 import { useScheduleBuilder, type ScheduleShift } from '../hooks'
 import { shiftService, publishService } from '../supabase/supabase'
-import AddShiftModal from '../components/AddShiftModal'
-import EditShiftModal from '../components/EditShiftModal'
+import { AddShiftDialog } from '../components/AddShiftDialog'
+import { EditShiftDialog } from '../components/EditShiftDialog'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
 import {
   formatShiftTime,
   formatShiftHours,
@@ -36,6 +39,7 @@ import {
  */
 
 export default function ScheduleBuilder() {
+  const { toast } = useToast()
   const {
     dateRangeString,
     isThisWeek,
@@ -160,18 +164,27 @@ export default function ScheduleBuilder() {
           currentWeekEnd.toISOString().split('T')[0]
         )
 
-        alert(result.message)
+        toast({
+          title: 'Schedule Published',
+          description: result.message,
+        })
         refetchShifts()
         refetchPublishStatus()
       } else {
-        alert(`Cannot publish:\n\n${result.message}\n\nConflicts:\n${
-          result.conflicts.map((c: any) => `- ${c.employeeName} on ${c.shiftDate}`).join('\n')
-        }`)
+        toast({
+          title: 'Cannot Publish',
+          description: `${result.message}\n\nConflicts: ${result.conflicts.map((c: any) => `${c.employeeName} on ${c.shiftDate}`).join(', ')}`,
+          variant: 'destructive',
+        })
       }
     } catch (error: any) {
-      alert(`${SCHEDULE_MESSAGES.PUBLISH_ERROR}: ${error.message}`)
+      toast({
+        title: SCHEDULE_MESSAGES.PUBLISH_ERROR,
+        description: error.message,
+        variant: 'destructive',
+      })
     }
-  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus])
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus, toast])
 
   // Handle clear drafts - memoized with useCallback
   const handleClearDrafts = useCallback(async () => {
@@ -185,13 +198,20 @@ export default function ScheduleBuilder() {
         currentWeekEnd.toISOString().split('T')[0]
       )
 
-      alert(`Cleared ${clearedCount} draft shift(s)`)
+      toast({
+        title: 'Drafts Cleared',
+        description: `Cleared ${clearedCount} draft shift(s)`,
+      })
       refetchShifts()
       refetchPublishStatus()
     } catch (error: any) {
-      alert(`Error clearing drafts: ${error.message}`)
+      toast({
+        title: 'Error',
+        description: `Error clearing drafts: ${error.message}`,
+        variant: 'destructive',
+      })
     }
-  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus])
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus, toast])
 
   // Handle delete shift - memoized with useCallback
   const handleDeleteShift = useCallback(async (shiftId: number) => {
@@ -199,12 +219,20 @@ export default function ScheduleBuilder() {
 
     try {
       await shiftService.deleteShift(shiftId)
+      toast({
+        title: 'Shift Deleted',
+        description: 'The shift has been removed',
+      })
       refetchShifts()
       refetchOpenShifts()
     } catch (error: any) {
-      alert(`${SCHEDULE_MESSAGES.DELETE_ERROR}: ${error.message}`)
+      toast({
+        title: SCHEDULE_MESSAGES.DELETE_ERROR,
+        description: error.message,
+        variant: 'destructive',
+      })
     }
-  }, [refetchShifts, refetchOpenShifts])
+  }, [refetchShifts, refetchOpenShifts, toast])
 
   // Handle duplicate shift - memoized with useCallback
   const handleDuplicateShift = useCallback((shift: ScheduleShift, employeeName: string) => {
@@ -249,7 +277,11 @@ export default function ScheduleBuilder() {
       )
 
       if (lastWeekShifts.length === 0) {
-        alert('No published shifts found in last week')
+        toast({
+          title: 'No Shifts Found',
+          description: 'No published shifts found in last week',
+          variant: 'destructive',
+        })
         return
       }
 
@@ -271,12 +303,19 @@ export default function ScheduleBuilder() {
         createdCount++
       }
 
-      alert(`Created ${createdCount} draft shift(s) from last week`)
+      toast({
+        title: 'Shifts Copied',
+        description: `Created ${createdCount} draft shift(s) from last week`,
+      })
       refetchShifts()
     } catch (error: any) {
-      alert(`Error repeating last week: ${error.message}`)
+      toast({
+        title: 'Error',
+        description: `Error repeating last week: ${error.message}`,
+        variant: 'destructive',
+      })
     }
-  }, [currentWeekStart, currentWeekEnd, refetchShifts])
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, toast])
 
   // Handle drag start - memoized with useCallback
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -312,7 +351,11 @@ export default function ScheduleBuilder() {
     // Check if employee has time-off on target day
     const timeOffsForDay = timeOffsByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
     if (timeOffsForDay.length > 0) {
-      alert('Cannot move shift to a day with time-off')
+      toast({
+        title: 'Cannot Move Shift',
+        description: 'Cannot move shift to a day with time-off',
+        variant: 'destructive',
+      })
       return
     }
 
@@ -335,11 +378,19 @@ export default function ScheduleBuilder() {
         end_time: newEndDate.toISOString()
       })
 
+      toast({
+        title: 'Shift Moved',
+        description: 'The shift has been reassigned',
+      })
       refetchShifts()
     } catch (error: any) {
-      alert(`Error moving shift: ${error.message}`)
+      toast({
+        title: 'Error',
+        description: `Error moving shift: ${error.message}`,
+        variant: 'destructive',
+      })
     }
-  }, [activeShift, daysOfWeek, timeOffsByEmployeeAndDay, refetchShifts])
+  }, [activeShift, daysOfWeek, timeOffsByEmployeeAndDay, refetchShifts, toast])
 
   // Handle click on shift to edit - memoized with useCallback
   const handleShiftClick = useCallback((shift: ScheduleShift, employeeName: string) => {

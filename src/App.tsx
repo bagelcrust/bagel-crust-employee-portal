@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useDynamicManifest } from './hooks';
 import * as Sentry from '@sentry/react';
 import { initSentry } from './lib/sentry';
+import { Toaster } from '@/components/ui/toaster';
 
 /**
  * ROUTE-BASED CODE SPLITTING
@@ -113,6 +114,7 @@ function App() {
             <Route path="/schedule-builder" element={<ScheduleBuilder />} />
           </Routes>
         </Suspense>
+        <Toaster />
         <SentryTestButton />
       </Router>
     </Sentry.ErrorBoundary>
