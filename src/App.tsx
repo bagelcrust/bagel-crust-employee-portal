@@ -36,7 +36,6 @@ initSentry();
 const ClockInOut = lazy(() => import('./pages/ClockInOut'));
 const EmployeePortal = lazy(() => import('./pages/EmployeePortal'));
 const ScheduleBuilder = lazy(() => import('./pages/ScheduleBuilder'));
-const Timesheets = lazy(() => import('./pages/Timesheets'));
 
 // Loading spinner component
 function LoadingFallback() {
@@ -112,7 +111,6 @@ function App() {
             <Route path="/clockinout" element={<ClockInOut />} />
             <Route path="/employee-portal" element={<EmployeePortal />} />
             <Route path="/schedule-builder" element={<ScheduleBuilder />} />
-            <Route path="/timesheets" element={<Timesheets />} />
           </Routes>
         </Suspense>
         <SentryTestButton />
