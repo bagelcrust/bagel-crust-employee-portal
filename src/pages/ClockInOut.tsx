@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { getDisplayName, supabase } from '../supabase/supabase'
 import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
@@ -143,6 +144,34 @@ export default function ClockInOut() {
 
   return (
     <div className="fixed inset-0 w-full h-screen overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 pb-[env(safe-area-inset-bottom,0px)] relative">
+
+      {/* Subtle Floating Background Shapes - Framer Motion */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-40">
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-300/40 rounded-full blur-3xl"
+          animate={{
+            x: [0, 60, 0],
+            y: [0, -40, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-purple-300/35 rounded-full blur-3xl"
+          animate={{
+            x: [0, -50, 0],
+            y: [0, 45, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      </div>
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* Page Title - Makes it clear this is Clock In/Out page */}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import TimeInput from './TimeInput'
@@ -12,6 +12,10 @@ interface AddShiftModalProps {
   date: Date
   hasTimeOff?: boolean
   timeOffReason?: string
+  // Optional: pre-fill values when duplicating a shift
+  initialStartTime?: string
+  initialEndTime?: string
+  initialLocation?: string
 }
 
 /**
@@ -25,13 +29,26 @@ export default function AddShiftModal({
   employeeName,
   date,
   hasTimeOff,
-  timeOffReason
+  timeOffReason,
+  initialStartTime,
+  initialEndTime,
+  initialLocation
 }: AddShiftModalProps) {
-  const [startTime, setStartTime] = useState('08:00')
-  const [endTime, setEndTime] = useState('12:00')
-  const [location, setLocation] = useState('Calder')
+  const [startTime, setStartTime] = useState(initialStartTime || '08:00')
+  const [endTime, setEndTime] = useState(initialEndTime || '12:00')
+  const [location, setLocation] = useState(initialLocation || 'Calder')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Reset state when modal opens with new initial values
+  useEffect(() => {
+    if (isOpen) {
+      setStartTime(initialStartTime || '08:00')
+      setEndTime(initialEndTime || '12:00')
+      setLocation(initialLocation || 'Calder')
+      setError(null)
+    }
+  }, [isOpen, initialStartTime, initialEndTime, initialLocation])
 
   if (!isOpen) return null
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy } from 'lucide-react'
 import { useScheduleBuilder, type ScheduleShift } from '../hooks'
 import { shiftService, publishService } from '../supabase/supabase'
 import AddShiftModal from '../components/AddShiftModal'
@@ -64,6 +64,9 @@ export default function ScheduleBuilder() {
     date: Date
     hasTimeOff: boolean
     timeOffReason: string
+    initialStartTime?: string
+    initialEndTime?: string
+    initialLocation?: string
   }>({
     isOpen: false,
     employeeId: null,
@@ -198,6 +201,29 @@ export default function ScheduleBuilder() {
       alert(`${SCHEDULE_MESSAGES.DELETE_ERROR}: ${error.message}`)
     }
   }, [refetchShifts, refetchOpenShifts])
+
+  // Handle duplicate shift - memoized with useCallback
+  const handleDuplicateShift = useCallback((shift: ScheduleShift, employeeName: string) => {
+    // Extract time from UTC timestamp to Eastern Time HH:mm format
+    const startDate = new Date(shift.start_time)
+    const endDate = new Date(shift.end_time)
+    const startHours = String(startDate.getHours()).padStart(2, '0')
+    const startMins = String(startDate.getMinutes()).padStart(2, '0')
+    const endHours = String(endDate.getHours()).padStart(2, '0')
+    const endMins = String(endDate.getMinutes()).padStart(2, '0')
+
+    setModalState({
+      isOpen: true,
+      employeeId: shift.employee_id,
+      employeeName,
+      date: startDate,
+      hasTimeOff: false,
+      timeOffReason: '',
+      initialStartTime: `${startHours}:${startMins}`,
+      initialEndTime: `${endHours}:${endMins}`,
+      initialLocation: shift.location || 'Calder'
+    })
+  }, [])
 
   // Handle click on shift to edit - memoized with useCallback
   const handleShiftClick = useCallback((shift: ScheduleShift, employeeName: string) => {
@@ -448,12 +474,25 @@ export default function ScheduleBuilder() {
                                       <div className="text-xs font-medium text-blue-900">
                                         {formatShiftTime(shift.start_time, shift.end_time)}
                                       </div>
+                                      {/* Duplicate button */}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDuplicateShift({ ...shift, status: 'draft' } as ScheduleShift, 'Open Shift')
+                                        }}
+                                        className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Duplicate shift"
+                                      >
+                                        <Copy className="w-3 h-3" />
+                                      </button>
+                                      {/* Delete button */}
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           handleDeleteShift(shift.id)
                                         }}
                                         className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Delete shift"
                                       >
                                         <Trash2 className="w-3 h-3" />
                                       </button>
@@ -542,12 +581,25 @@ export default function ScheduleBuilder() {
                                           }`}>
                                             {formatShiftTime(shift.start_time, shift.end_time)}
                                           </div>
+                                          {/* Duplicate button */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleDuplicateShift(shift, employee.first_name)
+                                            }}
+                                            className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Duplicate shift"
+                                          >
+                                            <Copy className="w-3 h-3" />
+                                          </button>
+                                          {/* Delete button */}
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation()
                                               handleDeleteShift(shift.id)
                                             }}
                                             className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Delete shift"
                                           >
                                             <Trash2 className="w-3 h-3" />
                                           </button>
@@ -605,6 +657,9 @@ export default function ScheduleBuilder() {
         date={modalState.date}
         hasTimeOff={modalState.hasTimeOff}
         timeOffReason={modalState.timeOffReason}
+        initialStartTime={modalState.initialStartTime}
+        initialEndTime={modalState.initialEndTime}
+        initialLocation={modalState.initialLocation}
       />
 
       {/* Edit Shift Modal */}

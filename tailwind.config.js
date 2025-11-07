@@ -40,6 +40,14 @@ export default {
           '50%': { opacity: '1', transform: 'translateX(-50%) scale(1.05)' },
           '100%': { opacity: '1', transform: 'translateX(-50%) scale(1)' },
         },
+        'float-very-slow': {
+          '0%, 100%': { transform: 'translate(0, 0)' },
+          '50%': { transform: 'translate(40px, -50px)' },
+        },
+        'float-slower': {
+          '0%, 100%': { transform: 'translate(0, 0)' },
+          '50%': { transform: 'translate(-45px, 35px)' },
+        },
       },
       animation: {
         'gradient-shift': 'gradient-shift 8s ease infinite',
@@ -50,6 +58,8 @@ export default {
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
         'slide-in-right': 'slide-in-right 0.6s ease-out forwards',
         'bounce-in': 'bounce-in 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards',
+        'float-very-slow': 'float-very-slow 20s ease-in-out infinite',
+        'float-slower': 'float-slower 25s ease-in-out infinite',
       },
       colors: {
         // Apple-Inspired "Hub" Theme for Bagel Crust
