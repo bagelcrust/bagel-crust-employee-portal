@@ -102,7 +102,7 @@ export function PayrollTab() {
           }
         })
         .filter((emp: EmployeePayroll) => emp.totalHours > 0 || emp.hasIncompleteShifts) // Only show employees with hours
-        .sort((a: EmployeePayroll, b: EmployeePayroll) => b.totalPay - a.totalPay) // Sort by highest pay first
+        .sort((a: EmployeePayroll, b: EmployeePayroll) => a.name.localeCompare(b.name)) // Sort alphabetically by name
 
       setEmployees(payrollData)
       setLoading(false)
