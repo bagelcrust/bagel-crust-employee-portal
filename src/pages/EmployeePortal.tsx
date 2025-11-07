@@ -315,7 +315,7 @@ export default function EmployeePortal() {
       </div>
 
       {/* Bottom Navigation - Dynamic tabs based on role */}
-      <BottomNav tabs={availableTabs} activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabKey)} />
+      <BottomNav tabs={availableTabs} activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabKey)} t={t} />
     </div>
   )
 }

@@ -15,12 +15,14 @@
  */
 
 import { Calendar, Clock, User, MapPin, DollarSign } from 'lucide-react'
-import type { TabConfig } from '../lib/roleConfig'
+import type { TabConfig, TabKey } from '../lib/roleConfig'
+import type { Translations } from '../lib/translations'
 
 interface BottomNavProps {
   tabs: TabConfig[]
   activeTab: string
   onTabChange: (tab: string) => void
+  t: Translations
 }
 
 // Map icon names to Lucide components
@@ -41,11 +43,23 @@ const iconMap = {
  * - Glassmorphism design
  * - Touch-optimized
  */
-export function BottomNav({ tabs, activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({ tabs, activeTab, onTabChange, t }: BottomNavProps) {
+  // Map tab keys to translation keys
+  const getTabLabel = (tabKey: TabKey): string => {
+    const labelMap: Record<TabKey, keyof Translations> = {
+      weeklySchedule: 'weeklySchedule',
+      timeOff: 'timeOff',
+      timesheet: 'timesheet',
+      payroll: 'payroll',
+      profile: 'profile'
+    }
+    return t[labelMap[tabKey]] || tabKey
+  }
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pb-[calc(4px+env(safe-area-inset-bottom,0px))] bg-white/98 backdrop-blur-md border-t border-black/6 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
       <div className="flex justify-around max-w-[600px] mx-auto pt-1 px-3">
-        {tabs.map(({ key, label, iconName }) => {
+        {tabs.map(({ key, iconName }) => {
           const isActive = activeTab === key
           const iconColor = isActive ? '#2563EB' : '#9CA3AF'
           const Icon = iconMap[iconName]
@@ -67,7 +81,7 @@ export function BottomNav({ tabs, activeTab, onTabChange }: BottomNavProps) {
                 }`}
                 style={{ color: iconColor }}
               >
-                {label}
+                {getTabLabel(key)}
               </div>
             </button>
           )

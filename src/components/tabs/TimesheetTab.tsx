@@ -19,10 +19,25 @@ export function TimesheetTab({ timesheetData, t }: TimesheetTabProps) {
   const currentWeekData = timesheetWeek === 'this' ? timesheetData.thisWeek : timesheetData.lastWeek
   const hasHours = currentWeekData.days && currentWeekData.days.length > 0
 
+  // Translate day names from English (Edge Function) to current language
+  const translateDayName = (englishDayName: string): string => {
+    const dayMap: Record<string, keyof Translations> = {
+      'Monday': 'monday',
+      'Tuesday': 'tuesday',
+      'Wednesday': 'wednesday',
+      'Thursday': 'thursday',
+      'Friday': 'friday',
+      'Saturday': 'saturday',
+      'Sunday': 'sunday'
+    }
+    const key = dayMap[englishDayName]
+    return key ? t[key] : englishDayName
+  }
+
   return (
     <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
       <h2 className="text-[28px] font-bold text-gray-800 mb-6 tracking-tight">
-        Hours
+        {t.timesheet}
       </h2>
 
       {/* Week Toggle */}
@@ -61,7 +76,7 @@ export function TimesheetTab({ timesheetData, t }: TimesheetTabProps) {
               >
                 <div>
                   <div className="font-semibold text-gray-800 text-[15px]">
-                    {day.day_name}
+                    {translateDayName(day.day_name)}
                   </div>
                   <div className="text-[13px] text-gray-400 mt-0.5">
                     {format(new Date(day.date), 'MMMM do')}
