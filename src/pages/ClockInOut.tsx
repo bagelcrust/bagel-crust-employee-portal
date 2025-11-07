@@ -4,6 +4,7 @@ import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { getDisplayName, supabase } from '../supabase/supabase'
 import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
+import { ShinyCard } from '../components/ShinyCard'
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
@@ -199,8 +200,9 @@ export default function ClockInOut() {
         />
       </div>
 
-      {/* Recent Activity - Glass Effect with Mobile Safe Area + AutoAnimate */}
-      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 max-h-[400px] overflow-y-auto">
+      {/* Recent Activity - Glass Effect with Shine Border + AutoAnimate */}
+      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px]">
+        <ShinyCard className="bg-white/70 backdrop-blur-md border border-blue-400/40 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 max-h-[400px] overflow-y-auto">
         <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
           Recent Activity
         </h3>
@@ -235,6 +237,7 @@ export default function ClockInOut() {
             No recent activity
           </div>
         )}
+        </ShinyCard>
       </div>
 
       {/* Success/Error Message Display with Mobile Safe Area - Bounce Animation */}
