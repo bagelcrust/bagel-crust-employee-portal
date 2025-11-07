@@ -5,8 +5,8 @@ import { useScheduleBuilder, type ScheduleShift } from '../hooks'
 import { shiftService, publishService } from '../supabase/supabase'
 import { AddShiftDialog } from '../components/AddShiftDialog'
 import { EditShiftDialog } from '../components/EditShiftDialog'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+// import { Button } from '@/components/ui/button' // TODO: Replace all buttons in Phase 2
+// import { Badge } from '@/components/ui/badge' // TODO: Add badges in Phase 2
 import { useToast } from '@/hooks/use-toast'
 import {
   formatShiftTime,
@@ -905,8 +905,8 @@ export default function ScheduleBuilder() {
         </div>
       </div>
 
-      {/* Add Shift Modal */}
-      <AddShiftModal
+      {/* Add Shift Dialog */}
+      <AddShiftDialog
         isOpen={modalState.isOpen}
         onClose={() => setModalState({ ...modalState, isOpen: false })}
         onSave={handleSaveShift}
@@ -919,8 +919,8 @@ export default function ScheduleBuilder() {
         initialLocation={modalState.initialLocation}
       />
 
-      {/* Edit Shift Modal */}
-      <EditShiftModal
+      {/* Edit Shift Dialog */}
+      <EditShiftDialog
         isOpen={editModalState.isOpen}
         onClose={() => setEditModalState({ ...editModalState, isOpen: false })}
         onSave={handleEditShift}
