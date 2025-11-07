@@ -12,6 +12,8 @@ import { AnimatedDigit } from '../components/AnimatedDigit'
  * ✅ FULLY TAILWIND CSS COMPLIANT - No inline styles
  * ✅ USES UNIFIED KEYPAD COMPONENT
  * ✅ USES TIMEZONE-AWARE SUPABASE RPC FUNCTIONS
+ * ✅ BULLETPROOF ERROR HANDLING - Multiple fallbacks and recovery mechanisms
+ * ✅ AUTOMATIC HEALTH MONITORING - Detects and logs failures
  *
  * Features refined glassmorphism design with professional aesthetic:
  * - PIN-based clock in/out with unified keypad component
@@ -28,7 +30,27 @@ import { AnimatedDigit } from '../components/AnimatedDigit'
  * - Uses clockInOut() RPC for atomic clock operations
  * - Uses getRecentEventsET() for timezone-aware event display
  * - All times displayed in Eastern Time (EST/EDT) from database
+ *
+ * BULLETPROOF FEATURES:
+ * - Comprehensive error logging with context
+ * - Network timeout protection (15 seconds)
+ * - Automatic retry on transient failures
+ * - Realtime connection health monitoring
+ * - Graceful degradation if realtime fails
+ * - Detailed error messages for debugging
  */
+
+// Error logging utility with timestamp and context
+const logError = (context: string, error: any, details?: any) => {
+  const timestamp = new Date().toISOString()
+  console.error(`[ClockInOut Error] ${timestamp} - ${context}:`, {
+    error: error?.message || error,
+    stack: error?.stack,
+    details,
+    userAgent: navigator.userAgent,
+    online: navigator.onLine
+  })
+}
 
 export default function ClockInOut() {
   const [message, setMessage] = useState('')
@@ -37,6 +59,8 @@ export default function ClockInOut() {
   const [currentDate, setCurrentDate] = useState('')
   const [recentEvents, setRecentEvents] = useState<any[]>([])
   const [keypadKey, setKeypadKey] = useState(0)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected')
 
   // AutoAnimate ref for smooth Recent Activity transitions
   const [activityListRef] = useAutoAnimate()
@@ -63,6 +87,8 @@ export default function ClockInOut() {
 
     updateTime()
     const timer = setInterval(updateTime, 1000)
+
+    // Initial load with error handling
     loadRecentEvents()
 
     // REAL-TIME SUBSCRIPTION: Listen for new clock in/out events
@@ -76,37 +102,79 @@ export default function ClockInOut() {
           schema: 'employees',
           table: 'time_entries'
         },
-        () => {
+        (payload) => {
+          console.log('[Realtime] New time entry received:', payload)
           // Reload recent events when new entry is inserted
           loadRecentEvents()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[Realtime] Subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('connected')
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setRealtimeStatus('error')
+          logError('Realtime subscription failed', new Error(`Status: ${status}`))
+        }
+      })
+
+    // Health check: Verify realtime connection every 30 seconds
+    const healthCheck = setInterval(() => {
+      if (realtimeStatus === 'error') {
+        logError('Realtime health check', new Error('Realtime connection is in error state'))
+      }
+    }, 30000)
 
     return () => {
       clearInterval(timer)
+      clearInterval(healthCheck)
       subscription.unsubscribe()
     }
-  }, [])
+  }, [realtimeStatus])
 
   const loadRecentEvents = async () => {
     try {
       // Use aggregate Edge Function - returns all terminal data in one call
-      const terminalData = await getClockTerminalData(10)
+      // Timeout protection: 15 seconds
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000)
+      )
+
+      const dataPromise = getClockTerminalData(10)
+
+      const terminalData = await Promise.race([dataPromise, timeoutPromise]) as any
 
       // Events are already formatted by the Edge Function!
       // No client-side date parsing or formatting needed
       setRecentEvents(terminalData.recentEvents)
     } catch (error) {
-      console.error('Failed to load recent events:', error)
+      logError('Failed to load recent events', error)
+      // Graceful degradation: Keep showing old events, don't crash
     }
   }
 
   const handleClockAction = async (pin: string) => {
+    // Prevent double-submission
+    if (isProcessing) {
+      console.warn('[ClockInOut] Ignoring duplicate clock request (already processing)')
+      return
+    }
+
+    setIsProcessing(true)
+
     try {
-      const employee = await getEmployeeByPin(pin)
+      console.log(`[ClockInOut] Starting clock action for PIN: ${pin}`)
+
+      // Step 1: Verify employee exists (with timeout)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Employee lookup timeout after 15 seconds')), 15000)
+      )
+
+      const employeePromise = getEmployeeByPin(pin)
+      const employee = await Promise.race([employeePromise, timeoutPromise]) as any
 
       if (!employee) {
+        console.warn(`[ClockInOut] Invalid PIN entered: ${pin}`)
         setMessage('Invalid PIN - Please try again')
         setMessageType('error')
         setKeypadKey(prev => prev + 1)
@@ -114,10 +182,38 @@ export default function ClockInOut() {
           setMessage('')
           setMessageType('')
         }, 3000)
+        setIsProcessing(false)
         return
       }
 
-      const event = await clockInOut(employee.id)
+      console.log(`[ClockInOut] Employee found: ${employee.first_name} ${employee.last_name} (${employee.id})`)
+
+      // Step 2: Perform clock action (with timeout and retry)
+      let event
+      let retryCount = 0
+      const maxRetries = 2
+
+      while (retryCount <= maxRetries) {
+        try {
+          const clockPromise = clockInOut(employee.id)
+          const clockTimeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Clock action timeout after 15 seconds')), 15000)
+          )
+
+          event = await Promise.race([clockPromise, clockTimeout]) as any
+
+          console.log(`[ClockInOut] Clock action successful:`, event)
+          break // Success, exit retry loop
+
+        } catch (retryError) {
+          retryCount++
+          if (retryCount > maxRetries) {
+            throw retryError // Give up after max retries
+          }
+          console.warn(`[ClockInOut] Retry ${retryCount}/${maxRetries} after error:`, retryError)
+          await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second before retry
+        }
+      }
 
       const displayName = getDisplayName(employee)
       const action = event.event_type === 'in' ? 'clocked in' : 'clocked out'
@@ -126,20 +222,39 @@ export default function ClockInOut() {
       setMessageType(event.event_type === 'in' ? 'success' : 'clockout')
 
       // Real-time subscription will handle updating the list automatically
+      // But also manually refresh as fallback
+      setTimeout(() => loadRecentEvents(), 500)
 
       setTimeout(() => {
         setMessage('')
         setMessageType('')
       }, 4000)
-    } catch (error) {
-      console.error('Clock error:', error)
-      setMessage('Clock action failed - Please try again')
+
+    } catch (error: any) {
+      logError('Clock action failed', error, { pin, isOnline: navigator.onLine })
+
+      // User-friendly error message with more context
+      let errorMessage = 'Clock action failed - Please try again'
+
+      if (!navigator.onLine) {
+        errorMessage = 'No internet connection - Please check your network'
+      } else if (error?.message?.includes('timeout')) {
+        errorMessage = 'Request timed out - Please try again'
+      } else if (error?.message?.includes('Failed to fetch')) {
+        errorMessage = 'Network error - Please check your connection'
+      }
+
+      setMessage(errorMessage)
       setMessageType('error')
       setKeypadKey(prev => prev + 1)
+
       setTimeout(() => {
         setMessage('')
         setMessageType('')
-      }, 3000)
+      }, 5000) // Show error longer (5 seconds)
+
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -203,14 +318,30 @@ export default function ClockInOut() {
           key={keypadKey}
           onComplete={handleClockAction}
           maxLength={4}
+          disabled={isProcessing}
         />
+
+        {/* Processing indicator */}
+        {isProcessing && (
+          <div className="mt-4 text-sm text-slate-600 animate-pulse">
+            Processing...
+          </div>
+        )}
       </div>
 
       {/* Recent Activity - Glass Effect with Mobile Safe Area + AutoAnimate */}
       <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 max-h-[400px] overflow-y-auto">
-        <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
-          Recent Activity
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Recent Activity
+          </h3>
+          {/* Realtime connection indicator */}
+          <div className={`w-2 h-2 rounded-full ${
+            realtimeStatus === 'connected' ? 'bg-green-500' :
+            realtimeStatus === 'error' ? 'bg-red-500' :
+            'bg-gray-400'
+          }`} title={`Realtime: ${realtimeStatus}`} />
+        </div>
 
         {recentEvents.length > 0 ? (
           <div ref={activityListRef} className="flex flex-col gap-2">
@@ -254,6 +385,13 @@ export default function ClockInOut() {
             : 'bg-red-500/90'
         }`}>
           {message}
+        </div>
+      )}
+
+      {/* Debug mode indicator (only shows in development) */}
+      {import.meta.env.DEV && (
+        <div className="fixed top-2 right-2 text-[10px] bg-black/50 text-white px-2 py-1 rounded font-mono">
+          RT: {realtimeStatus} | Online: {navigator.onLine ? 'YES' : 'NO'}
         </div>
       )}
     </div>
