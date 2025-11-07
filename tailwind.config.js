@@ -6,6 +6,48 @@ export default {
   ],
   theme: {
     extend: {
+      keyframes: {
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px) translateX(0px)' },
+          '33%': { transform: 'translateY(-20px) translateX(10px)' },
+          '66%': { transform: 'translateY(-10px) translateX(-10px)' },
+        },
+        'float-delayed': {
+          '0%, 100%': { transform: 'translateY(0px) translateX(0px)' },
+          '33%': { transform: 'translateY(-15px) translateX(-15px)' },
+          '66%': { transform: 'translateY(-25px) translateX(5px)' },
+        },
+        'float-slow': {
+          '0%, 100%': { transform: 'translateY(0px) translateX(0px) scale(1)' },
+          '50%': { transform: 'translateY(-30px) translateX(15px) scale(1.1)' },
+        },
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-in-right': {
+          '0%': { opacity: '0', transform: 'translateX(20px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        'bounce-in': {
+          '0%': { opacity: '0', transform: 'translateX(-50%) scale(0.5)' },
+          '50%': { opacity: '1', transform: 'translateX(-50%) scale(1.05)' },
+          '100%': { opacity: '1', transform: 'translateX(-50%) scale(1)' },
+        },
+      },
+      animation: {
+        'gradient-shift': 'gradient-shift 8s ease infinite',
+        'float': 'float 8s ease-in-out infinite',
+        'float-delayed': 'float-delayed 10s ease-in-out infinite',
+        'float-slow': 'float-slow 12s ease-in-out infinite',
+        'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
+        'slide-in-right': 'slide-in-right 0.6s ease-out forwards',
+        'bounce-in': 'bounce-in 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards',
+      },
       colors: {
         // Apple-Inspired "Hub" Theme for Bagel Crust
         'hub-background': '#F2F2F7', // iOS light background

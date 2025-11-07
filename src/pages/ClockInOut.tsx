@@ -138,8 +138,18 @@ export default function ClockInOut() {
   }
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6">
-      <div className="flex flex-col items-center w-full max-w-md">
+    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center px-5 pt-6 relative">
+      {/* Animated Gradient Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 animate-gradient-shift" style={{ backgroundSize: '200% 200%' }}></div>
+
+      {/* Floating Shapes */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-blue-300/20 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-40 right-20 w-80 h-80 bg-purple-300/20 rounded-full blur-3xl animate-float-delayed"></div>
+        <div className="absolute bottom-20 left-1/4 w-72 h-72 bg-pink-300/20 rounded-full blur-3xl animate-float-slow"></div>
+      </div>
+
+      <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* Page Title - Makes it clear this is Clock In/Out page */}
         <div className="mb-2 text-center">
           <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
@@ -148,8 +158,8 @@ export default function ClockInOut() {
         </div>
 
         {/* Clock Display - Eastern Time - Made 1.5x larger for visibility */}
-        <div className="mb-6 text-center">
-          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2">
+        <div className="mb-6 text-center animate-fade-in-up">
+          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2 transition-all duration-300">
             {currentTime || '--:--:--'}
           </div>
           <div className="text-[15px] text-slate-500 font-medium">
@@ -165,18 +175,19 @@ export default function ClockInOut() {
         />
       </div>
 
-      {/* Recent Activity - Glass Effect with Mobile Safe Area */}
-      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 max-h-[400px] overflow-y-auto">
+      {/* Recent Activity - Enhanced Glass Effect with Mobile Safe Area */}
+      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/60 backdrop-blur-xl border border-white/50 rounded-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-4 max-h-[400px] overflow-y-auto animate-slide-in-right relative z-20">
         <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
           Recent Activity
         </h3>
 
         {recentEvents.length > 0 ? (
           <div className="flex flex-col gap-2">
-            {recentEvents.slice(0, 5).map((event) => (
+            {recentEvents.slice(0, 5).map((event, index) => (
               <div
                 key={event.id}
-                className="flex items-center justify-between py-2 border-b border-black/5"
+                className="flex items-center justify-between py-2 border-b border-black/5 animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="flex-1 min-w-0 mr-2">
                   <div className="text-[13px] font-medium text-slate-800 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -205,7 +216,7 @@ export default function ClockInOut() {
 
       {/* Success/Error Message Display with Mobile Safe Area */}
       {message && (
-        <div className={`fixed bottom-[calc(32px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-[10px] text-[15px] font-medium backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.12)] z-50 text-white ${
+        <div className={`fixed bottom-[calc(32px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-[16px] text-[15px] font-medium backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] z-50 text-white animate-bounce-in ${
           messageType === 'success'
             ? 'bg-green-500/90'
             : messageType === 'clockout'
