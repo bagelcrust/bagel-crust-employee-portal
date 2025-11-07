@@ -230,30 +230,16 @@ export function PayrollTab() {
                 {expandedEmployees.has(employee.id) && (
                   <div className="bg-gray-50/50 px-4 py-3 border-b border-black/5">
                     <div className="text-[13px] space-y-2">
-                      {/* Summary */}
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Role:</span>
-                        <span className="text-gray-800 font-medium">{employee.role}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Hours Worked:</span>
-                        <span className="text-gray-800 font-medium">{formatHoursMinutes(employee.totalHours)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Hourly Rate:</span>
-                        <span className="text-gray-800 font-medium">${employee.hourlyRate.toFixed(2)}</span>
-                      </div>
-
                       {/* Shifts Worked */}
                       {employee.workedShifts.length > 0 && (
-                        <div className="pt-2 border-t border-gray-200">
-                          <div className="font-semibold text-gray-700 mb-1.5">Shifts Worked ({employee.workedShifts.length})</div>
+                        <div>
+                          <div className="font-semibold text-gray-700 mb-1.5">Shifts Worked</div>
                           {employee.workedShifts.map((shift, idx) => (
-                            <div key={idx} className="flex justify-between items-center py-1 text-gray-600">
-                              <span className="text-[12px]">
+                            <div key={idx} className="flex justify-between items-center py-1.5 text-gray-600">
+                              <span className="text-[13px]">
                                 {shift.dayName}: {shift.clockIn} - {shift.clockOut}
                               </span>
-                              <span className="text-[11px] font-medium text-gray-500">
+                              <span className="text-[13px] font-medium text-gray-700">
                                 {formatHoursMinutes(shift.hoursWorked)}
                               </span>
                             </div>
@@ -262,7 +248,7 @@ export function PayrollTab() {
                       )}
 
                       {/* Total Pay */}
-                      <div className="flex justify-between pt-2 border-t border-gray-200">
+                      <div className="flex justify-between pt-2 mt-2 border-t border-gray-200">
                         <span className="text-gray-800 font-semibold">Total Pay:</span>
                         <span className="text-green-600 font-bold">${employee.totalPay.toFixed(2)}</span>
                       </div>
