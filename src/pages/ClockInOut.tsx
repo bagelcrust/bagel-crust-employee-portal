@@ -82,6 +82,7 @@ export default function ClockInOut() {
   const [keypadKey, setKeypadKey] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected')
+  const [criticalError, setCriticalError] = useState<string | null>(null)
 
   // AutoAnimate ref for smooth Recent Activity transitions
   const [activityListRef] = useAutoAnimate()
@@ -218,6 +219,9 @@ export default function ClockInOut() {
         duration: `${duration}ms`,
         timestamp: new Date().toISOString()
       })
+
+      // Show visible error on page
+      setCriticalError(`API Error: ${error?.message || String(error)}`)
 
       // Graceful degradation: Keep showing old events, don't crash
     }
@@ -412,6 +416,15 @@ export default function ClockInOut() {
       </div>
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
+        {/* CRITICAL ERROR BANNER */}
+        {criticalError && (
+          <div className="mb-4 w-full bg-red-500 text-white p-4 rounded-lg shadow-lg">
+            <div className="font-bold mb-1">⚠️ System Error</div>
+            <div className="text-sm font-mono">{criticalError}</div>
+            <div className="text-xs mt-2 opacity-80">Check console (F12) for details</div>
+          </div>
+        )}
+
         {/* Page Title - Makes it clear this is Clock In/Out page */}
         <div className="mb-2 text-center">
           <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
