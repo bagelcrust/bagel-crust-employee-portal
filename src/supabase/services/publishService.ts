@@ -1,7 +1,7 @@
 import { supabase } from '../supabase'
+import { publishSchedule } from '../edgeFunctions'
 import { conflictService } from './conflictService'
 import type { Conflict } from './conflictService'
-import type { DraftShift, PublishedShiftInsert } from '../supabase'
 
 export interface PublishResult {
   publishedCount: number
@@ -29,6 +29,7 @@ export interface PublishResult {
 export const publishService = {
   /**
    * Publish all draft shifts for a week
+   * Uses edge function with service_role key to bypass RLS
    * COPIES draft_shifts → published_shifts table (immutable historical record)
    * Validates no conflicts exist before publishing
    */
@@ -40,95 +41,16 @@ export const publishService = {
       clearDraftsAfterPublish?: boolean // If true, delete drafts after successful publish
     } = {}
   ): Promise<PublishResult> {
-    const start = new Date(startDate)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(endDate)
-    end.setHours(23, 59, 59, 999)
+    const { strictMode = true } = options
 
-    // Step 1: Get all draft shifts in date range
-    const { data: draftShifts, error: fetchError } = await supabase
-      .from('draft_shifts')
-      .select('*')
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString())
-
-    if (fetchError) throw fetchError
-
-    if (!draftShifts || draftShifts.length === 0) {
-      return {
-        publishedCount: 0,
-        conflicts: [],
-        success: true,
-        message: 'No draft shifts to publish'
-      }
-    }
-
-    // Step 2: Check for conflicts
-    const conflicts = await conflictService.findConflicts(startDate, endDate)
-
-    // Step 3: If strict mode and conflicts found, block publish
-    if (options.strictMode && conflicts.length > 0) {
-      return {
-        publishedCount: 0,
-        conflicts,
-        success: false,
-        message: `Cannot publish: ${conflicts.length} conflict(s) found. Resolve conflicts first.`
-      }
-    }
-
-    // Step 4: Filter out conflicting shifts if not in strict mode
-    let shiftsToPublish = draftShifts as DraftShift[]
-
-    if (conflicts.length > 0) {
-      const conflictingIds = new Set(conflicts.map(c => c.shiftId))
-      shiftsToPublish = shiftsToPublish.filter(s => !conflictingIds.has(s.id))
-    }
-
-    if (shiftsToPublish.length === 0) {
-      return {
-        publishedCount: 0,
-        conflicts,
-        success: false,
-        message: 'All shifts have conflicts, nothing to publish'
-      }
-    }
-
-    // Step 5: Copy draft shifts to published_shifts table
-    const publishedShiftsData: PublishedShiftInsert[] = shiftsToPublish.map(draft => ({
-      employee_id: draft.employee_id,
-      start_time: draft.start_time,
-      end_time: draft.end_time,
-      location: draft.location,
-      role: draft.role,
-      week_start: start.toISOString().split('T')[0], // YYYY-MM-DD format
-      week_end: end.toISOString().split('T')[0],
-      published_at: new Date().toISOString()
-    }))
-
-    const { error: insertError } = await supabase
-      .from('published_shifts')
-      .insert(publishedShiftsData)
-
-    if (insertError) throw insertError
-
-    // Step 6: Optionally clear drafts after publish
-    if (options.clearDraftsAfterPublish) {
-      const draftIdsToDelete = shiftsToPublish.map(s => s.id)
-      const { error: deleteError } = await supabase
-        .from('draft_shifts')
-        .delete()
-        .in('id', draftIdsToDelete)
-
-      if (deleteError) throw deleteError
-    }
+    // Use edge function with service_role key to bypass RLS
+    const result = await publishSchedule(startDate, endDate, strictMode)
 
     return {
-      publishedCount: shiftsToPublish.length,
-      conflicts,
-      success: true,
-      message: conflicts.length > 0
-        ? `Published ${shiftsToPublish.length} shifts (${conflicts.length} conflicting shifts skipped)`
-        : `Published ${shiftsToPublish.length} shifts successfully`
+      success: result.success,
+      message: result.message,
+      publishedCount: result.publishedCount,
+      conflicts: result.conflicts || []
     }
   },
 

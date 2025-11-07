@@ -509,6 +509,29 @@ export async function resolveScheduleConflicts(
 }
 
 // ============================================================================
+// PUBLISH SCHEDULE API - Uses service_role to bypass RLS
+// ============================================================================
+
+/**
+ * Publish draft shifts for a week (creates published_shifts)
+ * Uses edge function with service_role key to bypass RLS restrictions
+ */
+export async function publishSchedule(
+  startDate: string,
+  endDate: string,
+  strictMode = true
+) {
+  const { data, error } = await supabase.functions.invoke('publish-schedule', {
+    body: { startDate, endDate, strictMode }
+  });
+
+  if (error) throw new Error(`Failed to publish schedule: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from publish-schedule Edge Function');
+
+  return data;
+}
+
+// ============================================================================
 // AGGREGATE PAGE-SPECIFIC APIs - Single endpoint per page
 // ============================================================================
 
