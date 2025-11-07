@@ -1,25 +1,32 @@
 import { supabase } from '../supabase'
 import type { DraftShift, PublishedShift } from '../supabase'
 import { conflictService } from './conflictService'
+import { etToUTC } from '../../lib/timezone'
 
 export interface CreateShiftInput {
   employee_id: string | null // null = open shift
-  start_time: string // ISO timestamp
-  end_time: string // ISO timestamp
+  start_time: string // ISO timestamp (UTC) or ET datetime string
+  end_time: string // ISO timestamp (UTC) or ET datetime string
   location: string
   role?: string | null
 }
 
 export interface UpdateShiftInput {
   employee_id?: string | null
-  start_time?: string
-  end_time?: string
+  start_time?: string // ISO timestamp (UTC) or ET datetime string
+  end_time?: string // ISO timestamp (UTC) or ET datetime string
   location?: string
   role?: string | null
 }
 
 /**
  * Service for managing DRAFT shifts (CRUD operations)
+ *
+ * TIMEZONE RULE FOR THIS FILE:
+ * - Database stores UTC (always)
+ * - UI works in Eastern Time
+ * - Times are auto-converted to UTC using etToUTC() before database writes
+ * - See: /src/lib/timezone.ts
  *
  * Business Rules:
  * - All shifts created here are drafts (experimental workspace)
@@ -47,12 +54,17 @@ export const shiftService = {
     }
 
     // Insert draft shift (no status field - all drafts by definition)
+    // Convert times to UTC if they're in ET format
     const { data, error } = await supabase
       .from('draft_shifts')
       .insert({
         employee_id: input.employee_id,
-        start_time: input.start_time,
-        end_time: input.end_time,
+        start_time: input.start_time.includes('T') && !input.start_time.endsWith('Z')
+          ? etToUTC(input.start_time)
+          : input.start_time,
+        end_time: input.end_time.includes('T') && !input.end_time.endsWith('Z')
+          ? etToUTC(input.end_time)
+          : input.end_time,
         location: input.location,
         role: input.role || null
       })
@@ -101,10 +113,18 @@ export const shiftService = {
       }
     }
 
-    // Update draft shift
+    // Update draft shift - convert times to UTC if needed
+    const updatesWithUTC = { ...updates }
+    if (updates.start_time && updates.start_time.includes('T') && !updates.start_time.endsWith('Z')) {
+      updatesWithUTC.start_time = etToUTC(updates.start_time)
+    }
+    if (updates.end_time && updates.end_time.includes('T') && !updates.end_time.endsWith('Z')) {
+      updatesWithUTC.end_time = etToUTC(updates.end_time)
+    }
+
     const { data, error} = await supabase
       .from('draft_shifts')
-      .update(updates)
+      .update(updatesWithUTC)
       .eq('id', shiftId)
       .select()
       .single()

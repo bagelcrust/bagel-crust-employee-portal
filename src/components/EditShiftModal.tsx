@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import TimeInput from './TimeInput'
+import { buildETDateTime, utcToET } from '../lib/timezone'
 
 // Minimal shift type for editing - works with both draft and published shifts
 type EditableShift = {
@@ -40,31 +41,12 @@ export default function EditShiftModal({
   // Pre-populate form when shift changes
   useEffect(() => {
     if (shift) {
-      // Convert UTC timestamps to Eastern Time
-      // Database stores in UTC, but we display in Eastern Time
-      const startDate = new Date(shift.start_time)
-      const endDate = new Date(shift.end_time)
+      // Convert UTC timestamps to Eastern Time using reliable timezone utilities
+      const startET = utcToET(shift.start_time)
+      const endET = utcToET(shift.end_time)
 
-      // Convert to Eastern Time string (e.g., "11/7/2025, 7:00:00 AM")
-      const startET = startDate.toLocaleString('en-US', {
-        timeZone: 'America/New_York',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      })
-      const endET = endDate.toLocaleString('en-US', {
-        timeZone: 'America/New_York',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      })
-
-      // Extract HH:mm from the formatted string (e.g., "07:00")
-      const startTime24 = startET.split(', ')[0] || startET
-      const endTime24 = endET.split(', ')[0] || endET
-
-      setStartTime(startTime24)
-      setEndTime(endTime24)
+      setStartTime(startET.time)
+      setEndTime(endET.time)
       setLocation(shift.location || 'Calder')
     }
   }, [shift])
@@ -78,24 +60,13 @@ export default function EditShiftModal({
     setIsSaving(true)
 
     try {
-      // Convert Eastern Time back to UTC for database storage
-      // Get the shift date in YYYY-MM-DD format
+      // Convert Eastern Time to ET datetime string for service layer
+      // Service layer will handle UTC conversion using etToUTC()
       const dateET = format(shiftDate, 'yyyy-MM-dd')
+      const startETDateTime = buildETDateTime(dateET, startTime)
+      const endETDateTime = buildETDateTime(dateET, endTime)
 
-      // Create Date objects in Eastern Time
-      // We'll create a date string and let the browser parse it in ET
-      const startETStr = `${dateET} ${startTime}:00 EST`
-      const endETStr = `${dateET} ${endTime}:00 EST`
-
-      // Create Date objects - the browser will parse these as Eastern Time
-      const startDate = new Date(startETStr)
-      const endDate = new Date(endETStr)
-
-      // Convert to UTC ISO strings
-      const startISO = startDate.toISOString()
-      const endISO = endDate.toISOString()
-
-      await onSave(shift.id, startISO, endISO, location)
+      await onSave(shift.id, startETDateTime, endETDateTime, location)
 
       onClose()
     } catch (err: any) {

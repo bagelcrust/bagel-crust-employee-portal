@@ -13,6 +13,11 @@ export interface PublishResult {
 /**
  * Service for publishing weekly schedules (HYBRID ARCHITECTURE)
  *
+ * TIMEZONE RULE FOR THIS FILE:
+ * - Timestamps are already in UTC from draft_shifts table
+ * - No conversion needed when copying to published_shifts
+ * - See: /src/lib/timezone.ts
+ *
  * Business Rules:
  * - Drafts live in draft_shifts table (experimental workspace)
  * - Publishing COPIES drafts → published_shifts table (immutable historical record)

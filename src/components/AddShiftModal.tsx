@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import TimeInput from './TimeInput'
+import { buildETDateTime } from '../lib/timezone'
 
 interface AddShiftModalProps {
   isOpen: boolean
@@ -39,12 +40,13 @@ export default function AddShiftModal({
     setIsSaving(true)
 
     try {
-      // Create ISO timestamps
+      // Create Eastern Time datetime strings for service layer
+      // Service layer will handle UTC conversion using etToUTC()
       const dateStr = format(date, 'yyyy-MM-dd')
-      const startISO = `${dateStr}T${startTime}:00.000Z`
-      const endISO = `${dateStr}T${endTime}:00.000Z`
+      const startETDateTime = buildETDateTime(dateStr, startTime)
+      const endETDateTime = buildETDateTime(dateStr, endTime)
 
-      await onSave(startISO, endISO, location)
+      await onSave(startETDateTime, endETDateTime, location)
 
       // Reset form
       setStartTime('08:00')

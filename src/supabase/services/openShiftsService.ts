@@ -1,9 +1,16 @@
 import { supabase } from '../supabase'
 import type { DraftShift } from '../supabase'
 import { conflictService } from './conflictService'
+import { etToUTC } from '../../lib/timezone'
 
 /**
  * Service for managing open/unassigned shifts
+ *
+ * TIMEZONE RULE FOR THIS FILE:
+ * - Database stores UTC (always)
+ * - UI works in Eastern Time
+ * - Times are auto-converted to UTC using etToUTC() before database writes
+ * - See: /src/lib/timezone.ts
  *
  * Business Rules:
  * - Open shifts have employee_id = NULL
@@ -46,12 +53,17 @@ export const openShiftsService = {
     location: string,
     role?: string | null
   ): Promise<DraftShift> {
+    // Convert times to UTC if they're in ET format
     const { data, error } = await supabase
       .from('draft_shifts')
       .insert({
         employee_id: null, // Open shift has no employee
-        start_time: startTime,
-        end_time: endTime,
+        start_time: startTime.includes('T') && !startTime.endsWith('Z')
+          ? etToUTC(startTime)
+          : startTime,
+        end_time: endTime.includes('T') && !endTime.endsWith('Z')
+          ? etToUTC(endTime)
+          : endTime,
         location: location,
         role: role || null
       })
