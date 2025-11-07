@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, subWeeks } from 'date-fns'
-import { ChevronDown, ChevronRight, DollarSign } from 'lucide-react'
+import { DollarSign } from 'lucide-react'
 import { getDisplayName } from '../../supabase/supabase'
 import { getEmployees, getClockEventsInRange, getPayRates } from '../../supabase/edgeFunctions'
 import { formatHoursMinutes } from '../../lib/employeeUtils'
@@ -34,7 +34,6 @@ export function PayrollTab() {
   const [loading, setLoading] = useState(true)
   const [weekSelection, setWeekSelection] = useState<'this' | 'last'>('this')
   const [employees, setEmployees] = useState<EmployeePayroll[]>([])
-  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadPayrollData()
@@ -143,16 +142,6 @@ export function PayrollTab() {
     }
   }
 
-  const toggleEmployee = (employeeId: string) => {
-    const newExpanded = new Set(expandedEmployees)
-    if (newExpanded.has(employeeId)) {
-      newExpanded.delete(employeeId)
-    } else {
-      newExpanded.add(employeeId)
-    }
-    setExpandedEmployees(newExpanded)
-  }
-
   const totalPayroll = employees.reduce((sum, emp) => sum + emp.totalPay, 0)
   const totalHoursAll = employees.reduce((sum, emp) => sum + emp.totalHours, 0)
 
@@ -201,80 +190,49 @@ export function PayrollTab() {
         </div>
       ) : (
         <div>
-          {/* Employee List */}
-          <div className="rounded-lg overflow-hidden mb-4">
-            {employees.map((employee, idx) => (
-              <div key={employee.id}>
-                <div
-                  className={`p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50/50 transition-colors ${
-                    idx < employees.length - 1 ? 'border-b border-black/5' : ''
-                  }`}
-                  onClick={() => toggleEmployee(employee.id)}
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    {expandedEmployees.has(employee.id) ? (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    )}
-                    <div>
-                      <div className="font-semibold text-gray-800 text-[15px]">
-                        {employee.name}
-                      </div>
-                      <div className="text-[13px] text-gray-400 mt-0.5">
-                        {formatHoursMinutes(employee.totalHours)} @ ${employee.hourlyRate.toFixed(2)}/hr
-                        {employee.hasIncompleteShifts && (
-                          <span className="ml-2 text-orange-600">⚠️ Incomplete</span>
-                        )}
-                      </div>
+          {/* Employee List - Always Expanded */}
+          <div className="space-y-4 mb-4">
+            {employees.map((employee) => (
+              <div key={employee.id} className="bg-white/90 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                {/* Employee Header */}
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <div className="font-bold text-gray-900 text-[18px]">
+                      {employee.name}
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-green-600 text-[16px]">
-                      ${employee.totalPay.toFixed(2)}
+                    <div className="text-right">
+                      <div className="font-bold text-green-600 text-[20px]">
+                        ${employee.totalPay.toFixed(2)}
+                      </div>
+                      <div className="text-[14px] text-gray-500 mt-0.5">
+                        {formatHoursMinutes(employee.totalHours)} @ ${employee.hourlyRate.toFixed(2)}/hr
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Expanded Details */}
-                {expandedEmployees.has(employee.id) && (
-                  <div className="bg-gray-50/50 px-4 py-3 border-b border-black/5">
-                    <div className="text-[13px] space-y-2">
-                      {/* Shifts Worked */}
-                      {employee.workedShifts.length > 0 && (
-                        <div>
-                          <div className="font-semibold text-gray-700 mb-2">Shifts Worked</div>
-                          <div className="space-y-0.5">
-                            {employee.workedShifts.map((shift, idx) => (
-                              <div
-                                key={idx}
-                                className={`flex justify-between items-center py-2 px-3 rounded ${
-                                  shift.isIncomplete
-                                    ? 'bg-orange-50 border border-orange-200'
-                                    : idx % 2 === 0 ? 'bg-white' : 'bg-gray-100/50'
-                                }`}
-                              >
-                                <span className={`text-[13px] ${shift.isIncomplete ? 'text-orange-700' : 'text-gray-700'}`}>
-                                  <span className="font-semibold">{shift.dayName}</span>: {shift.clockIn} - {shift.clockOut || '???'}
-                                  {shift.isIncomplete && <span className="ml-2 text-[11px] font-semibold">MISSING CLOCK-OUT</span>}
-                                </span>
-                                <span className={`text-[14px] font-bold ${shift.isIncomplete ? 'text-orange-600' : 'text-gray-800'}`}>
-                                  {shift.isIncomplete ? 'Incomplete' : formatHoursMinutes(shift.hoursWorked)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Total Pay */}
-                      <div className="flex justify-between pt-2 mt-2 border-t border-gray-200">
-                        <span className="text-gray-800 font-semibold">Total Pay:</span>
-                        <span className="text-green-600 font-bold">${employee.totalPay.toFixed(2)}</span>
+                {/* Shifts Worked */}
+                <div className="px-4 py-3">
+                  <div className="space-y-1">
+                    {employee.workedShifts.map((shift, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex justify-between items-center py-2.5 px-3 rounded ${
+                          shift.isIncomplete
+                            ? 'bg-orange-100 border-2 border-orange-400'
+                            : idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                        }`}
+                      >
+                        <span className={`text-[16px] ${shift.isIncomplete ? 'text-orange-800 font-semibold' : 'text-gray-800'}`}>
+                          <span className="font-bold">{shift.dayName}</span>: {shift.clockIn} - {shift.clockOut || '???'}
+                        </span>
+                        <span className={`text-[16px] font-bold ${shift.isIncomplete ? 'text-orange-700' : 'text-gray-900'}`}>
+                          {shift.isIncomplete ? '' : formatHoursMinutes(shift.hoursWorked)}
+                        </span>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
