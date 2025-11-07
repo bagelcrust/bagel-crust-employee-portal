@@ -2,6 +2,7 @@ import { supabase } from '../supabase'
 import type { DraftShift, PublishedShift } from '../supabase'
 import { conflictService } from './conflictService'
 import { etToUTC } from '../../lib/timezone'
+import { deleteShift as deleteShiftEdgeFunction } from '../edgeFunctions'
 
 export interface CreateShiftInput {
   employee_id: string | null // null = open shift

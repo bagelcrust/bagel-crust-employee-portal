@@ -531,6 +531,21 @@ export async function publishSchedule(
   return data;
 }
 
+/**
+ * Delete a shift (draft or published)
+ * Uses edge function with service_role key to bypass RLS restrictions
+ */
+export async function deleteShift(shiftId: number) {
+  const { data, error } = await supabase.functions.invoke('delete-shift', {
+    body: { shiftId }
+  });
+
+  if (error) throw new Error(`Failed to delete shift: ${error.message || JSON.stringify(error)}`);
+  if (!data) throw new Error('Invalid response from delete-shift Edge Function');
+
+  return data;
+}
+
 // ============================================================================
 // AGGREGATE PAGE-SPECIFIC APIs - Single endpoint per page
 // ============================================================================

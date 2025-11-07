@@ -142,7 +142,7 @@ export default function ClockInOut() {
   }
 
   return (
-    <div className="fixed inset-0 w-full overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 relative">
+    <div className="fixed inset-0 w-full h-screen overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 pb-[env(safe-area-inset-bottom,0px)] relative">
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* Page Title - Makes it clear this is Clock In/Out page */}
