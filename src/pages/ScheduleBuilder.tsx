@@ -147,6 +147,12 @@ export default function ScheduleBuilder() {
       )
 
       if (result.success) {
+        // Auto-clear drafts after successful publish to prevent duplicate shifts showing
+        await publishService.clearDrafts(
+          currentWeekStart.toISOString().split('T')[0],
+          currentWeekEnd.toISOString().split('T')[0]
+        )
+
         alert(result.message)
         refetchShifts()
         refetchPublishStatus()
