@@ -83,6 +83,10 @@ const logWarning = (context: string, message: string, data?: any) => {
 }
 
 export default function ClockInOut() {
+  // Dev/Production mode toggle - allows previewing production appearance while developing
+  // In actual production (import.meta.env.PROD), this toggle won't show and devMode will be false
+  const [devMode, setDevMode] = useState(import.meta.env.DEV)
+
   // CRITICAL TEST: This should fire when component renders (DEV only)
   if (import.meta.env.DEV) {
     console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
@@ -402,13 +406,11 @@ export default function ClockInOut() {
   return (
     <div className="fixed inset-0 w-full h-screen overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 pb-[env(safe-area-inset-bottom,0px)] relative">
 
-      {/* Static Decorative Blobs - No animation, pure CSS (DEV mode) */}
-      {import.meta.env.DEV && (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-45">
-          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-blue-300/50 to-pink-300/50 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-300/45 to-pink-300/45 rounded-full blur-3xl"></div>
-        </div>
-      )}
+      {/* Static Decorative Blobs - No animation, pure CSS (visible in both modes) */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-45">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-blue-300/50 to-pink-300/50 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-300/45 to-pink-300/45 rounded-full blur-3xl"></div>
+      </div>
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* CRITICAL ERROR BANNER */}
@@ -435,13 +437,13 @@ export default function ClockInOut() {
               {(currentTime || '--:--:--').split(':').slice(0, 2).join(':')}
             </div>
             {/* Seconds - Tiny (dev only) */}
-            {import.meta.env.DEV && (
+            {devMode && (
               <div className="text-[18px] font-medium text-slate-500">
                 :{((currentTime || '--:--:--').split(':')[2] || '--').replace(/\s*(AM|PM)/, '')}
               </div>
             )}
-            {/* AM/PM - Same size and color as time */}
-            <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px]">
+            {/* AM/PM - Same size and color as main clock */}
+            <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] ml-1">
               {(currentTime || '').match(/AM|PM/)?.[0] || ''}
             </div>
           </div>
@@ -473,7 +475,7 @@ export default function ClockInOut() {
             Recent Activity
           </h3>
           {/* Realtime connection indicator (DEV mode only) */}
-          {import.meta.env.DEV && (
+          {devMode && (
             <div className={`w-2 h-2 rounded-full ${
               realtimeStatus === 'connected' ? 'bg-green-500' :
               realtimeStatus === 'error' ? 'bg-red-500' :
@@ -499,8 +501,8 @@ export default function ClockInOut() {
                 </div>
                 <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
                   event.action === 'Clock In'
-                    ? 'bg-green-500/15 text-green-600'
-                    : 'bg-orange-500/15 text-orange-600'
+                    ? 'bg-green-400/15 text-green-500'
+                    : 'bg-orange-400/15 text-orange-500'
                 }`}>
                   {event.action === 'Clock In' ? 'IN' : 'OUT'}
                 </span>
@@ -518,19 +520,36 @@ export default function ClockInOut() {
       {message && (
         <div className={`fixed bottom-[calc(32px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 px-7 py-3.5 rounded-[10px] text-[15px] font-medium backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.12)] z-50 text-white animate-bounce-in ${
           messageType === 'success'
-            ? 'bg-green-500/90'
+            ? 'bg-green-400/90'
             : messageType === 'clockout'
-            ? 'bg-orange-500/90'
-            : 'bg-red-500/90'
+            ? 'bg-orange-400/90'
+            : 'bg-red-400/90'
         }`}>
           {message}
         </div>
       )}
 
-      {/* Debug mode indicator (only shows in development) */}
+      {/* Dev/Production Mode Toggle - Only shows in actual development environment */}
       {import.meta.env.DEV && (
-        <div className="fixed top-2 right-2 text-[10px] bg-black/50 text-white px-2 py-1 rounded font-mono">
-          RT: {realtimeStatus} | Online: {navigator.onLine ? 'YES' : 'NO'}
+        <div className="fixed top-2 right-2 flex flex-col gap-2 items-end">
+          {/* Toggle Button */}
+          <button
+            onClick={() => setDevMode(!devMode)}
+            className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all ${
+              devMode
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            {devMode ? '🛠 DEV MODE' : '🚀 PROD PREVIEW'}
+          </button>
+
+          {/* Debug mode indicator (only shows when devMode is ON) */}
+          {devMode && (
+            <div className="text-[10px] bg-black/50 text-white px-2 py-1 rounded font-mono">
+              RT: {realtimeStatus} | Online: {navigator.onLine ? 'YES' : 'NO'}
+            </div>
+          )}
         </div>
       )}
     </div>
