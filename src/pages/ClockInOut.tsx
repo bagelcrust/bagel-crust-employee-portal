@@ -402,6 +402,14 @@ export default function ClockInOut() {
   return (
     <div className="fixed inset-0 w-full h-screen overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 pb-[env(safe-area-inset-bottom,0px)] relative">
 
+      {/* Static Decorative Blobs - No animation, pure CSS (DEV mode) */}
+      {import.meta.env.DEV && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-45">
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-blue-300/50 to-pink-300/50 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-300/45 to-pink-300/45 rounded-full blur-3xl"></div>
+        </div>
+      )}
+
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* CRITICAL ERROR BANNER */}
         {criticalError && (
@@ -432,8 +440,8 @@ export default function ClockInOut() {
                 :{((currentTime || '--:--:--').split(':')[2] || '--').replace(/\s*(AM|PM)/, '')}
               </div>
             )}
-            {/* AM/PM - Tiny */}
-            <div className="text-[18px] font-medium text-slate-500">
+            {/* AM/PM - Same size and color as time */}
+            <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px]">
               {(currentTime || '').match(/AM|PM/)?.[0] || ''}
             </div>
           </div>

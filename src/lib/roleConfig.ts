@@ -25,11 +25,9 @@ const STANDARD_TABS: TabConfig[] = [
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 
-// Owner gets all tabs including Payroll
+// Owner gets Schedule, Payroll, and Profile (no Time Off or Hours for manager view)
 const OWNER_TABS: TabConfig[] = [
   { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
-  { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
-  { key: 'timesheet', label: 'Hours', iconName: 'clock' },
   { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]

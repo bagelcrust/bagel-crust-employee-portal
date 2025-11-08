@@ -194,20 +194,10 @@ export function PayrollTab() {
           <div className="space-y-4 mb-4">
             {employees.map((employee) => (
               <div key={employee.id} className="bg-white/90 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                {/* Employee Header */}
+                {/* Employee Header - Name Only */}
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <div className="font-bold text-gray-900 text-[18px]">
-                      {employee.name}
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-green-600 text-[20px]">
-                        ${employee.totalPay.toFixed(2)}
-                      </div>
-                      <div className="text-[14px] text-gray-500 mt-0.5">
-                        {formatHoursMinutes(employee.totalHours)} @ ${employee.hourlyRate.toFixed(2)}/hr
-                      </div>
-                    </div>
+                  <div className="font-bold text-green-600 text-[22px]">
+                    {employee.name}
                   </div>
                 </div>
 
@@ -232,6 +222,18 @@ export function PayrollTab() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Employee Summary Footer */}
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                  <div className="flex justify-between items-center text-sm">
+                    <div className="text-gray-600">
+                      {formatHoursMinutes(employee.totalHours)} @ ${employee.hourlyRate.toFixed(2)}/hr
+                    </div>
+                    <div className="text-gray-900">
+                      ${employee.totalPay.toFixed(2)}
+                    </div>
                   </div>
                 </div>
               </div>

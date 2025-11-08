@@ -56,22 +56,6 @@ function ManifestUpdater() {
   return null;
 }
 
-// Development-only error testing component
-function SentryTestButton() {
-  if (!import.meta.env.DEV) return null;
-
-  return (
-    <button
-      onClick={() => {
-        throw new Error('Test error for Sentry - This is intentional!');
-      }}
-      className="fixed bottom-4 left-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-mono hover:bg-red-700 z-50"
-      title="Click to test Sentry error tracking (Dev only)"
-    >
-      🧪 Test Error
-    </button>
-  );
-}
 
 function App() {
   return (
@@ -115,7 +99,6 @@ function App() {
           </Routes>
         </Suspense>
         <Toaster />
-        <SentryTestButton />
       </Router>
     </Sentry.ErrorBoundary>
   );

@@ -139,11 +139,11 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
           }
 
           return (
-            <div className="p-5 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E53] rounded-[14px] text-white shadow-[0_6px_16px_rgba(255,107,107,0.3)]">
-              <div className="text-xs opacity-90 mb-1.5 font-semibold tracking-wide">
+            <div className="p-5 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E53] rounded-[14px] text-white shadow-[0_4px_12px_rgba(255,107,107,0.2)]">
+              <div className="text-lg opacity-90 mb-2 font-semibold tracking-wide">
                 NEXT SHIFT
               </div>
-              <div className="text-[22px] font-bold mb-1">
+              <div className="text-[28px] font-bold mb-1">
                 {dayLabel}
               </div>
               <div className="text-lg font-semibold opacity-95">
@@ -260,14 +260,14 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
         <div className="flex flex-col gap-3">
           {/* Placeholder shifts */}
           {[
-            { date: 'Tuesday, November 7', time: '9:00 AM - 5:00 PM', location: 'Main Street' },
-            { date: 'Thursday, November 9', time: '2:00 PM - 10:00 PM', location: 'Downtown' },
-            { date: 'Saturday, November 11', time: '6:00 AM - 2:00 PM', location: 'Main Street' }
+            { date: 'Tuesday 11-7', time: '9:00 AM - 5:00 PM', location: 'Main Street' },
+            { date: 'Thursday 11-9', time: '2:00 PM - 10:00 PM', location: 'Downtown' },
+            { date: 'Saturday 11-11', time: '6:00 AM - 2:00 PM', location: 'Main Street' }
           ].map((shift, idx) => (
             <div key={idx} className="p-5 bg-white border border-gray-200 rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
               <div className="flex justify-between items-center mb-3">
                 <div className="flex-1">
-                  <div className="text-base font-semibold text-gray-800 mb-2">
+                  <div className="text-lg font-bold text-gray-800 mb-2">
                     {shift.date}
                   </div>
                   <div className="text-[15px] text-blue-600 font-medium mb-2">
