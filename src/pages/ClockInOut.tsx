@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { getDisplayName, supabase } from '../supabase/supabase'
 import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
-import { AnimatedDigit } from '../components/AnimatedDigit'
 
-// CRITICAL TEST: This should fire immediately when file loads
-console.log('🔴 ClockInOut.tsx loaded at', new Date().toISOString())
+// CRITICAL TEST: This should fire immediately when file loads (DEV only)
+if (import.meta.env.DEV) {
+  console.log('🔴 ClockInOut.tsx loaded at', new Date().toISOString())
+}
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
@@ -16,40 +16,50 @@ console.log('🔴 ClockInOut.tsx loaded at', new Date().toISOString())
  * ✅ USES UNIFIED KEYPAD COMPONENT
  * ✅ USES TIMEZONE-AWARE SUPABASE RPC FUNCTIONS
  * ✅ BULLETPROOF ERROR HANDLING - Multiple fallbacks and recovery mechanisms
- * ✅ AUTOMATIC HEALTH MONITORING - Detects and logs failures
+ * ✅ AUTOMATIC HEALTH MONITORING - Detects and logs failures (DEV mode)
+ * ✅ OPTIMIZED FOR OLD/SLOW IPADS - Minimal animations, fast PIN entry
  *
  * Features refined glassmorphism design with professional aesthetic:
  * - PIN-based clock in/out with unified keypad component
- * - Live clock display at the top (Eastern Time)
- * - Recent activity feed in bottom-right corner (uses timezone-aware getRecentEventsET)
+ * - Live clock display at the top (Eastern Time, plain text for performance)
+ * - Recent activity feed in bottom-right corner (uses timezone-aware Edge Function)
  * - Auto-submit on 4-digit PIN entry
- * - Personalized success messages
+ * - Personalized success messages (lightweight CSS bounce animation)
  * - Subtle glass effects (10px blur, 90% opacity)
  * - Moderate border radius (8-10px)
  * - Muted accent colors for professional appearance
  * - Real-time Supabase subscriptions for instant updates
  *
+ * Performance Optimizations:
+ * - NO Framer Motion animations (removed background blobs, clock flip animations)
+ * - All console logging wrapped in DEV mode checks
+ * - Realtime status indicator hidden in production (DEV only)
+ * - AutoAnimate for activity list transitions (lightweight)
+ * - CSS-only bounce animation for success messages
+ *
  * Timezone Handling:
  * - Uses clockInOut() RPC for atomic clock operations
- * - Uses getRecentEventsET() for timezone-aware event display
+ * - Uses getClockTerminalData() Edge Function for timezone-aware event display
  * - All times displayed in Eastern Time (EST/EDT) from database
  *
  * BULLETPROOF FEATURES:
- * - Comprehensive error logging with context
+ * - Comprehensive error logging with context (DEV mode)
  * - Network timeout protection (15 seconds)
  * - Automatic retry on transient failures
- * - Realtime connection health monitoring
+ * - Realtime connection health monitoring (DEV mode)
  * - Graceful degradation if realtime fails
- * - Detailed error messages for debugging
+ * - Detailed error messages for debugging (DEV mode)
  */
 
-// Comprehensive logging utility with timestamp and context
+// Comprehensive logging utility with timestamp and context (DEV mode only)
 const log = (context: string, message: string, data?: any) => {
+  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.log(`[ClockInOut] ${timestamp} - ${context}: ${message}`, data || '')
 }
 
 const logError = (context: string, error: any, details?: any) => {
+  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.error(`[ClockInOut Error] ${timestamp} - ${context}:`, {
     error: error?.message || error,
@@ -61,18 +71,22 @@ const logError = (context: string, error: any, details?: any) => {
 }
 
 const logSuccess = (context: string, message: string, data?: any) => {
+  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.log(`%c[ClockInOut Success] ${timestamp} - ${context}: ${message}`, 'color: green; font-weight: bold', data || '')
 }
 
 const logWarning = (context: string, message: string, data?: any) => {
+  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.warn(`[ClockInOut Warning] ${timestamp} - ${context}: ${message}`, data || '')
 }
 
 export default function ClockInOut() {
-  // CRITICAL TEST: This should fire when component renders
-  console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
+  // CRITICAL TEST: This should fire when component renders (DEV only)
+  if (import.meta.env.DEV) {
+    console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
+  }
 
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error' | 'clockout' | ''>('')
@@ -101,6 +115,7 @@ export default function ClockInOut() {
       setCurrentTime(now.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
+        second: '2-digit',
         timeZone: 'America/New_York'
       }))
       setCurrentDate(now.toLocaleDateString('en-US', {
@@ -387,34 +402,6 @@ export default function ClockInOut() {
   return (
     <div className="fixed inset-0 w-full h-screen overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 pb-[env(safe-area-inset-bottom,0px)] relative">
 
-      {/* Subtle Floating Background Shapes - Framer Motion */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-40">
-        <motion.div
-          className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-300/40 rounded-full blur-3xl"
-          animate={{
-            x: [0, 60, 0],
-            y: [0, -40, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-purple-300/35 rounded-full blur-3xl"
-          animate={{
-            x: [0, -50, 0],
-            y: [0, 45, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-      </div>
-
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* CRITICAL ERROR BANNER */}
         {criticalError && (
@@ -432,16 +419,23 @@ export default function ClockInOut() {
           </h1>
         </div>
 
-        {/* Clock Display - Eastern Time - Animated flip numbers */}
+        {/* Clock Display - Eastern Time - Simple text (no animations for performance) */}
         <div className="mb-6 text-center">
-          <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] mb-2 flex justify-center">
-            {(currentTime || '--:--:--').split('').map((char, index) => (
-              <AnimatedDigit
-                key={`${index}-${char}`}
-                value={char}
-                className="text-[57px]"
-              />
-            ))}
+          <div className="flex items-baseline justify-center mb-2 gap-1">
+            {/* Hours and Minutes - Large */}
+            <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px]">
+              {(currentTime || '--:--:--').split(':').slice(0, 2).join(':')}
+            </div>
+            {/* Seconds - Tiny (dev only) */}
+            {import.meta.env.DEV && (
+              <div className="text-[18px] font-medium text-slate-500">
+                :{((currentTime || '--:--:--').split(':')[2] || '--').replace(/\s*(AM|PM)/, '')}
+              </div>
+            )}
+            {/* AM/PM - Tiny */}
+            <div className="text-[18px] font-medium text-slate-500">
+              {(currentTime || '').match(/AM|PM/)?.[0] || ''}
+            </div>
           </div>
           <div className="text-[15px] text-slate-500 font-medium">
             {currentDate || 'Loading...'}
@@ -470,12 +464,14 @@ export default function ClockInOut() {
           <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
             Recent Activity
           </h3>
-          {/* Realtime connection indicator */}
-          <div className={`w-2 h-2 rounded-full ${
-            realtimeStatus === 'connected' ? 'bg-green-500' :
-            realtimeStatus === 'error' ? 'bg-red-500' :
-            'bg-gray-400'
-          }`} title={`Realtime: ${realtimeStatus}`} />
+          {/* Realtime connection indicator (DEV mode only) */}
+          {import.meta.env.DEV && (
+            <div className={`w-2 h-2 rounded-full ${
+              realtimeStatus === 'connected' ? 'bg-green-500' :
+              realtimeStatus === 'error' ? 'bg-red-500' :
+              'bg-gray-400'
+            }`} title={`Realtime: ${realtimeStatus}`} />
+          )}
         </div>
 
         {recentEvents.length > 0 ? (
