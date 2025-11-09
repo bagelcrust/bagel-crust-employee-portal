@@ -705,6 +705,9 @@ export default function ScheduleBuilder() {
         ).join(', ')
       : null
 
+    // Determine what to show on hover
+    const hasTimeOffToday = timeOffsForDay.length > 0
+
     return (
       <td
         ref={setNodeRef}
@@ -713,19 +716,31 @@ export default function ScheduleBuilder() {
         onClick={() => !hasTimeOff && handleCellClick(employeeId, employeeName, daysOfWeek[dayIndex]?.date || new Date(), dayIndex)}
       >
         {children}
-        {/* Availability info - shown on hover */}
-        {availabilityText && (
+        {/* Availability/Unavailability info - shown on hover */}
+        {hasTimeOffToday ? (
+          // Show "Unavailable" with orange background when time-off exists
+          <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center"
+            style={{
+              background: 'rgba(251, 146, 60, 0.25)',
+            }}
+          >
+            <p className="text-xs font-bold text-orange-900">
+              Unavailable
+            </p>
+            {timeOffsForDay[0].reason && (
+              <p className="text-xs text-orange-800 mt-1 text-center">
+                {timeOffsForDay[0].reason}
+              </p>
+            )}
+          </div>
+        ) : availabilityText ? (
+          // Show availability with green background when no time-off
           <div className="absolute inset-0 bg-green-50/95 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center">
             <p className="text-xs font-medium text-gray-700">
               {availabilityText}
             </p>
-            {timeOffsForDay.length > 0 && (
-              <p className="text-xs text-orange-600 mt-1 text-center">
-                Time Off: {timeOffsForDay[0].reason || 'Requested off'}
-              </p>
-            )}
           </div>
-        )}
+        ) : null}
       </td>
     )
   }
