@@ -1,162 +1,62 @@
-import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Filter, Wrench, Send, Loader2 } from 'lucide-react'
-import { useScheduleData } from '../hooks/useScheduleData'
-import AvailabilityList from '../components/AvailabilityList'
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight, Calendar, Filter, Wrench, Send, Clock } from 'lucide-react'
 
 /**
- * SCHEDULE BUILDER
+ * MODERN SCHEDULE BUILDER - UI Only
  *
- * Weekly schedule builder with:
- * - Date navigation
- * - Employee grid showing unavailability and time-offs
- * - Employee availability & time-off list below grid
+ * A refined, glassmorphism-style weekly schedule builder with:
+ * - Clean header with date navigation
+ * - Weekly grid view with employee rows
+ * - Unavailable/Time-off block visualization
+ * - Responsive Tailwind styling
+ * - Professional color scheme
  */
 
-const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+// Sample employee data for UI
+const employees = [
+  { id: 1, name: 'Shani' },
+  { id: 2, name: 'Kelly Scherer' },
+  { id: 3, name: 'Sophie' },
+  { id: 4, name: 'Annie' },
+  { id: 5, name: 'Clara' },
+  { id: 6, name: 'Fiona' },
+  { id: 7, name: 'Maddy' }
+]
 
-// Helper to get week start (Monday) and end (Sunday) for a given date
-function getWeekBounds(date: Date): { start: Date; end: Date } {
-  const day = date.getDay()
-  const diff = day === 0 ? -6 : 1 - day // Adjust when day is Sunday
-  const monday = new Date(date)
-  monday.setDate(date.getDate() + diff)
-  monday.setHours(0, 0, 0, 0)
+const daysOfWeek = [
+  { short: 'Mon', date: 3 },
+  { short: 'Tue', date: 4, isToday: true },
+  { short: 'Wed', date: 5 },
+  { short: 'Thu', date: 6 },
+  { short: 'Fri', date: 7 },
+  { short: 'Sat', date: 8 },
+  { short: 'Sun', date: 9 }
+]
 
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-
-  return { start: monday, end: sunday }
-}
-
-// Helper to format date range for display
-function formatDateRange(start: Date, end: Date): string {
-  const formatDate = (date: Date) => {
-    const month = date.toLocaleDateString('en-US', { month: 'short' })
-    const day = date.getDate()
-    const year = date.getFullYear()
-    return `${month} ${day}, ${year}`
-  }
-
-  return `${formatDate(start)} - ${formatDate(end)}`
-}
-
-// Helper to get array of dates for the week
-function getWeekDates(start: Date): Date[] {
-  const dates: Date[] = []
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(start)
-    date.setDate(start.getDate() + i)
-    dates.push(date)
-  }
-  return dates
-}
-
-// Helper to check if date is today
-function isToday(date: Date): boolean {
-  const today = new Date()
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  )
-}
-
-// Helper to get day of week from date
-function getDayOfWeek(date: Date): 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday' {
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
-  return days[date.getDay()]
+// Sample unavailability data (for UI demonstration)
+const unavailabilityData: Record<number, Record<number, { type: 'unavailable' | 'timeoff', time: string }>> = {
+  1: { 4: { type: 'unavailable', time: 'All Day' } },
+  2: { 1: { type: 'unavailable', time: 'All Day' }, 3: { type: 'unavailable', time: 'All Day' }, 5: { type: 'timeoff', time: 'All Day' } },
+  3: { 0: { type: 'unavailable', time: 'All Day' }, 2: { type: 'unavailable', time: 'All Day' }, 4: { type: 'unavailable', time: 'All Day' } },
+  4: { 2: { type: 'unavailable', time: 'All Day' } },
+  5: { 2: { type: 'unavailable', time: 'All Day' } },
+  6: {
+    0: { type: 'unavailable', time: '11am-2pm' },
+    1: { type: 'unavailable', time: 'All Day' },
+    2: { type: 'unavailable', time: '11am-2pm' },
+    3: { type: 'unavailable', time: 'All Day' },
+    4: { type: 'unavailable', time: '11am-2pm' }
+  },
+  7: { 3: { type: 'unavailable', time: 'All Day' } }
 }
 
 export default function ScheduleBuilder() {
-  const [currentDate, setCurrentDate] = useState(new Date())
-
-  const weekBounds = useMemo(() => getWeekBounds(currentDate), [currentDate])
-  const weekDates = useMemo(() => getWeekDates(weekBounds.start), [weekBounds.start])
-
-  const { data, isLoading, error } = useScheduleData(weekBounds.start, weekBounds.end)
-
-  const handlePrevWeek = () => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev)
-      newDate.setDate(prev.getDate() - 7)
-      return newDate
-    })
-  }
-
-  const handleNextWeek = () => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev)
-      newDate.setDate(prev.getDate() + 7)
-      return newDate
-    })
-  }
-
-  const handleToday = () => {
-    setCurrentDate(new Date())
-  }
-
-  // Create a map of employee availability by employee_id and day_of_week
-  const availabilityMap = useMemo(() => {
-    if (!data) return new Map()
-
-    const map = new Map<string, Map<string, boolean>>()
-    data.availabilities.forEach(avail => {
-      if (!map.has(avail.employee_id)) {
-        map.set(avail.employee_id, new Map())
-      }
-      map.get(avail.employee_id)!.set(avail.day_of_week, true)
-    })
-    return map
-  }, [data])
-
-  // Create a map of time-offs by employee_id and date
-  const timeOffMap = useMemo(() => {
-    if (!data) return new Map()
-
-    const map = new Map<string, Map<string, any>>()
-    data.timeOffs.forEach(timeOff => {
-      const startDate = new Date(timeOff.start_time)
-      const endDate = new Date(timeOff.end_time)
-
-      if (!map.has(timeOff.employee_id)) {
-        map.set(timeOff.employee_id, new Map())
-      }
-
-      // Mark all dates in the range
-      const current = new Date(startDate)
-      while (current <= endDate) {
-        const dateKey = current.toDateString()
-        map.get(timeOff.employee_id)!.set(dateKey, timeOff)
-        current.setDate(current.getDate() + 1)
-      }
-    })
-    return map
-  }, [data])
-
-  if (isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="flex items-center gap-3 text-gray-600">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading schedule...</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="text-red-600">
-          Error loading schedule: {error.message}
-        </div>
-      </div>
-    )
-  }
+  const [dateRange] = useState('Nov 3, 2025 - Nov 9, 2025')
+  const [filterCount] = useState(4)
+  const [publishCount] = useState(0)
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
       {/* Header - Glassmorphism */}
       <div className="px-6 py-4">
         <div className="max-w-[1600px] mx-auto">
@@ -170,10 +70,7 @@ export default function ScheduleBuilder() {
             }}
           >
             {/* Today Button */}
-            <button
-              onClick={handleToday}
-              className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-all"
-            >
+            <button className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-all">
               Today
             </button>
 
@@ -186,13 +83,12 @@ export default function ScheduleBuilder() {
               }}
             >
               <Calendar className="w-4 h-4 text-gray-500" />
-              {formatDateRange(weekBounds.start, weekBounds.end)}
+              {dateRange}
             </button>
 
             {/* Navigation Arrows */}
             <div className="flex gap-1">
               <button
-                onClick={handlePrevWeek}
                 className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/80"
                 style={{
                   background: 'rgba(255, 255, 255, 0.6)',
@@ -202,7 +98,6 @@ export default function ScheduleBuilder() {
                 <ChevronLeft className="w-5 h-5 text-gray-600" />
               </button>
               <button
-                onClick={handleNextWeek}
                 className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/80"
                 style={{
                   background: 'rgba(255, 255, 255, 0.6)',
@@ -213,13 +108,26 @@ export default function ScheduleBuilder() {
               </button>
             </div>
 
+            {/* Week Dropdown */}
+            <select
+              className="px-3 py-2 rounded-lg text-sm cursor-pointer transition-all font-medium text-gray-700"
+              style={{
+                background: 'rgba(255, 255, 255, 0.7)',
+                border: '1px solid rgba(0, 0, 0, 0.08)'
+              }}
+            >
+              <option>Week</option>
+              <option>2 Weeks</option>
+              <option>Month</option>
+            </select>
+
             {/* Spacer */}
             <div className="flex-1" />
 
             {/* Action Buttons */}
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-md">
               <Filter className="w-4 h-4" />
-              Filters
+              Filters ({filterCount})
             </button>
 
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-md">
@@ -236,17 +144,17 @@ export default function ScheduleBuilder() {
               disabled
             >
               <Send className="w-4 h-4" />
-              Publish (0)
+              Publish ({publishCount})
             </button>
           </div>
         </div>
       </div>
 
       {/* Schedule Grid Container */}
-      <div className="px-6 pb-4">
-        <div className="max-w-[1600px] mx-auto">
+      <div className="flex-1 overflow-auto px-6 pb-6">
+        <div className="max-w-[1600px] mx-auto h-full">
           <div
-            className="rounded-xl overflow-hidden shadow-lg"
+            className="rounded-xl overflow-hidden shadow-lg h-full"
             style={{
               background: 'rgba(255, 255, 255, 0.9)',
               backdropFilter: 'blur(10px)',
@@ -254,7 +162,7 @@ export default function ScheduleBuilder() {
               border: '1px solid rgba(255, 255, 255, 0.5)'
             }}
           >
-            <div className="overflow-auto max-h-[500px]">
+            <div className="overflow-auto h-full">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
@@ -268,25 +176,25 @@ export default function ScheduleBuilder() {
                     >
                       Employee
                     </th>
-                    {weekDates.map((date, index) => (
+                    {daysOfWeek.map((day, index) => (
                       <th
                         key={index}
                         className="sticky top-0 z-10 border-r border-b px-4 py-4 text-center font-semibold text-sm min-w-[140px]"
                         style={{
-                          background: isToday(date)
+                          background: day.isToday
                             ? 'rgba(224, 231, 255, 0.5)'
                             : 'rgba(249, 250, 251, 0.95)',
                           backdropFilter: 'blur(10px)',
                           borderColor: 'rgba(0, 0, 0, 0.06)'
                         }}
                       >
-                        {isToday(date) ? (
+                        {day.isToday ? (
                           <span className="inline-block bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
-                            {daysOfWeek[index]}, {date.getDate()}
+                            {day.short}, {day.date}
                           </span>
                         ) : (
                           <span className="text-gray-700">
-                            {daysOfWeek[index]}, {date.getDate()}
+                            {day.short}, {day.date}
                           </span>
                         )}
                       </th>
@@ -295,7 +203,7 @@ export default function ScheduleBuilder() {
                 </thead>
                 <tbody>
                   {/* Employee Rows */}
-                  {data?.employees.map((employee) => (
+                  {employees.map((employee) => (
                     <tr
                       key={employee.id}
                       className="transition-colors hover:bg-white/40"
@@ -308,52 +216,42 @@ export default function ScheduleBuilder() {
                           borderColor: 'rgba(0, 0, 0, 0.04)'
                         }}
                       >
-                        {employee.first_name} {employee.last_name || ''}
+                        {employee.name}
                       </td>
-                      {weekDates.map((date, dayIndex) => {
-                        const dayOfWeek = getDayOfWeek(date)
-                        const hasAvailability = availabilityMap.get(employee.id)?.has(dayOfWeek)
-                        const timeOff = timeOffMap.get(employee.id)?.get(date.toDateString())
-
+                      {daysOfWeek.map((day, dayIndex) => {
+                        const block = unavailabilityData[employee.id]?.[dayIndex]
                         return (
                           <td
                             key={dayIndex}
                             className="border-r border-b p-2.5 h-[80px] align-top"
                             style={{
                               borderColor: 'rgba(0, 0, 0, 0.04)',
-                              background: isToday(date) ? 'rgba(224, 231, 255, 0.15)' : 'transparent'
+                              background: day.isToday ? 'rgba(224, 231, 255, 0.15)' : 'transparent'
                             }}
                           >
-                            {timeOff ? (
+                            {block && (
                               <div
                                 className="rounded-lg p-2.5 h-full"
                                 style={{
-                                  background: 'rgba(251, 191, 36, 0.15)',
-                                  border: '1px solid rgba(251, 191, 36, 0.3)',
+                                  background: block.type === 'unavailable'
+                                    ? 'rgba(156, 163, 175, 0.15)'
+                                    : 'rgba(251, 191, 36, 0.15)',
+                                  border: `1px solid ${
+                                    block.type === 'unavailable'
+                                      ? 'rgba(156, 163, 175, 0.25)'
+                                      : 'rgba(251, 191, 36, 0.3)'
+                                  }`,
                                   backdropFilter: 'blur(5px)'
                                 }}
                               >
                                 <div className="font-semibold text-xs text-gray-700">
-                                  Time-off
+                                  {block.type === 'unavailable' ? 'Unavailable' : 'Time-off'}
                                 </div>
                                 <div className="text-xs text-gray-600 mt-1">
-                                  {timeOff.reason || 'All Day'}
+                                  {block.time}
                                 </div>
                               </div>
-                            ) : !hasAvailability ? (
-                              <div
-                                className="rounded-lg p-2.5 h-full"
-                                style={{
-                                  background: 'rgba(156, 163, 175, 0.15)',
-                                  border: '1px solid rgba(156, 163, 175, 0.25)',
-                                  backdropFilter: 'blur(5px)'
-                                }}
-                              >
-                                <div className="font-semibold text-xs text-gray-700">
-                                  Unavailable
-                                </div>
-                              </div>
-                            ) : null}
+                            )}
                           </td>
                         )
                       })}
@@ -372,7 +270,7 @@ export default function ScheduleBuilder() {
                     >
                       Wages
                     </td>
-                    {weekDates.map((_, dayIndex) => (
+                    {daysOfWeek.map((_, dayIndex) => (
                       <td
                         key={dayIndex}
                         className="border-r border-t-2 px-4 py-4 text-center text-sm text-gray-600"
@@ -392,15 +290,60 @@ export default function ScheduleBuilder() {
       </div>
 
       {/* Employee Availability & Time-Off List */}
-      {data && (
-        <AvailabilityList
-          employees={data.employees}
-          availabilities={data.availabilities}
-          timeOffs={data.timeOffs}
-          weekStart={weekBounds.start}
-          weekEnd={weekBounds.end}
-        />
-      )}
+      <div className="px-6 pb-6">
+        <div className="max-w-[1600px] mx-auto">
+          <div
+            className="rounded-xl overflow-hidden shadow-lg"
+            style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b" style={{ borderColor: 'rgba(0, 0, 0, 0.06)' }}>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Employee Availability & Time-Offs
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Regular availability and time-off notices for this week
+              </p>
+            </div>
+
+            {/* List */}
+            <div className="divide-y" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {employees.map((employee) => (
+                <div
+                  key={employee.id}
+                  className="px-6 py-4 hover:bg-white/40 transition-colors"
+                  style={{ borderColor: 'rgba(0, 0, 0, 0.04)' }}
+                >
+                  {/* Employee Name */}
+                  <div className="font-semibold text-gray-800 mb-2">
+                    {employee.name}
+                  </div>
+
+                  {/* Availability */}
+                  <div className="flex items-start gap-2 text-sm mb-2">
+                    <Clock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-gray-600 font-medium">Available: </span>
+                      <span className="text-gray-700">Mon-Fri: 9:00 AM - 5:00 PM</span>
+                    </div>
+                  </div>
+
+                  {/* Time-Offs */}
+                  <div className="flex items-start gap-2 text-sm text-gray-500">
+                    <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>No time-offs this week</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
