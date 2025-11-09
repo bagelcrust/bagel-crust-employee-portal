@@ -1153,7 +1153,8 @@ export default function ScheduleBuilder() {
 
                 // Get availability for this employee (grouped by day)
                 const employeeAvailability = availabilityByEmployeeAndDay[employee.id] || {}
-                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                // Index 0 = Monday, 1 = Tuesday, ... 6 = Sunday (matches edge function mapping)
+                const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
                 const availabilityText = Object.entries(employeeAvailability)
                   .sort(([dayA], [dayB]) => Number(dayA) - Number(dayB))
                   .map(([dayIndex, availabilities]) => {
