@@ -49,10 +49,11 @@ serve(async (req) => {
       limit = 10;
     }
 
-    // Calculate date range: last 3 days (for recent events)
-    const today = new Date();
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(today.getDate() - 3);
+    // Calculate date range: last 12 hours (for RECENT events only)
+    // This ensures only truly recent activity shows, not historical data added to DB
+    const now = new Date();
+    const twelveHoursAgo = new Date(now);
+    twelveHoursAgo.setHours(now.getHours() - 12);
 
     // Format dates as YYYY-MM-DD for RPC function
     const formatDate = (date: Date) => {
@@ -64,8 +65,8 @@ serve(async (req) => {
       }).format(date);
     };
 
-    const startDate = formatDate(threeDaysAgo);
-    const endDate = formatDate(today);
+    const startDate = formatDate(twelveHoursAgo);
+    const endDate = formatDate(now);
 
     // ===================================================================
     // FETCH ALL DATA IN PARALLEL
