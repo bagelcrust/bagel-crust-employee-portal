@@ -177,19 +177,19 @@ export default function ScheduleBuilder() {
       dayName: daysOfWeek[dayIndex]?.dayName
     })
 
-    // Check if employee has time-off on this day
+    // Check if employee has ALL-DAY time-off on this day (partial time-offs are allowed)
     const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
-    const hasTimeOff = timeOffsForDay.length > 0
-    const timeOffReason = hasTimeOff ? timeOffsForDay[0].reason || 'No reason' : ''
+    const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
+    const timeOffReason = hasAllDayTimeOff ? timeOffsForDay.find(t => isAllDayTimeOff(t))?.reason || 'No reason' : ''
 
-    console.log('🖱️ Time-off check:', { hasTimeOff, timeOffReason, timeOffsForDay })
+    console.log('🖱️ Time-off check:', { hasAllDayTimeOff, timeOffReason, timeOffsForDay })
 
     setModalState({
       isOpen: true,
       employeeId,
       employeeName,
       date,
-      hasTimeOff,
+      hasTimeOff: hasAllDayTimeOff,
       timeOffReason
     })
   }, [timeOffsByEmployeeAndDay, daysOfWeek])
@@ -483,13 +483,14 @@ export default function ScheduleBuilder() {
       return
     }
 
-    // Check if employee has time-off on target day
+    // Check if employee has ALL-DAY time-off on target day (partial time-offs are allowed)
     const timeOffsForDay = timeOffsByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
-    if (timeOffsForDay.length > 0) {
-      console.log('❌ Cannot drop - employee has time-off:', timeOffsForDay)
+    const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
+    if (hasAllDayTimeOff) {
+      console.log('❌ Cannot drop - employee has all-day time-off:', timeOffsForDay)
       toast({
         title: 'Cannot Move Shift',
-        description: 'Cannot move shift to a day with time-off',
+        description: 'Cannot move shift to a day with all-day time-off',
         variant: 'destructive',
       })
       return
@@ -698,6 +699,12 @@ export default function ScheduleBuilder() {
     // Get availability for this employee on this day
     const availabilityForDay = availabilityByEmployeeAndDay[employeeId]?.[dayIndex] || []
 
+    // Check if there's an all-day time-off
+    const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
+
+    // Check for partial time-offs (not all-day)
+    const partialTimeOffs = timeOffsForDay.filter(timeOff => !isAllDayTimeOff(timeOff))
+
     // Format availability times for display
     const availabilityText = availabilityForDay.length > 0
       ? availabilityForDay.map(avail =>
@@ -705,8 +712,12 @@ export default function ScheduleBuilder() {
         ).join(', ')
       : null
 
-    // Determine what to show on hover
-    const hasTimeOffToday = timeOffsForDay.length > 0
+    // Format partial time-off times for display
+    const partialTimeOffText = partialTimeOffs.length > 0
+      ? partialTimeOffs.map(timeOff =>
+          `${formatShiftTime(timeOff.start_time, timeOff.end_time)}`
+        ).join(', ')
+      : null
 
     return (
       <td
@@ -717,8 +728,8 @@ export default function ScheduleBuilder() {
       >
         {children}
         {/* Availability/Unavailability info - shown on hover */}
-        {hasTimeOffToday ? (
-          // Show "Unavailable" with orange background when time-off exists
+        {hasAllDayTimeOff ? (
+          // Show "Unavailable" with orange background for all-day time-off
           <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center"
             style={{
               background: 'rgba(251, 146, 60, 0.25)',
@@ -733,12 +744,36 @@ export default function ScheduleBuilder() {
               </p>
             )}
           </div>
-        ) : availabilityText ? (
-          // Show availability with green background when no time-off
-          <div className="absolute inset-0 bg-green-50/95 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center">
-            <p className="text-xs font-medium text-gray-700">
-              {availabilityText}
-            </p>
+        ) : (availabilityText || partialTimeOffText) ? (
+          // Show availability and/or partial time-off with mixed background
+          <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center gap-1"
+            style={{
+              background: partialTimeOffText
+                ? 'linear-gradient(to bottom, rgba(134, 239, 172, 0.3) 0%, rgba(134, 239, 172, 0.3) 50%, rgba(251, 146, 60, 0.2) 50%, rgba(251, 146, 60, 0.2) 100%)'
+                : 'rgba(134, 239, 172, 0.3)',
+            }}
+          >
+            {availabilityText && (
+              <div className="text-center">
+                <p className="text-xs font-semibold text-green-900">Available</p>
+                <p className="text-xs font-medium text-gray-700">
+                  {availabilityText}
+                </p>
+              </div>
+            )}
+            {partialTimeOffText && (
+              <div className="text-center">
+                <p className="text-xs font-semibold text-orange-900">Time Off</p>
+                <p className="text-xs font-medium text-orange-800">
+                  {partialTimeOffText}
+                </p>
+                {partialTimeOffs[0].reason && (
+                  <p className="text-xs text-orange-700">
+                    ({partialTimeOffs[0].reason})
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         ) : null}
       </td>
@@ -1014,7 +1049,8 @@ export default function ScheduleBuilder() {
                             {daysOfWeek.map((day, dayIndex) => {
                               const shiftsForDay = shiftsByEmployeeAndDay[employee.id]?.[dayIndex] || []
                               const timeOffsForDay = timeOffsByEmployeeAndDay[employee.id]?.[dayIndex] || []
-                              const hasTimeOff = timeOffsForDay.length > 0
+                              // Only block cell if ALL-DAY time-off, not partial time-offs
+                              const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
 
                               return (
                                 <DroppableCell
@@ -1022,9 +1058,9 @@ export default function ScheduleBuilder() {
                                   employeeId={employee.id}
                                   employeeName={employee.first_name}
                                   dayIndex={dayIndex}
-                                  hasTimeOff={hasTimeOff}
+                                  hasTimeOff={hasAllDayTimeOff}
                                   className={`border-r border-b p-1.5 min-h-[50px] align-top ${
-                                    !hasTimeOff ? 'cursor-pointer hover:bg-blue-50/30' : ''
+                                    !hasAllDayTimeOff ? 'cursor-pointer hover:bg-blue-50/30' : ''
                                   }`}
                                   style={{
                                     borderColor: 'rgba(0, 0, 0, 0.04)',
