@@ -64,7 +64,6 @@ export default function ScheduleBuilder() {
     isWeekPublished,
     isLoading,
     refetchShifts,
-    refetchOpenShifts,
     refetchPublishStatus
   } = useScheduleBuilder()
 
