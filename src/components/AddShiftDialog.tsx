@@ -16,7 +16,7 @@ import { Loader2 } from 'lucide-react'
 interface AddShiftDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (startTime: string, endTime: string, location: string) => Promise<void>
+  onSave: (startTime: string, endTime: string, location: string, isOpenShift: boolean) => Promise<void>
   employeeName: string
   date: Date
   hasTimeOff: boolean
@@ -42,6 +42,7 @@ export function AddShiftDialog({
   const [startTime, setStartTime] = useState(initialStartTime || '09:00')
   const [endTime, setEndTime] = useState(initialEndTime || '17:00')
   const [location, setLocation] = useState(initialLocation || 'Calder')
+  const [isOpenShift, setIsOpenShift] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export function AddShiftDialog({
       setStartTime(initialStartTime || '09:00')
       setEndTime(initialEndTime || '17:00')
       setLocation(initialLocation || 'Calder')
+      setIsOpenShift(false)
     }
   }, [isOpen, initialStartTime, initialEndTime, initialLocation])
 
@@ -82,12 +84,13 @@ export function AddShiftDialog({
         endDate.setDate(endDate.getDate() + 1)
       }
 
-      await onSave(startDate.toISOString(), endDate.toISOString(), location)
+      await onSave(startDate.toISOString(), endDate.toISOString(), location, isOpenShift)
 
-      toast({
-        title: 'Shift Created',
-        description: `Added shift for ${employeeName}`,
-      })
+      // Toast notification removed per user request - green background is enough feedback
+      // toast({
+      //   title: 'Shift Created',
+      //   description: `Added shift for ${employeeName}`,
+      // })
 
       onClose()
     } catch (error: any) {
@@ -159,6 +162,18 @@ export function AddShiftDialog({
                 className="col-span-3"
                 placeholder="Calder"
               />
+            </div>
+            <div className="flex items-center space-x-2 col-span-4 ml-auto">
+              <input
+                type="checkbox"
+                id="open-shift"
+                checked={isOpenShift}
+                onChange={(e) => setIsOpenShift(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="open-shift" className="text-sm font-normal cursor-pointer">
+                Create as Open Shift (unassigned, anyone can take it)
+              </Label>
             </div>
           </div>
           <DialogFooter>

@@ -198,24 +198,21 @@ export default function ScheduleBuilder() {
   const handleSaveShift = useCallback(async (
     startTime: string,
     endTime: string,
-    location: string
+    location: string,
+    isOpenShift: boolean
   ) => {
     console.log('💾 SAVING NEW SHIFT:', {
-      employeeId: modalState.employeeId,
+      employeeId: isOpenShift ? null : modalState.employeeId,
       employeeName: modalState.employeeName,
       startTime,
       endTime,
-      location
+      location,
+      isOpenShift
     })
-
-    if (!modalState.employeeId) {
-      console.error('❌ Cannot save shift: No employee ID')
-      return
-    }
 
     try {
       const result = await shiftService.createShift({
-        employee_id: modalState.employeeId,
+        employee_id: isOpenShift ? null : modalState.employeeId,
         start_time: startTime,
         end_time: endTime,
         location: location
@@ -317,21 +314,14 @@ export default function ScheduleBuilder() {
   const handleDeleteShift = useCallback(async (shiftId: number) => {
     console.log('🗑️ DELETE SHIFT CLICKED:', { shiftId })
 
-    if (!confirm(SCHEDULE_MESSAGES.DELETE_SHIFT_CONFIRM)) {
-      console.log('❌ Delete cancelled by user')
-      return
-    }
-
+    // Removed confirmation dialog for faster workflow during schedule building
     console.log('🚀 Deleting shift:', shiftId)
 
     try {
       await shiftService.deleteShift(shiftId)
       console.log('✅ SHIFT DELETED:', shiftId)
       console.log('🔄 Refetching shifts and open shifts...')
-      toast({
-        title: 'Shift Deleted',
-        description: 'The shift has been removed',
-      })
+      // Removed toast notification - shift disappearing is enough feedback
       refetchShifts()
       refetchOpenShifts()
     } catch (error: any) {
@@ -621,10 +611,10 @@ export default function ScheduleBuilder() {
         style={style}
         {...listeners}
         {...attributes}
-        className="rounded px-2 py-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-center group relative"
+        className="shift-card rounded px-2 py-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-center group relative z-10"
         onClick={(e) => {
+          e.stopPropagation()
           if (!isDragging) {
-            e.stopPropagation()
             handleShiftClick(shift, employeeName)
           }
         }}
@@ -647,20 +637,7 @@ export default function ScheduleBuilder() {
           }`}>
             {formatShiftTime(shift.start_time, shift.end_time)}
           </div>
-          {/* Duplicate button */}
-          <Button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleDuplicateShift(shift, employeeName)
-            }}
-            size="icon"
-            variant="default"
-            className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Duplicate shift"
-          >
-            <Copy className="w-3 h-3" />
-          </Button>
-          {/* Delete button */}
+          {/* Delete button - visible on hover */}
           <Button
             onClick={(e) => {
               e.stopPropagation()
@@ -668,10 +645,10 @@ export default function ScheduleBuilder() {
             }}
             size="icon"
             variant="destructive"
-            className="absolute top-0 right-0 -mt-1 -mr-1 rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-0 right-0 -mt-1 -mr-1 rounded-full h-6 w-6 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-20"
             title="Delete shift"
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
@@ -693,11 +670,19 @@ export default function ScheduleBuilder() {
       disabled: hasTimeOff
     })
 
+    // Get shifts for this employee on this day
+    const shiftsForDay = shiftsByEmployeeAndDay[employeeId]?.[dayIndex] || []
+
     // Get time-offs for this employee on this day
     const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
 
-    // Get availability for this employee on this day
-    const availabilityForDay = availabilityByEmployeeAndDay[employeeId]?.[dayIndex] || []
+    // Get availability for this employee on this day (sorted by start time)
+    const availabilityForDay = (availabilityByEmployeeAndDay[employeeId]?.[dayIndex] || [])
+      .sort((a, b) => {
+        const aTime = a.start_time.split(':').map(Number)
+        const bTime = b.start_time.split(':').map(Number)
+        return (aTime[0] * 60 + aTime[1]) - (bTime[0] * 60 + bTime[1])
+      })
 
     // Check if there's an all-day time-off
     const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
@@ -705,12 +690,11 @@ export default function ScheduleBuilder() {
     // Check for partial time-offs (not all-day)
     const partialTimeOffs = timeOffsForDay.filter(timeOff => !isAllDayTimeOff(timeOff))
 
-    // Format availability times for display
-    const availabilityText = availabilityForDay.length > 0
-      ? availabilityForDay.map(avail =>
-          `${formatAvailabilityTime(avail.start_time)} - ${formatAvailabilityTime(avail.end_time)}`
-        ).join(', ')
-      : null
+    // Check if employee has NO availability at all (not available)
+    const hasNoAvailability = availabilityForDay.length === 0 && !hasAllDayTimeOff && partialTimeOffs.length === 0
+
+    // Hide availability overlay if there are already shifts scheduled
+    const showAvailability = shiftsForDay.length === 0
 
     // Format partial time-off times for display
     const partialTimeOffText = partialTimeOffs.length > 0
@@ -719,16 +703,40 @@ export default function ScheduleBuilder() {
         ).join(', ')
       : null
 
+    // Handle clicking on availability block to preset times
+    const handleAvailabilityClick = (avail: any) => {
+      console.log('🎯 Availability clicked:', avail)
+
+      setModalState({
+        isOpen: true,
+        employeeId,
+        employeeName,
+        date: daysOfWeek[dayIndex]?.date || new Date(),
+        hasTimeOff: hasAllDayTimeOff,
+        timeOffReason: hasAllDayTimeOff ? timeOffsForDay.find(t => isAllDayTimeOff(t))?.reason || '' : '',
+        initialStartTime: avail.start_time.substring(0, 5), // "09:00:00" -> "09:00"
+        initialEndTime: avail.end_time.substring(0, 5),
+        initialLocation: 'Calder'
+      })
+    }
+
     return (
       <td
         ref={setNodeRef}
         className={`${className} ${isOver && !hasTimeOff ? 'bg-blue-100/50 ring-2 ring-blue-400' : ''} group relative`}
         style={style}
-        onClick={() => !hasTimeOff && handleCellClick(employeeId, employeeName, daysOfWeek[dayIndex]?.date || new Date(), dayIndex)}
+        onClick={(e) => {
+          // Only handle cell click if clicking empty space (not on a shift card)
+          const target = e.target as HTMLElement
+          const isClickingShift = target.closest('.shift-card')
+          if (!hasTimeOff && !isClickingShift) {
+            handleCellClick(employeeId, employeeName, daysOfWeek[dayIndex]?.date || new Date(), dayIndex)
+          }
+        }}
       >
         {children}
-        {/* Availability/Unavailability info - shown on hover */}
-        {hasAllDayTimeOff ? (
+        {/* Availability/Unavailability info - shown on hover (only when no shifts scheduled) */}
+        {showAvailability && hasAllDayTimeOff ? (
           // Show "Unavailable" with orange background for all-day time-off
           <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center"
             style={{
@@ -744,7 +752,18 @@ export default function ScheduleBuilder() {
               </p>
             )}
           </div>
-        ) : (availabilityText || partialTimeOffText) ? (
+        ) : showAvailability && hasNoAvailability ? (
+          // Show "Not Available" with gray background when no availability data exists
+          <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center"
+            style={{
+              background: 'rgba(156, 163, 175, 0.2)',
+            }}
+          >
+            <p className="text-xs font-bold text-gray-600">
+              Not Available
+            </p>
+          </div>
+        ) : showAvailability && (availabilityForDay.length > 0 || partialTimeOffText) ? (
           // Show availability and/or partial time-off with mixed background
           <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center gap-1"
             style={{
@@ -753,12 +772,21 @@ export default function ScheduleBuilder() {
                 : 'rgba(134, 239, 172, 0.3)',
             }}
           >
-            {availabilityText && (
-              <div className="text-center">
-                <p className="text-xs font-semibold text-green-900">Available</p>
-                <p className="text-xs font-medium text-gray-700">
-                  {availabilityText}
-                </p>
+            {/* Clickable availability blocks */}
+            {availabilityForDay.length > 0 && (
+              <div className="text-center pointer-events-auto space-y-1">
+                {availabilityForDay.map((avail, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAvailabilityClick(avail)
+                    }}
+                    className="block w-full text-xs font-medium text-gray-700 hover:text-green-900 hover:bg-green-200/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                  >
+                    {formatAvailabilityTime(avail.start_time)} - {formatAvailabilityTime(avail.end_time)}
+                  </button>
+                ))}
               </div>
             )}
             {partialTimeOffText && (

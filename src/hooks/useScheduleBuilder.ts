@@ -61,7 +61,7 @@ export function useScheduleBuilder() {
       format(currentWeekStart, 'yyyy-MM-dd'),
       format(currentWeekEnd, 'yyyy-MM-dd')
     ),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 0, // Always fetch fresh data when actively building schedules
   })
 
   // DEBUG: Log raw edge function response

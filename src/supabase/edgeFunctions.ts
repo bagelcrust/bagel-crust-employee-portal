@@ -546,6 +546,55 @@ export async function deleteShift(shiftId: number) {
   return data;
 }
 
+/**
+ * Schedule Builder Operations - ALL operations in one edge function
+ * Uses service_role key to bypass RLS
+ */
+export async function scheduleBuilderCreateShift(data: {
+  employee_id: string | null
+  start_time: string
+  end_time: string
+  location: string
+  role?: string | null
+}) {
+  const { data: result, error } = await supabase.functions.invoke('schedule-builder-operations', {
+    body: { operation: 'CREATE', data }
+  });
+
+  if (error) throw new Error(`Failed to create shift: ${error.message || JSON.stringify(error)}`);
+  if (!result?.success) throw new Error(result?.error || 'Failed to create shift');
+
+  return result.shift;
+}
+
+export async function scheduleBuilderUpdateShift(shiftId: number, updates: {
+  employee_id?: string | null
+  start_time?: string
+  end_time?: string
+  location?: string
+  role?: string | null
+}) {
+  const { data: result, error } = await supabase.functions.invoke('schedule-builder-operations', {
+    body: { operation: 'UPDATE', data: { shift_id: shiftId, ...updates } }
+  });
+
+  if (error) throw new Error(`Failed to update shift: ${error.message || JSON.stringify(error)}`);
+  if (!result?.success) throw new Error(result?.error || 'Failed to update shift');
+
+  return result.shift;
+}
+
+export async function scheduleBuilderDeleteShift(shiftId: number) {
+  const { data: result, error } = await supabase.functions.invoke('schedule-builder-operations', {
+    body: { operation: 'DELETE', data: { shift_id: shiftId } }
+  });
+
+  if (error) throw new Error(`Failed to delete shift: ${error.message || JSON.stringify(error)}`);
+  if (!result?.success) throw new Error(result?.error || 'Failed to delete shift');
+
+  return result;
+}
+
 // ============================================================================
 // AGGREGATE PAGE-SPECIFIC APIs - Single endpoint per page
 // ============================================================================
