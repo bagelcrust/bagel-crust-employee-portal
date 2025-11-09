@@ -220,7 +220,8 @@ export default function ScheduleBuilder() {
 
       console.log('✅ SHIFT CREATED:', result)
       console.log('🔄 Refetching shifts...')
-      refetchShifts()
+      await refetchShifts()
+      console.log('✅ REFETCH COMPLETE')
     } catch (error: any) {
       console.error('❌ SHIFT CREATION FAILED:', error)
       throw error // Re-throw to let modal handle error display
@@ -314,25 +315,24 @@ export default function ScheduleBuilder() {
   const handleDeleteShift = useCallback(async (shiftId: number) => {
     console.log('🗑️ DELETE SHIFT CLICKED:', { shiftId })
 
-    // Removed confirmation dialog for faster workflow during schedule building
-    console.log('🚀 Deleting shift:', shiftId)
-
     try {
+      console.log('🚀 Deleting shift from database...')
       await shiftService.deleteShift(shiftId)
-      console.log('✅ SHIFT DELETED:', shiftId)
-      console.log('🔄 Refetching shifts and open shifts...')
-      // Removed toast notification - shift disappearing is enough feedback
-      refetchShifts()
-      refetchOpenShifts()
+      console.log('✅ SHIFT DELETED FROM DB:', shiftId)
+
+      // CRITICAL: Await refetch so UI updates with fresh data
+      console.log('🔄 Refetching fresh data...')
+      await refetchShifts()
+      console.log('✅ REFETCH COMPLETE - UI should update now')
     } catch (error: any) {
-      console.error('❌ DELETE SHIFT FAILED:', error)
+      console.error('❌ DELETE FAILED:', error)
       toast({
-        title: SCHEDULE_MESSAGES.DELETE_ERROR,
-        description: error.message,
+        title: 'Delete Failed',
+        description: error.message || 'Could not delete shift',
         variant: 'destructive',
       })
     }
-  }, [refetchShifts, refetchOpenShifts, toast])
+  }, [refetchShifts, toast])
 
   // Handle duplicate shift - memoized with useCallback
   const handleDuplicateShift = useCallback((shift: ScheduleShift, employeeName: string) => {
@@ -574,14 +574,14 @@ export default function ScheduleBuilder() {
       })
 
       console.log('✅ SHIFT UPDATED:', result)
-      console.log('🔄 Refetching shifts and publish status...')
-      refetchShifts()
-      refetchPublishStatus()
+      console.log('🔄 Refetching fresh data...')
+      await refetchShifts()
+      console.log('✅ REFETCH COMPLETE')
     } catch (error: any) {
       console.error('❌ SHIFT UPDATE FAILED:', error)
       throw error // Re-throw to let modal handle error display
     }
-  }, [refetchShifts, refetchPublishStatus])
+  }, [refetchShifts])
 
   // Calculate draft count using utility - memoized for performance
   const draftCount = useMemo(() => {

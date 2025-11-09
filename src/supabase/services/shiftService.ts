@@ -2,11 +2,6 @@ import { supabase } from '../supabase'
 import type { DraftShift, PublishedShift } from '../supabase'
 import { conflictService } from './conflictService'
 import { etToUTC } from '../../lib/timezone'
-import {
-  scheduleBuilderCreateShift,
-  scheduleBuilderUpdateShift,
-  scheduleBuilderDeleteShift
-} from '../edgeFunctions'
 
 export interface CreateShiftInput {
   employee_id: string | null // null = open shift
@@ -42,7 +37,8 @@ export interface UpdateShiftInput {
  */
 export const shiftService = {
   /**
-   * Create new DRAFT shift using edge function (bypasses RLS)
+   * Create new DRAFT shift
+   * RLS allows anon users to manage draft shifts
    */
   async createShift(input: CreateShiftInput): Promise<DraftShift> {
     // Validate no conflict if assigning to employee
@@ -58,21 +54,25 @@ export const shiftService = {
       }
     }
 
-    // Use edge function with service_role key
-    // Convert times to UTC if they're in ET format
-    const shift = await scheduleBuilderCreateShift({
-      employee_id: input.employee_id,
-      start_time: input.start_time.includes('T') && !input.start_time.endsWith('Z')
-        ? etToUTC(input.start_time)
-        : input.start_time,
-      end_time: input.end_time.includes('T') && !input.end_time.endsWith('Z')
-        ? etToUTC(input.end_time)
-        : input.end_time,
-      location: input.location,
-      role: input.role || null
-    })
+    // Direct database insert (RLS policy allows ALL operations for anon users)
+    const { data, error } = await supabase
+      .from('draft_shifts')
+      .insert({
+        employee_id: input.employee_id,
+        start_time: input.start_time.includes('T') && !input.start_time.endsWith('Z')
+          ? etToUTC(input.start_time)
+          : input.start_time,
+        end_time: input.end_time.includes('T') && !input.end_time.endsWith('Z')
+          ? etToUTC(input.end_time)
+          : input.end_time,
+        location: input.location,
+        role: input.role || null
+      })
+      .select()
+      .single()
 
-    return shift as DraftShift
+    if (error) throw error
+    return data as DraftShift
   },
 
   /**
@@ -136,7 +136,7 @@ export const shiftService = {
       }
     }
 
-    // Update draft shift using edge function - convert times to UTC if needed
+    // Update draft shift directly - convert times to UTC if needed
     const updatesWithUTC = { ...updates }
     if (updates.start_time && updates.start_time.includes('T') && !updates.start_time.endsWith('Z')) {
       updatesWithUTC.start_time = etToUTC(updates.start_time)
@@ -145,16 +145,28 @@ export const shiftService = {
       updatesWithUTC.end_time = etToUTC(updates.end_time)
     }
 
-    const shift = await scheduleBuilderUpdateShift(shiftId, updatesWithUTC)
-    return shift as DraftShift
+    const { data, error } = await supabase
+      .from('draft_shifts')
+      .update(updatesWithUTC)
+      .eq('id', shiftId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data as DraftShift
   },
 
   /**
-   * Delete shift by ID using edge function (bypasses RLS)
-   * Works for both draft and published shifts
+   * Delete shift by ID
+   * Only works for draft shifts (RLS blocks published shifts)
    */
   async deleteShift(shiftId: number): Promise<void> {
-    await scheduleBuilderDeleteShift(shiftId)
+    const { error } = await supabase
+      .from('draft_shifts')
+      .delete()
+      .eq('id', shiftId)
+
+    if (error) throw error
   },
 
   /**
