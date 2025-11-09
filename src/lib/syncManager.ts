@@ -17,8 +17,7 @@ import {
   getQueuedEntries,
   removeFromQueue,
   updateQueueEntry,
-  getQueueCount,
-  type QueuedClockEntry
+  getQueueCount
 } from './offlineQueue';
 
 // Sync event types
@@ -64,7 +63,7 @@ function emitSyncEvent(event: SyncEvent) {
 
 // Sync state
 let isSyncing = false;
-let syncTimeout: NodeJS.Timeout | null = null;
+let syncTimeout: number | null = null;
 
 /**
  * Process the offline queue - sync all entries

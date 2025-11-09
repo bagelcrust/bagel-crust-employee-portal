@@ -13,7 +13,6 @@
 import { clockInOut, getLastClockEvent } from '../supabase/edgeFunctions';
 import { addToQueue } from './offlineQueue';
 import { syncOfflineQueue } from './syncManager';
-import { getDisplayName } from '../supabase/supabase';
 
 export interface ClockActionResult {
   success: boolean;
