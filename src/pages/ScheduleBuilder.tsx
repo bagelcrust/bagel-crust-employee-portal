@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy, Repeat } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy, Repeat, Clock } from 'lucide-react'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { useScheduleBuilder } from '../hooks'
@@ -903,6 +903,90 @@ export default function ScheduleBuilder() {
               </DragOverlay>
             </DndContext>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Employee Availability & Time-Off List */}
+      <div className="px-6 pb-6">
+        <div className="max-w-[1600px] mx-auto">
+          <div
+            className="rounded-xl overflow-hidden shadow-lg"
+            style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b" style={{ borderColor: 'rgba(0, 0, 0, 0.06)' }}>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Employee Availability & Time-Offs
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Regular availability and time-off notices for this week
+              </p>
+            </div>
+
+            {/* List */}
+            <div className="divide-y" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {employees.map((employee) => {
+                // Get time-offs for this employee this week
+                const employeeTimeOffs = timeOffs.filter(t => t.employee_id === employee.id)
+
+                return (
+                  <div
+                    key={employee.id}
+                    className="px-6 py-4 hover:bg-white/40 transition-colors"
+                    style={{ borderColor: 'rgba(0, 0, 0, 0.04)' }}
+                  >
+                    {/* Employee Name */}
+                    <div className="font-semibold text-gray-800 mb-2">
+                      {employee.first_name} {employee.last_name || ''}
+                    </div>
+
+                    {/* Availability */}
+                    <div className="flex items-start gap-2 text-sm mb-2">
+                      <Clock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-gray-600 font-medium">Available: </span>
+                        <span className="text-gray-700">Mon-Fri: 9:00 AM - 5:00 PM</span>
+                      </div>
+                    </div>
+
+                    {/* Time-Offs */}
+                    {employeeTimeOffs.length > 0 ? (
+                      <div className="flex items-start gap-2 text-sm">
+                        <Calendar className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-gray-600 font-medium">Time Off: </span>
+                          {employeeTimeOffs.map((timeOff, idx) => (
+                            <div key={timeOff.id} className="inline">
+                              {idx > 0 && ', '}
+                              <span className="text-orange-700 font-medium">
+                                {format(new Date(timeOff.start_time), 'MMM d')}
+                                {format(new Date(timeOff.start_time), 'yyyy-MM-dd') !== format(new Date(timeOff.end_time), 'yyyy-MM-dd') &&
+                                  ` - ${format(new Date(timeOff.end_time), 'MMM d')}`
+                                }
+                              </span>
+                              {timeOff.reason && (
+                                <span className="text-gray-600"> ({timeOff.reason})</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2 text-sm text-gray-500">
+                        <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <span>No time-offs this week</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
