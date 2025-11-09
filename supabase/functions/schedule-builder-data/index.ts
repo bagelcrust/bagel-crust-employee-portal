@@ -65,7 +65,8 @@ serve(async (req) => {
       draftShiftsResult,
       publishedShiftsResult,
       openShiftsResult,
-      timeOffsResult
+      timeOffsResult,
+      availabilityResult
     ] = await Promise.all([
       // Get all active employees with staff_two role
       supabase
@@ -106,7 +107,13 @@ serve(async (req) => {
         .select('*')
         .gte('start_time', weekStart.toISOString())
         .lte('start_time', weekEnd.toISOString())
-        .order('start_time')
+        .order('start_time'),
+
+      // Get all employee availability (recurring weekly schedules)
+      supabase
+        .from('availability')
+        .select('*')
+        .order('employee_id')
     ]);
 
     // Check for errors
@@ -115,12 +122,14 @@ serve(async (req) => {
     if (publishedShiftsResult.error) throw publishedShiftsResult.error;
     if (openShiftsResult.error) throw openShiftsResult.error;
     if (timeOffsResult.error) throw timeOffsResult.error;
+    if (availabilityResult.error) throw availabilityResult.error;
 
     const employees = employeesResult.data || [];
     const draftShifts = draftShiftsResult.data || [];
     const publishedShifts = publishedShiftsResult.data || [];
     const openShifts = openShiftsResult.data || [];
     const timeOffs = timeOffsResult.data || [];
+    const availability = availabilityResult.data || [];
 
     // Combine draft and published shifts with status discriminator
     const shifts = [
@@ -257,6 +266,35 @@ serve(async (req) => {
     });
 
     // ===================================================================
+    // ORGANIZE AVAILABILITY BY EMPLOYEE AND DAY
+    // ===================================================================
+    const dayOfWeekMap: Record<string, number> = {
+      'sunday': 0,
+      'monday': 1,
+      'tuesday': 2,
+      'wednesday': 3,
+      'thursday': 4,
+      'friday': 5,
+      'saturday': 6
+    };
+
+    const availabilityByEmployeeAndDay: Record<string, Record<number, any[]>> = {};
+
+    availability.forEach((avail) => {
+      const dayIndex = dayOfWeekMap[avail.day_of_week.toLowerCase()];
+      if (dayIndex === undefined) return;
+
+      if (!availabilityByEmployeeAndDay[avail.employee_id]) {
+        availabilityByEmployeeAndDay[avail.employee_id] = {};
+      }
+      if (!availabilityByEmployeeAndDay[avail.employee_id][dayIndex]) {
+        availabilityByEmployeeAndDay[avail.employee_id][dayIndex] = [];
+      }
+
+      availabilityByEmployeeAndDay[avail.employee_id][dayIndex].push(avail);
+    });
+
+    // ===================================================================
     // BUILD RESPONSE
     // ===================================================================
     const response = {
@@ -264,11 +302,13 @@ serve(async (req) => {
       shifts,
       openShifts,
       timeOffs,
+      availability,
       isPublished,
       weeklyHours: weeklyHoursObject,
       conflicts,
       shiftsByEmployeeAndDay,
       timeOffsByEmployeeAndDay,
+      availabilityByEmployeeAndDay,
       daysOfWeek: daysOfWeek.map(date => ({
         date: date.toISOString(),
         dayName: new Intl.DateTimeFormat('en-US', {

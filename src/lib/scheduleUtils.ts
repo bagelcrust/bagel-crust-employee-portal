@@ -292,3 +292,21 @@ export function formatShiftHours(hours: number): string {
 
   return `${wholeHours}h ${minutes}m`
 }
+
+/**
+ * Format availability time from database format to display format
+ * Converts "09:00:00" to "9:00 AM"
+ *
+ * @param timeString - Time in HH:MM:SS format
+ * @returns Formatted time string like "9:00 AM"
+ */
+export function formatAvailabilityTime(timeString: string): string {
+  // Parse "HH:MM:SS" format
+  const [hours, minutes] = timeString.split(':').map(Number)
+
+  // Convert to 12-hour format
+  const period = hours >= 12 ? 'PM' : 'AM'
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`
+}

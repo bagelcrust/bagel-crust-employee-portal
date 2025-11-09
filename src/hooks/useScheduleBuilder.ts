@@ -53,7 +53,7 @@ export function useScheduleBuilder() {
   }
 
   // Fetch ALL schedule builder data in a single HTTP request using Edge Function
-  // This aggregates: employees, draft shifts, published shifts, open shifts, time-offs, weekly hours, publish status
+  // This aggregates: employees, draft shifts, published shifts, open shifts, time-offs, availability, weekly hours, publish status
   // Reduces 7+ HTTP requests down to 1
   const { data: scheduleData, isLoading, refetch } = useQuery({
     queryKey: ['scheduleBuilderData', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
@@ -64,6 +64,13 @@ export function useScheduleBuilder() {
     staleTime: 2 * 60 * 1000, // 2 minutes
   })
 
+  // DEBUG: Log raw edge function response
+  console.log('🔌 EDGE FUNCTION RESPONSE:', {
+    isLoading,
+    hasData: !!scheduleData,
+    scheduleData: scheduleData
+  })
+
   // Extract data from edge function response
   const employees = (scheduleData?.employees || []) as Employee[]
   const shifts = (scheduleData?.shifts || []) as ScheduleShift[]
@@ -72,9 +79,18 @@ export function useScheduleBuilder() {
   const weeklyHours = scheduleData?.weeklyHours || {}
   const isWeekPublished = scheduleData?.isPublished || false
 
+  console.log('🔌 EXTRACTED DATA:', {
+    employeesCount: employees.length,
+    shiftsCount: shifts.length,
+    openShiftsCount: openShifts.length,
+    timeOffsCount: timeOffs.length,
+    isWeekPublished
+  })
+
   // Use pre-computed organization from edge function (avoid duplicate work)
   const shiftsByEmployeeAndDayFromServer = (scheduleData?.shiftsByEmployeeAndDay || {}) as Record<string, Record<number, ScheduleShift[]>>
   const timeOffsByEmployeeAndDayFromServer = (scheduleData?.timeOffsByEmployeeAndDay || {}) as Record<string, Record<number, TimeOff[]>>
+  const availabilityByEmployeeAndDayFromServer = (scheduleData?.availabilityByEmployeeAndDay || {}) as Record<string, Record<number, any[]>>
 
   // Refetch functions for backward compatibility
   const refetchShifts = refetch
@@ -105,6 +121,7 @@ export function useScheduleBuilder() {
   // Edge function already computed these - no need to do it again client-side
   const shiftsByEmployeeAndDay = shiftsByEmployeeAndDayFromServer
   const timeOffsByEmployeeAndDay = timeOffsByEmployeeAndDayFromServer
+  const availabilityByEmployeeAndDay = availabilityByEmployeeAndDayFromServer
 
   return {
     // Week data
@@ -126,6 +143,7 @@ export function useScheduleBuilder() {
     timeOffs,
     shiftsByEmployeeAndDay,
     timeOffsByEmployeeAndDay,
+    availabilityByEmployeeAndDay,
     weeklyHours: weeklyHours || {},
     isWeekPublished,
 

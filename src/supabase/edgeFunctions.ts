@@ -574,12 +574,27 @@ export async function getEmployeePortalData(employeeId: string) {
  * Reduces 6 HTTP requests down to 1
  */
 export async function getScheduleBuilderData(startDate: string, endDate: string) {
+  console.log('🌐 CALLING EDGE FUNCTION: schedule-builder-data', { startDate, endDate });
+
   const { data, error } = await supabase.functions.invoke('schedule-builder-data', {
     body: { startDate, endDate }
   });
 
-  if (error) throw new Error(`Failed to get schedule builder data: ${error.message || JSON.stringify(error)}`);
-  if (!data) throw new Error('Invalid response from schedule-builder-data Edge Function');
+  console.log('🌐 EDGE FUNCTION RESPONSE:', {
+    hasData: !!data,
+    hasError: !!error,
+    error: error,
+    data: data
+  });
+
+  if (error) {
+    console.error('❌ EDGE FUNCTION ERROR:', error);
+    throw new Error(`Failed to get schedule builder data: ${error.message || JSON.stringify(error)}`);
+  }
+  if (!data) {
+    console.error('❌ NO DATA FROM EDGE FUNCTION');
+    throw new Error('Invalid response from schedule-builder-data Edge Function');
+  }
 
   return data;
 }
