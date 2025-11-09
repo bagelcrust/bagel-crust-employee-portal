@@ -55,6 +55,7 @@ export default function ScheduleBuilder() {
     openShifts,
     shiftsByEmployeeAndDay,
     timeOffsByEmployeeAndDay,
+    timeOffs,
     weeklyHours,
     isWeekPublished,
     isLoading,
