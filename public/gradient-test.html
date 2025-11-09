@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gradient Examples Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      color: white;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 1.125rem;
+      margin-bottom: 3rem;
+    }
+    .options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+    .option-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      padding: 2rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .option-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .option-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 1rem;
+    }
+    .option-title {
+      color: white;
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .option-desc {
+      color: #cbd5e1;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(52, 211, 153, 0.1);
+      color: #34d399;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      margin-top: 0.5rem;
+    }
+    .preview {
+      width: 100%;
+      height: 600px;
+      border-radius: 1rem;
+      overflow: hidden;
+      margin-top: 2rem;
+      display: none;
+    }
+    .preview.active { display: block; }
+    .preview iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .back-btn {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .back-btn.active { display: inline-block; }
+    .back-btn:hover { background: rgba(59, 130, 246, 0.3); }
+
+    /* Inline previews */
+    .inline-preview {
+      width: 100%;
+      height: 500px;
+      border-radius: 1rem;
+      margin-top: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Option 1: Backdrop */
+    .preview-1 {
+      background: linear-gradient(to bottom right, #eff6ff, #faf5ff);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      position: relative;
+    }
+    .preview-1 .backdrop {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 600px;
+      background: linear-gradient(to bottom right, rgba(251, 207, 232, 0.4), rgba(191, 219, 254, 0.4), rgba(221, 214, 254, 0.4));
+      border-radius: 40px;
+      filter: blur(40px);
+      z-index: 0;
+    }
+    .preview-1 .content { position: relative; z-index: 1; }
+
+    /* Option 2: Static Blobs */
+    .preview-2 {
+      background: linear-gradient(to bottom right, #eff6ff, #faf5ff);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .preview-2 .blob1 {
+      position: absolute;
+      top: 25%;
+      left: 25%;
+      width: 500px;
+      height: 500px;
+      background: linear-gradient(to bottom right, rgba(147, 197, 253, 0.5), rgba(251, 207, 232, 0.5));
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.4;
+    }
+    .preview-2 .blob2 {
+      position: absolute;
+      bottom: 33%;
+      right: 25%;
+      width: 600px;
+      height: 600px;
+      background: linear-gradient(to bottom right, rgba(196, 181, 253, 0.4), rgba(251, 207, 232, 0.4));
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.4;
+    }
+    .preview-2 .content { position: relative; z-index: 1; }
+
+    /* Option 3: Vibrant Background */
+    .preview-3 {
+      background: linear-gradient(to bottom right, #bfdbfe, #fbcfe8);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+
+    /* Option 4: Glow */
+    .preview-4 {
+      background: linear-gradient(to bottom right, #eff6ff, #faf5ff);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+    .preview-4 .keypad-wrap {
+      position: relative;
+    }
+    .preview-4 .glow {
+      position: absolute;
+      inset: -1rem;
+      background: linear-gradient(to bottom right, rgba(251, 207, 232, 0.3), rgba(147, 197, 253, 0.3), rgba(196, 181, 253, 0.3));
+      border-radius: 24px;
+      filter: blur(30px);
+    }
+    .preview-4 .keypad { position: relative; }
+
+    /* Shared keypad styles */
+    .keypad-display {
+      height: 68px;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      margin-bottom: 1.25rem;
+    }
+    .keypad-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #2563eb;
+    }
+    .keypad-dot.empty {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 330px;
+    }
+    .keypad-btn {
+      height: 68px;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.625rem;
+      font-weight: 600;
+      color: #1f2937;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .clock-time {
+      font-size: 3.5rem;
+      font-weight: 600;
+      color: #1e293b;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .clock-date {
+      font-size: 0.9375rem;
+      color: #64748b;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: bold;
+      color: #0f172a;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Gradient Examples</h1>
+    <p class="subtitle">Click on any option to see it in detail</p>
+
+    <div class="options">
+      <!-- Option 1 -->
+      <div class="option-card" onclick="showPreview(1)">
+        <div class="option-number" style="background: linear-gradient(135deg, #ec4899 0%, #3b82f6 100%);">1</div>
+        <div class="option-title">Gradient Backdrop Behind Keypad</div>
+        <div class="option-desc">Soft pink/blue gradient panel behind the keypad area with blur effect. Gives depth without being too prominent.</div>
+        <span class="badge">Static • No performance impact</span>
+      </div>
+
+      <!-- Option 2 -->
+      <div class="option-card" onclick="showPreview(2)">
+        <div class="option-number" style="background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);">2</div>
+        <div class="option-title">Static Decorative Blobs</div>
+        <div class="option-desc">The same visual style as before, but NOT animated. Just static gradient circles with blur. Beautiful but zero performance cost.</div>
+        <span class="badge">Static • No performance impact</span>
+      </div>
+
+      <!-- Option 3 -->
+      <div class="option-card" onclick="showPreview(3)">
+        <div class="option-number" style="background: linear-gradient(135deg, #3b82f6 0%, #ec4899 100%);">3</div>
+        <div class="option-title">More Vibrant Page Background</div>
+        <div class="option-desc">Changes the page gradient from very subtle (blue-50/purple-50) to more colorful (blue-200/pink-200). More noticeable color.</div>
+        <span class="badge">Static • No performance impact</span>
+      </div>
+
+      <!-- Option 4 -->
+      <div class="option-card" onclick="showPreview(4)">
+        <div class="option-number" style="background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);">4</div>
+        <div class="option-title">Gradient Glow Around Keypad</div>
+        <div class="option-desc">Soft gradient glow effect surrounding the entire keypad area. Creates a halo/spotlight effect on the interactive area.</div>
+        <span class="badge">Static • No performance impact</span>
+      </div>
+    </div>
+
+    <!-- Preview sections -->
+    <div id="preview-container" style="display: none;">
+      <button class="back-btn" onclick="hidePreview()">← Back to Options</button>
+
+      <!-- Option 1 Preview -->
+      <div id="preview-1" class="inline-preview preview-1" style="display: none;">
+        <div class="backdrop"></div>
+        <div class="content">
+          <div class="page-title">Clock In / Clock Out</div>
+          <div class="clock-time">2:34 PM</div>
+          <div class="clock-date">Friday, November 8, 2024</div>
+          <div class="keypad-display">
+            <div class="keypad-dot"></div>
+            <div class="keypad-dot"></div>
+            <div class="keypad-dot empty"></div>
+            <div class="keypad-dot empty"></div>
+          </div>
+          <div class="keypad-grid">
+            <div class="keypad-btn">1</div><div class="keypad-btn">2</div><div class="keypad-btn">3</div>
+            <div class="keypad-btn">4</div><div class="keypad-btn">5</div><div class="keypad-btn">6</div>
+            <div class="keypad-btn">7</div><div class="keypad-btn">8</div><div class="keypad-btn">9</div>
+            <div class="keypad-btn" style="font-size: 1.375rem;">←</div><div class="keypad-btn">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 2 Preview -->
+      <div id="preview-2" class="inline-preview preview-2" style="display: none;">
+        <div class="blob1"></div>
+        <div class="blob2"></div>
+        <div class="content">
+          <div class="page-title">Clock In / Clock Out</div>
+          <div class="clock-time">2:34 PM</div>
+          <div class="clock-date">Friday, November 8, 2024</div>
+          <div class="keypad-display">
+            <div class="keypad-dot"></div>
+            <div class="keypad-dot"></div>
+            <div class="keypad-dot empty"></div>
+            <div class="keypad-dot empty"></div>
+          </div>
+          <div class="keypad-grid">
+            <div class="keypad-btn">1</div><div class="keypad-btn">2</div><div class="keypad-btn">3</div>
+            <div class="keypad-btn">4</div><div class="keypad-btn">5</div><div class="keypad-btn">6</div>
+            <div class="keypad-btn">7</div><div class="keypad-btn">8</div><div class="keypad-btn">9</div>
+            <div class="keypad-btn" style="font-size: 1.375rem;">←</div><div class="keypad-btn">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 3 Preview -->
+      <div id="preview-3" class="inline-preview preview-3" style="display: none;">
+        <div>
+          <div class="page-title">Clock In / Clock Out</div>
+          <div class="clock-time">2:34 PM</div>
+          <div class="clock-date">Friday, November 8, 2024</div>
+          <div class="keypad-display">
+            <div class="keypad-dot"></div>
+            <div class="keypad-dot"></div>
+            <div class="keypad-dot empty"></div>
+            <div class="keypad-dot empty"></div>
+          </div>
+          <div class="keypad-grid">
+            <div class="keypad-btn">1</div><div class="keypad-btn">2</div><div class="keypad-btn">3</div>
+            <div class="keypad-btn">4</div><div class="keypad-btn">5</div><div class="keypad-btn">6</div>
+            <div class="keypad-btn">7</div><div class="keypad-btn">8</div><div class="keypad-btn">9</div>
+            <div class="keypad-btn" style="font-size: 1.375rem;">←</div><div class="keypad-btn">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 4 Preview -->
+      <div id="preview-4" class="inline-preview preview-4" style="display: none;">
+        <div class="keypad-wrap">
+          <div class="glow"></div>
+          <div class="keypad">
+            <div class="page-title">Clock In / Clock Out</div>
+            <div class="clock-time">2:34 PM</div>
+            <div class="clock-date">Friday, November 8, 2024</div>
+            <div class="keypad-display">
+              <div class="keypad-dot"></div>
+              <div class="keypad-dot"></div>
+              <div class="keypad-dot empty"></div>
+              <div class="keypad-dot empty"></div>
+            </div>
+            <div class="keypad-grid">
+              <div class="keypad-btn">1</div><div class="keypad-btn">2</div><div class="keypad-btn">3</div>
+              <div class="keypad-btn">4</div><div class="keypad-btn">5</div><div class="keypad-btn">6</div>
+              <div class="keypad-btn">7</div><div class="keypad-btn">8</div><div class="keypad-btn">9</div>
+              <div class="keypad-btn" style="font-size: 1.375rem;">←</div><div class="keypad-btn">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showPreview(num) {
+      document.querySelector('.options').style.display = 'none';
+      document.querySelector('h1').style.display = 'none';
+      document.querySelector('.subtitle').style.display = 'none';
+      document.getElementById('preview-container').style.display = 'block';
+      document.querySelector('.back-btn').classList.add('active');
+      document.getElementById('preview-' + num).style.display = 'flex';
+    }
+
+    function hidePreview() {
+      document.querySelector('.options').style.display = 'grid';
+      document.querySelector('h1').style.display = 'block';
+      document.querySelector('.subtitle').style.display = 'block';
+      document.getElementById('preview-container').style.display = 'none';
+      document.querySelector('.back-btn').classList.remove('active');
+      document.querySelectorAll('.inline-preview').forEach(p => p.style.display = 'none');
+    }
+  </script>
+</body>
+</html>

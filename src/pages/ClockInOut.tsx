@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { getDisplayName, supabase } from '../supabase/supabase'
-import { getEmployeeByPin, clockInOut, getClockTerminalData } from '../supabase/edgeFunctions'
+import { getEmployeeByPin, getClockTerminalData } from '../supabase/edgeFunctions'
 import { Keypad } from '../components/Keypad'
+import { offlineClockAction } from '../lib/offlineClockAction'
+import { startSyncManager, onSyncEvent, getSyncStatus, type SyncEvent } from '../lib/syncManager'
 
 // CRITICAL TEST: This should fire immediately when file loads (DEV only)
 if (import.meta.env.DEV) {
@@ -101,6 +103,7 @@ export default function ClockInOut() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected')
   const [criticalError, setCriticalError] = useState<string | null>(null)
+  const [syncStatus, setSyncStatus] = useState<SyncEvent>({ status: 'idle', queueCount: 0 })
 
   // AutoAnimate ref for smooth Recent Activity transitions
   const [activityListRef] = useAutoAnimate()
@@ -113,6 +116,24 @@ export default function ClockInOut() {
 
     // Set page title for clock terminal
     document.title = 'Bagel Crust - Clock In/Out'
+
+    // OFFLINE QUEUE: Initialize sync manager
+    log('Offline Queue', '🔄 Starting sync manager...')
+    startSyncManager()
+
+    // Subscribe to sync events
+    const unsubscribe = onSyncEvent((event) => {
+      logSuccess('Sync Event', `Sync status: ${event.status}`, event)
+      setSyncStatus(event)
+    })
+
+    // Get initial sync status
+    getSyncStatus().then(status => {
+      log('Offline Queue', 'Initial sync status', status)
+      setSyncStatus(status)
+    }).catch(error => {
+      logError('Offline Queue', 'Failed to get initial sync status', error)
+    })
 
     const updateTime = () => {
       const now = new Date()
@@ -199,6 +220,8 @@ export default function ClockInOut() {
       window.removeEventListener('offline', handleOffline)
       log('Realtime', 'Unsubscribing from Realtime channel')
       subscription.unsubscribe()
+      log('Offline Queue', 'Unsubscribing from sync events')
+      unsubscribe()
     }
   }, []) // Empty dependency array - only run once on mount
 
@@ -286,61 +309,53 @@ export default function ClockInOut() {
         return
       }
 
+      // TEST USER VALIDATION: Block test user (PIN 9999) in production mode
+      // Test user can only clock in/out when devMode is enabled
+      if (pin === '9999' && !devMode) {
+        logWarning('Clock Action', `🚫 Test user blocked in production mode (PIN: 9999)`)
+        setMessage('Invalid PIN - Please try again')
+        setMessageType('error')
+        setKeypadKey(prev => prev + 1)
+        setTimeout(() => {
+          setMessage('')
+          setMessageType('')
+        }, 3000)
+        setIsProcessing(false)
+        return
+      }
+
       logSuccess('Clock Action', `✅ Employee found in ${lookupDuration}ms`, {
         employee: `${employee.first_name} ${employee.last_name}`,
         id: employee.id,
         duration: `${lookupDuration}ms`
       })
 
-      // Step 2: Perform clock action (with timeout and retry)
-      log('Clock Action', '📍 Step 2/3: Performing clock in/out operation...')
-      let event
-      let retryCount = 0
-      const maxRetries = 2
-
-      while (retryCount <= maxRetries) {
-        const attemptNumber = retryCount + 1
-        const clockStartTime = performance.now()
-        log('Clock Action', `Attempt ${attemptNumber}/${maxRetries + 1}`)
-
-        try {
-          const clockPromise = clockInOut(employee.id)
-          const clockTimeout = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Clock action timeout after 15 seconds')), 15000)
-          )
-
-          event = await Promise.race([clockPromise, clockTimeout]) as any
-
-          const clockDuration = Math.round(performance.now() - clockStartTime)
-          logSuccess('Clock Action', `✅ Clock operation successful in ${clockDuration}ms`, {
-            eventType: event.event_type,
-            eventId: event.id,
-            attempt: attemptNumber,
-            duration: `${clockDuration}ms`
-          })
-          break // Success, exit retry loop
-
-        } catch (retryError) {
-          const clockDuration = Math.round(performance.now() - clockStartTime)
-          retryCount++
-          if (retryCount > maxRetries) {
-            logError('Clock Action', `❌ All ${maxRetries + 1} attempts failed`, { totalDuration: `${clockDuration}ms` })
-            throw retryError // Give up after max retries
-          }
-          logWarning('Clock Action', `⚠️ Attempt ${attemptNumber} failed, retrying in 1s...`, {
-            error: retryError,
-            duration: `${clockDuration}ms`
-          })
-          await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second before retry
-        }
-      }
-
+      // Step 2: Perform clock action (with offline fallback)
+      log('Clock Action', '📍 Step 2/3: Performing clock in/out operation (offline-aware)...')
       const displayName = getDisplayName(employee)
-      const action = event.event_type === 'in' ? 'clocked in' : 'clocked out'
+      const clockStartTime = performance.now()
+
+      const result = await offlineClockAction(employee.id, displayName)
+
+      const clockDuration = Math.round(performance.now() - clockStartTime)
+      logSuccess('Clock Action', `✅ Clock operation completed in ${clockDuration}ms`, {
+        eventType: result.event.event_type,
+        isOffline: result.isOffline,
+        duration: `${clockDuration}ms`
+      })
+
+      const action = result.event.event_type === 'in' ? 'clocked in' : 'clocked out'
 
       log('Clock Action', '📍 Step 3/3: Updating UI and refreshing events...')
-      setMessage(`${displayName} successfully ${action}`)
-      setMessageType(event.event_type === 'in' ? 'success' : 'clockout')
+
+      // Show different message based on online/offline
+      if (result.isOffline) {
+        setMessage(`${displayName} ${action} (saved offline)`)
+        setMessageType('success') // Still show as success (optimistic UI)
+      } else {
+        setMessage(`${displayName} successfully ${action}`)
+        setMessageType(result.event.event_type === 'in' ? 'success' : 'clockout')
+      }
       log('State', 'Success message displayed to user')
 
       // Real-time subscription will handle updating the list automatically
@@ -474,19 +489,42 @@ export default function ClockInOut() {
           <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
             Recent Activity
           </h3>
-          {/* Realtime connection indicator (DEV mode only) */}
-          {devMode && (
-            <div className={`w-2 h-2 rounded-full ${
-              realtimeStatus === 'connected' ? 'bg-green-500' :
-              realtimeStatus === 'error' ? 'bg-red-500' :
-              'bg-gray-400'
-            }`} title={`Realtime: ${realtimeStatus}`} />
-          )}
+          <div className="flex items-center gap-2">
+            {/* Sync status indicator */}
+            {syncStatus.queueCount > 0 && (
+              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                syncStatus.status === 'syncing'
+                  ? 'bg-blue-400/20 text-blue-600 animate-pulse'
+                  : 'bg-yellow-400/20 text-yellow-600'
+              }`} title={syncStatus.message}>
+                {syncStatus.status === 'syncing' ? '⟳' : '●'}
+                <span>{syncStatus.queueCount}</span>
+              </div>
+            )}
+            {/* Realtime connection indicator (DEV mode only) */}
+            {devMode && (
+              <div className={`w-2 h-2 rounded-full ${
+                realtimeStatus === 'connected' ? 'bg-green-500' :
+                realtimeStatus === 'error' ? 'bg-red-500' :
+                'bg-gray-400'
+              }`} title={`Realtime: ${realtimeStatus}`} />
+            )}
+          </div>
         </div>
 
         {recentEvents.length > 0 ? (
           <div ref={activityListRef} className="flex flex-col gap-2">
-            {recentEvents.slice(0, 5).map((event) => (
+            {recentEvents
+              .filter(event => {
+                // FILTER TEST USER: Hide test user (employeeId: bbb42de4-61b0-45cc-ae92-2e6dec6b53ee) in production mode
+                // Test user entries only show when devMode is enabled
+                if (!devMode && event.employeeId === 'bbb42de4-61b0-45cc-ae92-2e6dec6b53ee') {
+                  return false;
+                }
+                return true;
+              })
+              .slice(0, 5)
+              .map((event) => (
               <div
                 key={event.id}
                 className="flex items-center justify-between py-2 border-b border-black/5"
