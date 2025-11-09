@@ -1100,7 +1100,7 @@ export default function ScheduleBuilder() {
                                     </div>
                                   ) : (
                                     <div className="h-full min-h-[35px] flex items-center justify-center">
-                                      {!hasTimeOff && (
+                                      {!hasAllDayTimeOff && (
                                         <Plus className="w-4 h-4 text-gray-300 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100" />
                                       )}
                                     </div>
