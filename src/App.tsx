@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDynamicManifest } from './hooks';
 import * as Sentry from '@sentry/react';
 import { initSentry } from './lib/sentry';
@@ -33,6 +34,16 @@ import { Toaster } from '@/components/ui/toaster';
 // Initialize Sentry error tracking
 initSentry();
 
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
 // Lazy load page components
 const ClockInOut = lazy(() => import('./pages/ClockInOut'));
 const EmployeePortal = lazy(() => import('./pages/EmployeePortal'));
@@ -59,8 +70,9 @@ function ManifestUpdater() {
 
 function App() {
   return (
-    <Sentry.ErrorBoundary
-      fallback={({ error, resetError }) => {
+    <QueryClientProvider client={queryClient}>
+      <Sentry.ErrorBoundary
+        fallback={({ error, resetError }) => {
         const errorMessage = error instanceof Error ? error.message : String(error);
 
         return (
@@ -101,6 +113,7 @@ function App() {
         <Toaster />
       </Router>
     </Sentry.ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 
