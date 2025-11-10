@@ -45,7 +45,8 @@ const STAFF_ONE_TABS: TabConfig[] = [
  */
 export function getTabsForRole(role: string): TabConfig[] {
   // Normalize role: trim whitespace and convert to lowercase for comparison
-  const normalizedRole = role?.trim().toLowerCase()
+  // Handle undefined/null roles gracefully
+  const normalizedRole = role?.trim()?.toLowerCase()
 
   // Staff 1 only gets Hours tab
   if (normalizedRole === 'staff_one') {

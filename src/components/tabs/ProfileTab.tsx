@@ -30,6 +30,15 @@ export function ProfileTab({ employee, onLogout, t }: ProfileTabProps) {
 
         <div className="p-3.5 border-b border-black/5">
           <div className="text-[13px] text-gray-500 mb-1 font-medium">
+            {t.role}
+          </div>
+          <div className="font-semibold text-gray-800 text-[15px]">
+            {employee?.role || 'Not set'}
+          </div>
+        </div>
+
+        <div className="p-3.5 border-b border-black/5">
+          <div className="text-[13px] text-gray-500 mb-1 font-medium">
             PIN
           </div>
           <div className="font-semibold text-gray-800 text-[15px]">
