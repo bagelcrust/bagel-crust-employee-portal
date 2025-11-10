@@ -485,6 +485,20 @@ export default function ScheduleBuilder() {
       return
     }
 
+    // Check if employee has no availability on target day
+    const availabilityForTargetDay = availabilityByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
+    const partialTimeOffsForDay = timeOffsForDay.filter(timeOff => !isAllDayTimeOff(timeOff))
+    const hasNoAvailability = availabilityForTargetDay.length === 0 && partialTimeOffsForDay.length === 0
+    if (hasNoAvailability) {
+      console.log('❌ Cannot drop - employee is not available:', targetDayIndex)
+      toast({
+        title: 'Cannot Move Shift',
+        description: 'Cannot move shift to a day when employee is not available',
+        variant: 'destructive',
+      })
+      return
+    }
+
     console.log('🚀 Moving shift:', {
       shiftId: activeShift.id,
       from: { employeeId: activeShift.employee_id, date: activeShift.start_time },
@@ -676,7 +690,7 @@ export default function ScheduleBuilder() {
     const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
 
     // Get availability for this employee on this day (sorted by start time)
-    const availabilityForDay = (availabilityByEmployeeAndDay[employeeId]?.[dayIndex] || [])
+    const allAvailability = (availabilityByEmployeeAndDay[employeeId]?.[dayIndex] || [])
       .sort((a, b) => {
         const aTime = a.start_time.split(':').map(Number)
         const bTime = b.start_time.split(':').map(Number)
@@ -689,18 +703,47 @@ export default function ScheduleBuilder() {
     // Check for partial time-offs (not all-day)
     const partialTimeOffs = timeOffsForDay.filter(timeOff => !isAllDayTimeOff(timeOff))
 
+    // Helper: Check if two time ranges overlap
+    const timeRangesOverlap = (start1: string, end1: string, start2: string, end2: string) => {
+      const parseTime = (timeStr: string) => {
+        // Handle both timestamp formats (ISO: "2025-11-14T07:00:00") and time-only formats ("07:00:00")
+        let time = timeStr
+        if (timeStr.includes('T')) {
+          // Convert UTC timestamp to Eastern Time before extracting time portion
+          const date = new Date(timeStr)
+          const easternTime = date.toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          })
+          time = easternTime
+        }
+        const [h, m] = time.split(':').map(Number)
+        return h * 60 + m
+      }
+      const s1 = parseTime(start1)
+      const e1 = parseTime(end1)
+      const s2 = parseTime(start2)
+      const e2 = parseTime(end2)
+      return s1 < e2 && s2 < e1
+    }
+
+    // Filter availability to exclude time-off periods (only show truly available times)
+    const availabilityForDay = allAvailability.filter(avail => {
+      // Exclude if it overlaps with any partial time-off
+      const hasOverlap = partialTimeOffs.some(timeOff =>
+        timeRangesOverlap(avail.start_time, avail.end_time, timeOff.start_time, timeOff.end_time)
+      )
+      return !hasOverlap
+    })
+
     // Check if employee has NO availability at all (not available)
     const hasNoAvailability = availabilityForDay.length === 0 && !hasAllDayTimeOff && partialTimeOffs.length === 0
 
     // Hide availability overlay if there are already shifts scheduled
     const showAvailability = shiftsForDay.length === 0
-
-    // Format partial time-off times for display
-    const partialTimeOffText = partialTimeOffs.length > 0
-      ? partialTimeOffs.map(timeOff =>
-          `${formatShiftTime(timeOff.start_time, timeOff.end_time)}`
-        ).join(', ')
-      : null
 
     // Handle clicking on availability block to preset times
     const handleAvailabilityClick = (avail: any) => {
@@ -722,13 +765,14 @@ export default function ScheduleBuilder() {
     return (
       <td
         ref={setNodeRef}
-        className={`${className} ${isOver && !hasTimeOff ? 'bg-blue-100/50 ring-2 ring-blue-400' : ''} group relative`}
+        className={`${className} ${isOver && !hasTimeOff && !hasNoAvailability ? 'bg-blue-100/50 ring-2 ring-blue-400' : ''} ${hasNoAvailability || hasAllDayTimeOff ? 'cursor-not-allowed' : 'cursor-pointer'} group relative`}
         style={style}
         onClick={(e) => {
           // Only handle cell click if clicking empty space (not on a shift card)
           const target = e.target as HTMLElement
           const isClickingShift = target.closest('.shift-card')
-          if (!hasTimeOff && !isClickingShift) {
+          // Prevent clicking on unavailable cells (time-off or no availability)
+          if (!hasTimeOff && !hasNoAvailability && !isClickingShift) {
             handleCellClick(employeeId, employeeName, daysOfWeek[dayIndex]?.date || new Date(), dayIndex)
           }
         }}
@@ -762,45 +806,28 @@ export default function ScheduleBuilder() {
               Not Available
             </p>
           </div>
-        ) : showAvailability && (availabilityForDay.length > 0 || partialTimeOffText) ? (
-          // Show availability and/or partial time-off with mixed background
+        ) : showAvailability && availabilityForDay.length > 0 ? (
+          // Show only available times (green overlay)
           <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center gap-1"
             style={{
-              background: partialTimeOffText
-                ? 'linear-gradient(to bottom, rgba(134, 239, 172, 0.3) 0%, rgba(134, 239, 172, 0.3) 50%, rgba(251, 146, 60, 0.2) 50%, rgba(251, 146, 60, 0.2) 100%)'
-                : 'rgba(134, 239, 172, 0.3)',
+              background: 'rgba(134, 239, 172, 0.3)',
             }}
           >
             {/* Clickable availability blocks */}
-            {availabilityForDay.length > 0 && (
-              <div className="text-center pointer-events-auto space-y-1">
-                {availabilityForDay.map((avail, idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAvailabilityClick(avail)
-                    }}
-                    className="block w-full text-xs font-medium text-gray-700 hover:text-green-900 hover:bg-green-200/50 px-2 py-1 rounded transition-colors cursor-pointer"
-                  >
-                    {formatAvailabilityTime(avail.start_time)} - {formatAvailabilityTime(avail.end_time)}
-                  </button>
-                ))}
-              </div>
-            )}
-            {partialTimeOffText && (
-              <div className="text-center">
-                <p className="text-xs font-semibold text-orange-900">Time Off</p>
-                <p className="text-xs font-medium text-orange-800">
-                  {partialTimeOffText}
-                </p>
-                {partialTimeOffs[0].reason && (
-                  <p className="text-xs text-orange-700">
-                    ({partialTimeOffs[0].reason})
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="text-center pointer-events-auto space-y-1">
+              {availabilityForDay.map((avail, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAvailabilityClick(avail)
+                  }}
+                  className="block w-full text-xs font-medium text-gray-700 hover:text-green-900 hover:bg-green-200/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                >
+                  {formatAvailabilityTime(avail.start_time)} - {formatAvailabilityTime(avail.end_time)}
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
       </td>

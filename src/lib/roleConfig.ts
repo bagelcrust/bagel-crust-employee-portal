@@ -4,6 +4,7 @@
  * Defines which tabs each employee role can access in the Employee Portal.
  *
  * ROLE PERMISSIONS:
+ * - test: All tabs (for development/testing - sees everything)
  * - staff_one: Only Hours tab (typically Spanish-speaking production staff)
  * - staff_two, cashier: Standard tabs (Schedule, Time Off, Hours, Profile)
  * - owner: Management tabs (Schedule, Payroll, Profile) - No Time Off or Hours
@@ -16,6 +17,15 @@ export interface TabConfig {
   label: string
   iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user'
 }
+
+// Test role sees ALL tabs (for development/testing)
+const TEST_TABS: TabConfig[] = [
+  { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
+  { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
+  { key: 'timesheet', label: 'Hours', iconName: 'clock' },
+  { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
+  { key: 'profile', label: 'Profile', iconName: 'user' }
+]
 
 // Standard tabs (staff_two, cashier, etc.)
 const STANDARD_TABS: TabConfig[] = [
@@ -47,6 +57,11 @@ export function getTabsForRole(role: string): TabConfig[] {
   // Normalize role: trim whitespace and convert to lowercase for comparison
   // Handle undefined/null roles gracefully
   const normalizedRole = role?.trim()?.toLowerCase()
+
+  // Test role sees ALL tabs (for development/testing)
+  if (normalizedRole === 'test') {
+    return TEST_TABS
+  }
 
   // Staff 1 only gets Hours tab
   if (normalizedRole === 'staff_one') {

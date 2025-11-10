@@ -108,21 +108,21 @@ export function EditShiftDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Edit Shift for {employeeName}
-            <Badge variant={shift.status === 'published' ? 'default' : 'secondary'}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader className="space-y-3">
+          <div className="flex items-center gap-3">
+            <DialogTitle className="text-xl">Edit Shift for {employeeName}</DialogTitle>
+            <Badge variant={shift.status === 'published' ? 'default' : 'secondary'} className="shrink-0">
               {shift.status === 'published' ? 'Published' : 'Draft'}
             </Badge>
-          </DialogTitle>
-          <DialogDescription>
+          </div>
+          <DialogDescription className="text-base">
             {shiftDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </DialogDescription>
         </DialogHeader>
 
         {shift.status === 'published' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm font-medium text-blue-900">
               ℹ️ This shift is published
             </p>
@@ -132,52 +132,56 @@ export function EditShiftDialog({
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-start-time" className="text-right">
-                Start Time
-              </Label>
-              <Input
-                id="edit-start-time"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-end-time" className="text-right">
-                End Time
-              </Label>
-              <Input
-                id="edit-end-time"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-location" className="text-right">
-                Location
-              </Label>
-              <Input
-                id="edit-location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="col-span-3"
-                placeholder="Calder"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+          {/* Start Time */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-start-time" className="text-sm font-medium">
+              Start Time
+            </Label>
+            <Input
+              id="edit-start-time"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full text-base h-11"
+              required
+            />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+
+          {/* End Time */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-end-time" className="text-sm font-medium">
+              End Time
+            </Label>
+            <Input
+              id="edit-end-time"
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full text-base h-11"
+              required
+            />
+          </div>
+
+          {/* Location */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-location" className="text-sm font-medium">
+              Location
+            </Label>
+            <Input
+              id="edit-location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full text-base h-11"
+              placeholder="Calder"
+            />
+          </div>
+
+          <DialogFooter className="gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-[100px]">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="min-w-[120px]">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>

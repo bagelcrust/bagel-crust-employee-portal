@@ -106,16 +106,16 @@ export function AddShiftDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Add Shift for {employeeName}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-xl">Add Shift for {employeeName}</DialogTitle>
+          <DialogDescription className="text-base">
             {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </DialogDescription>
         </DialogHeader>
 
         {hasTimeOff && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <p className="text-sm font-medium text-orange-900">
               ⚠️ {employeeName} has time-off on this day
             </p>
@@ -123,64 +123,70 @@ export function AddShiftDialog({
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="start-time" className="text-right">
-                Start Time
-              </Label>
-              <Input
-                id="start-time"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="end-time" className="text-right">
-                End Time
-              </Label>
-              <Input
-                id="end-time"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">
-                Location
-              </Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="col-span-3"
-                placeholder="Calder"
-              />
-            </div>
-            <div className="flex items-center space-x-2 col-span-4 ml-auto">
-              <input
-                type="checkbox"
-                id="open-shift"
-                checked={isOpenShift}
-                onChange={(e) => setIsOpenShift(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="open-shift" className="text-sm font-normal cursor-pointer">
-                Create as Open Shift (unassigned, anyone can take it)
-              </Label>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+          {/* Start Time */}
+          <div className="space-y-2">
+            <Label htmlFor="start-time" className="text-sm font-medium">
+              Start Time
+            </Label>
+            <Input
+              id="start-time"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full text-base h-11"
+              required
+            />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+
+          {/* End Time */}
+          <div className="space-y-2">
+            <Label htmlFor="end-time" className="text-sm font-medium">
+              End Time
+            </Label>
+            <Input
+              id="end-time"
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full text-base h-11"
+              required
+            />
+          </div>
+
+          {/* Location */}
+          <div className="space-y-2">
+            <Label htmlFor="location" className="text-sm font-medium">
+              Location
+            </Label>
+            <Input
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full text-base h-11"
+              placeholder="Calder"
+            />
+          </div>
+
+          {/* Open Shift Checkbox */}
+          <div className="flex items-start space-x-3 pt-2">
+            <input
+              type="checkbox"
+              id="open-shift"
+              checked={isOpenShift}
+              onChange={(e) => setIsOpenShift(e.target.checked)}
+              className="h-5 w-5 mt-0.5 rounded border-gray-300 cursor-pointer"
+            />
+            <Label htmlFor="open-shift" className="text-sm font-normal cursor-pointer leading-relaxed">
+              Create as Open Shift (unassigned, anyone can take it)
+            </Label>
+          </div>
+
+          <DialogFooter className="gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-[100px]">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="min-w-[120px]">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Shift
             </Button>

@@ -110,16 +110,10 @@ export function TimeOffTab({
                     {days} day{days !== 1 ? 's' : ''}
                   </div>
                   {request.reason && (
-                    <div className="text-sm text-gray-400 italic mb-1.5">
+                    <div className="text-sm text-gray-400 italic">
                       {request.reason}
                     </div>
                   )}
-                  <div className={`text-xs font-semibold uppercase tracking-wide ${
-                    request.status === 'pending' ? 'text-amber-500' :
-                    request.status === 'approved' ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {request.status}
-                  </div>
                 </div>
               )
             })}

@@ -23,26 +23,36 @@ interface WorkedShift {
   isIncomplete?: boolean
 }
 
+interface PayRateArrangement {
+  id: number
+  rate: number
+  payment_method: string
+  pay_schedule: string | null
+  tax_classification: string | null
+}
+
 interface EmployeePayroll {
   id: string
   name: string
   role: string
   totalHours: number
-  hourlyRate: number
-  totalPay: number
   hasIncompleteShifts: boolean
   workedShifts: WorkedShift[]
   payrollRecordId?: number
   isPaid: boolean
-  defaultPaymentMethod: string
+  payRateArrangements: PayRateArrangement[]
+  selectedArrangement?: PayRateArrangement
+  paidArrangements: Map<number, { hours: number; pay: number }> // Track paid arrangements
   paymentMethod?: string
-  checkNumber?: string
   paymentDate?: string
+  // Computed from selectedArrangement
+  hourlyRate?: number
+  totalPay?: number
 }
 
 export function PayrollTab() {
   const [loading, setLoading] = useState(true)
-  const [weekSelection, setWeekSelection] = useState<'this' | 'last'>('last') // Default to last week
+  const [weekSelection, setWeekSelection] = useState<'this' | 'last' | 'lastPayPeriod'>('last') // Default to last week
   const [employees, setEmployees] = useState<EmployeePayroll[]>([])
   const [finalizingEmployee, setFinalizingEmployee] = useState<string | null>(null)
 
@@ -56,11 +66,28 @@ export function PayrollTab() {
       // Determine date range in Eastern Time
       const nowET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
       const todayET = new Date(nowET)
-      const referenceDate = weekSelection === 'this' ? todayET : subWeeks(todayET, 1)
-      const mondayET = startOfWeek(referenceDate, { weekStartsOn: 1 })
-      const sundayET = endOfWeek(referenceDate, { weekStartsOn: 1 })
-      const startDateET = format(mondayET, 'yyyy-MM-dd')
-      const endDateET = format(sundayET, 'yyyy-MM-dd')
+
+      // Calculate date range based on selection
+      let startDateET: string
+      let endDateET: string
+
+      if (weekSelection === 'lastPayPeriod') {
+        // Last Pay Period = Last 2 weeks combined (for bi-weekly W-2 employees)
+        // From Monday of 2 weeks ago through Sunday of last week
+        const twoWeeksAgo = subWeeks(todayET, 2)
+        const oneWeekAgo = subWeeks(todayET, 1)
+        const mondayET = startOfWeek(twoWeeksAgo, { weekStartsOn: 1 })
+        const sundayET = endOfWeek(oneWeekAgo, { weekStartsOn: 1 })
+        startDateET = format(mondayET, 'yyyy-MM-dd')
+        endDateET = format(sundayET, 'yyyy-MM-dd')
+      } else {
+        // This Week or Last Week = Single week
+        const referenceDate = weekSelection === 'this' ? todayET : subWeeks(todayET, 1)
+        const mondayET = startOfWeek(referenceDate, { weekStartsOn: 1 })
+        const sundayET = endOfWeek(referenceDate, { weekStartsOn: 1 })
+        startDateET = format(mondayET, 'yyyy-MM-dd')
+        endDateET = format(sundayET, 'yyyy-MM-dd')
+      }
 
       // Fetch data in parallel
       const [employeesData, eventsInRange, payRatesData, existingPayrollRecords] = await Promise.all([
@@ -75,20 +102,31 @@ export function PayrollTab() {
           .lte('pay_period_end', endDateET)
       ])
 
-      // Create pay rates map with payment method
-      const payRatesMap = new Map<string, { rate: number; paymentMethod: string }>()
+      // Create pay rates map - employees can have MULTIPLE active pay arrangements
+      // (e.g., Carlos has both 1099/Weekly and W-2/Bi-weekly)
+      const payRatesMap = new Map<string, PayRateArrangement[]>()
       payRatesData.forEach((rate: any) => {
-        payRatesMap.set(rate.employee_id, {
+        const arrangement: PayRateArrangement = {
+          id: rate.id,
           rate: parseFloat(rate.rate.toString()),
-          paymentMethod: rate.payment_method || 'cash'
-        })
+          payment_method: rate.payment_method || 'cash',
+          pay_schedule: rate.pay_schedule,
+          tax_classification: rate.tax_classification
+        }
+
+        const existing = payRatesMap.get(rate.employee_id) || []
+        existing.push(arrangement)
+        payRatesMap.set(rate.employee_id, existing)
       })
 
-      // Create payroll records map (employee_id -> record)
-      const payrollRecordsMap = new Map<string, any>()
+      // Create payroll records map (employee_id -> array of records)
+      // Multiple records possible for employees like Carlos/Mere with split arrangements
+      const payrollRecordsMap = new Map<string, any[]>()
       if (existingPayrollRecords.data && existingPayrollRecords.data.length > 0) {
         existingPayrollRecords.data.forEach((record: any) => {
-          payrollRecordsMap.set(record.employee_id, record)
+          const existing = payrollRecordsMap.get(record.employee_id) || []
+          existing.push(record)
+          payrollRecordsMap.set(record.employee_id, existing)
         })
       }
 
@@ -144,32 +182,75 @@ export function PayrollTab() {
             })
           }
 
-          const payRateInfo = payRatesMap.get(employee.id)
-          const hourlyRate = payRateInfo?.rate || 0
-          const defaultPaymentMethod = payRateInfo?.paymentMethod || 'cash'
-          const totalPay = totalHours * hourlyRate
+          // Get all pay rate arrangements for this employee
+          const arrangements = payRatesMap.get(employee.id) || []
 
-          // Check if this employee has a payroll record
-          const payrollRecord = payrollRecordsMap.get(employee.id)
+          // Check if this employee has payroll records
+          const payrollRecords = payrollRecordsMap.get(employee.id) || []
+
+          // Build map of paid arrangements: arrangement_id -> { hours, pay }
+          const paidArrangements = new Map<number, { hours: number; pay: number }>()
+          payrollRecords.forEach((record: any) => {
+            if (record.status === 'paid') {
+              // If pay_rate_id exists, use it to track specific arrangement
+              if (record.pay_rate_id) {
+                paidArrangements.set(record.pay_rate_id, {
+                  hours: parseFloat(record.total_hours),
+                  pay: parseFloat(record.gross_pay)
+                })
+              } else {
+                // Legacy record without pay_rate_id - mark first arrangement as paid
+                if (arrangements.length > 0) {
+                  paidArrangements.set(arrangements[0].id, {
+                    hours: parseFloat(record.total_hours),
+                    pay: parseFloat(record.gross_pay)
+                  })
+                }
+              }
+            }
+          })
+
+          // Find first unpaid arrangement (or first arrangement if all paid)
+          const unpaidArrangements = arrangements.filter(arr => !paidArrangements.has(arr.id))
+          const selectedArrangement = unpaidArrangements[0] || arrangements[0]
+
+          // Employee is fully paid if all arrangements are paid AND they have worked hours
+          const isFullyPaid = arrangements.length > 0 && arrangements.every(arr => paidArrangements.has(arr.id))
+
+          const hourlyRate = selectedArrangement?.rate || 0
+          const totalPay = totalHours * hourlyRate
 
           return {
             id: employee.id,
             name: getDisplayName(employee),
             role: employee.role || 'Staff',
             totalHours,
-            hourlyRate,
-            totalPay,
             hasIncompleteShifts,
             workedShifts,
-            payrollRecordId: payrollRecord?.id,
-            isPaid: payrollRecord?.status === 'paid',
-            defaultPaymentMethod,
-            paymentMethod: payrollRecord?.payment_method || defaultPaymentMethod,
-            checkNumber: payrollRecord?.check_number,
-            paymentDate: payrollRecord?.payment_date
+            payRateArrangements: arrangements,
+            selectedArrangement,
+            paidArrangements,
+            hourlyRate,
+            totalPay,
+            payrollRecordId: payrollRecords[0]?.id,
+            isPaid: isFullyPaid,
+            paymentMethod: payrollRecords[0]?.payment_method,
+            paymentDate: payrollRecords[0]?.payment_date
           }
         })
-        .filter((emp: EmployeePayroll) => emp.totalHours > 0 || emp.hasIncompleteShifts)
+        .filter((emp: EmployeePayroll) => {
+          // Filter out test users (role "test" or name starting with "Test")
+          const isTestUser = emp.role === 'test' || emp.name.startsWith('Test')
+
+          // For "Last Pay Period" view, only show bi-weekly employees
+          if (weekSelection === 'lastPayPeriod') {
+            const hasBiweeklyArrangement = emp.payRateArrangements.some(arr => arr.pay_schedule === 'Bi-weekly')
+            return (emp.totalHours > 0 || emp.hasIncompleteShifts) && !isTestUser && hasBiweeklyArrangement
+          }
+
+          // For other views, show all non-test employees with hours
+          return (emp.totalHours > 0 || emp.hasIncompleteShifts) && !isTestUser
+        })
         .sort((a: EmployeePayroll, b: EmployeePayroll) => a.name.localeCompare(b.name))
 
       setEmployees(payrollData)
@@ -180,9 +261,12 @@ export function PayrollTab() {
     }
   }
 
-  const handleFinalizeEmployee = async (employeeId: string, paymentMethod: string, checkNumber: string) => {
+  const handleFinalizeEmployee = async (employeeId: string, arrangementId: number, manualHours: number) => {
     const employee = employees.find(e => e.id === employeeId)
     if (!employee) return
+
+    const arrangement = employee.payRateArrangements.find(arr => arr.id === arrangementId)
+    if (!arrangement) return
 
     if (employee.hasIncompleteShifts) {
       const confirm = window.confirm(
@@ -193,30 +277,52 @@ export function PayrollTab() {
 
     setFinalizingEmployee(employeeId)
     try {
-      // Get week dates
+      // Get week dates (must match loadPayrollData logic)
       const nowET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
       const todayET = new Date(nowET)
-      const referenceDate = weekSelection === 'this' ? todayET : subWeeks(todayET, 1)
-      const mondayET = startOfWeek(referenceDate, { weekStartsOn: 1 })
-      const sundayET = endOfWeek(referenceDate, { weekStartsOn: 1 })
-      const startDateET = format(mondayET, 'yyyy-MM-dd')
-      const endDateET = format(sundayET, 'yyyy-MM-dd')
 
-      // Insert payroll record
+      // Calculate date range based on selection
+      let startDateET: string
+      let endDateET: string
+
+      if (weekSelection === 'lastPayPeriod') {
+        // Last Pay Period = Last 2 weeks combined (for bi-weekly W-2 employees)
+        // From Monday of 2 weeks ago through Sunday of last week
+        const twoWeeksAgo = subWeeks(todayET, 2)
+        const oneWeekAgo = subWeeks(todayET, 1)
+        const mondayET = startOfWeek(twoWeeksAgo, { weekStartsOn: 1 })
+        const sundayET = endOfWeek(oneWeekAgo, { weekStartsOn: 1 })
+        startDateET = format(mondayET, 'yyyy-MM-dd')
+        endDateET = format(sundayET, 'yyyy-MM-dd')
+      } else {
+        // This Week or Last Week = Single week
+        const referenceDate = weekSelection === 'this' ? todayET : subWeeks(todayET, 1)
+        const mondayET = startOfWeek(referenceDate, { weekStartsOn: 1 })
+        const sundayET = endOfWeek(referenceDate, { weekStartsOn: 1 })
+        startDateET = format(mondayET, 'yyyy-MM-dd')
+        endDateET = format(sundayET, 'yyyy-MM-dd')
+      }
+
+      // Calculate pay based on selected arrangement and manual hours
+      const hourlyRate = arrangement.rate
+      const hoursToUse = manualHours || employee.totalHours
+      const totalPay = hoursToUse * hourlyRate
+
+      // Insert payroll record with pay_rate_id to track which arrangement was used
       const { error } = await supabase
         .from('payroll_records')
         .insert({
           employee_id: employeeId,
+          pay_rate_id: arrangementId,
           pay_period_start: startDateET,
           pay_period_end: endDateET,
-          total_hours: employee.totalHours,
-          hourly_rate: employee.hourlyRate,
-          gross_pay: employee.totalPay,
+          total_hours: hoursToUse,
+          hourly_rate: hourlyRate,
+          gross_pay: totalPay,
           deductions: 0,
-          net_pay: employee.totalPay,
+          net_pay: totalPay,
           payment_date: format(new Date(), 'yyyy-MM-dd'),
-          payment_method: paymentMethod,
-          check_number: checkNumber || null,
+          payment_method: arrangement.payment_method,
           status: 'paid'
         })
 
@@ -224,6 +330,15 @@ export function PayrollTab() {
 
       // Reload data
       await loadPayrollData()
+
+      // Scroll to the employee card that was just finalized
+      // This works because the scroll container is the parent div, not window
+      requestAnimationFrame(() => {
+        const employeeCard = document.getElementById(`employee-card-${employeeId}`)
+        if (employeeCard) {
+          employeeCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      })
     } catch (error) {
       console.error('Failed to finalize employee:', error)
       alert('❌ Failed to finalize payment. Please try again.')
@@ -232,7 +347,7 @@ export function PayrollTab() {
     }
   }
 
-  const totalPayroll = employees.reduce((sum, emp) => sum + emp.totalPay, 0)
+  const totalPayroll = employees.reduce((sum, emp) => sum + (emp.totalPay || 0), 0)
   const totalHoursAll = employees.reduce((sum, emp) => sum + emp.totalHours, 0)
   const paidCount = employees.filter(e => e.isPaid).length
 
@@ -277,6 +392,17 @@ export function PayrollTab() {
         >
           Last Week
         </button>
+        <button
+          onClick={() => setWeekSelection('lastPayPeriod')}
+          className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+            weekSelection === 'lastPayPeriod'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+          type="button"
+        >
+          Last Pay Period
+        </button>
       </div>
 
       {loading ? (
@@ -285,7 +411,10 @@ export function PayrollTab() {
         </div>
       ) : employees.length === 0 ? (
         <div className="text-center pt-12 pb-12 text-gray-400 text-sm font-medium">
-          No hours recorded for {weekSelection === 'this' ? 'this' : 'last'} week
+          {weekSelection === 'lastPayPeriod'
+            ? 'No W-2 employees with hours for last pay period'
+            : `No hours recorded for ${weekSelection === 'this' ? 'this' : 'last'} week`
+          }
         </div>
       ) : (
         <div>
@@ -331,18 +460,69 @@ export function PayrollTab() {
  */
 interface EmployeePayrollCardProps {
   employee: EmployeePayroll
-  onFinalize: (employeeId: string, paymentMethod: string, checkNumber: string) => void
+  onFinalize: (employeeId: string, arrangementId: number, manualHours: number) => void
   isFinalizing: boolean
 }
 
 function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePayrollCardProps) {
-  const [paymentMethod, setPaymentMethod] = useState(employee.paymentMethod || employee.defaultPaymentMethod)
-  const [checkNumber, setCheckNumber] = useState(employee.checkNumber || '')
+  // Select arrangement: if paid, use the one from record; otherwise use selectedArrangement
+  const [selectedArrangementId, setSelectedArrangementId] = useState(
+    employee.selectedArrangement?.id || employee.payRateArrangements[0]?.id
+  )
+
+  // Calculate smart default hours based on arrangement and already-paid hours
+  const calculateDefaultHours = (arrangementId: number): number => {
+    const arrangement = employee.payRateArrangements.find(arr => arr.id === arrangementId)
+    if (!arrangement) return employee.totalHours
+
+    // Calculate remaining hours (total - already paid)
+    let remainingHours = employee.totalHours
+    employee.paidArrangements.forEach(paidInfo => {
+      remainingHours -= paidInfo.hours
+    })
+
+    // For employees with multiple arrangements (Carlos/Mere logic):
+    // - Bi-weekly gets min(40, remainingHours)
+    // - Weekly gets the remainder after bi-weekly
+    if (employee.payRateArrangements.length > 1) {
+      if (arrangement.pay_schedule === 'Bi-weekly') {
+        return Math.min(40, remainingHours)
+      } else if (arrangement.pay_schedule === 'Weekly') {
+        return Math.max(0, remainingHours - 40)
+      }
+    }
+
+    return remainingHours
+  }
+
+  const [manualHours, setManualHours] = useState<string>(() => {
+    // Initialize with smart default for multi-arrangement employees
+    if (employee.payRateArrangements.length > 1) {
+      return calculateDefaultHours(selectedArrangementId).toFixed(2)
+    }
+    return ''
+  })
+
+  // Get current arrangement based on selection
+  const currentArrangement = employee.payRateArrangements.find(arr => arr.id === selectedArrangementId) || employee.payRateArrangements[0]
+
+  // Recalculate pay based on selected arrangement and manual hours
+  const hourlyRate = currentArrangement?.rate || 0
+  const hoursForCalc = manualHours ? parseFloat(manualHours) : employee.totalHours
+  const totalPay = hoursForCalc * hourlyRate
+
+  // Update manual hours when arrangement changes
+  const handleArrangementChange = (newArrangementId: number) => {
+    setSelectedArrangementId(newArrangementId)
+    if (employee.payRateArrangements.length > 1) {
+      setManualHours(calculateDefaultHours(newArrangementId).toFixed(2))
+    }
+  }
 
   // If already paid, show read-only card
   if (employee.isPaid) {
     return (
-      <div className="bg-green-50 rounded-lg shadow-sm border-2 border-green-200 overflow-hidden">
+      <div id={`employee-card-${employee.id}`} className="bg-green-50 rounded-lg shadow-sm border-2 border-green-200 overflow-hidden">
         {/* Header */}
         <div className="px-4 py-3 bg-green-100 border-b border-green-200 flex items-center justify-between">
           <div className="font-bold text-green-800 text-[22px]">
@@ -378,16 +558,17 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
         <div className="px-4 py-3 bg-green-50 border-t border-green-200">
           <div className="flex justify-between items-center text-sm mb-2">
             <div className="text-gray-700">
-              {formatHoursMinutes(employee.totalHours)} @ ${employee.hourlyRate.toFixed(2)}/hr
+              {formatHoursMinutes(employee.totalHours)} @ ${hourlyRate.toFixed(2)}/hr
             </div>
             <div className="text-gray-900 font-bold">
-              ${employee.totalPay.toFixed(2)}
+              ${totalPay.toFixed(2)}
             </div>
           </div>
           <div className="flex justify-between items-center text-xs text-gray-600">
             <div>
-              Paid via {employee.paymentMethod?.toUpperCase()}
-              {employee.checkNumber && ` - Check #${employee.checkNumber}`}
+              {currentArrangement?.payment_method?.toUpperCase()}
+              {currentArrangement?.tax_classification && ` (${currentArrangement.tax_classification})`}
+              {currentArrangement?.pay_schedule && ` - ${currentArrangement.pay_schedule}`}
             </div>
             <div>
               {employee.paymentDate && format(new Date(employee.paymentDate), 'MMM d, yyyy')}
@@ -400,7 +581,7 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
 
   // Unpaid card with finalize option
   return (
-    <div className="bg-white/90 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div id={`employee-card-${employee.id}`} className="bg-white/90 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
         <div className="font-bold text-green-600 text-[22px]">
@@ -434,42 +615,86 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
 
       {/* Payment Section */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-        <div className="flex justify-between items-center text-sm mb-3">
-          <div className="text-gray-600">
-            {formatHoursMinutes(employee.totalHours)} @ ${employee.hourlyRate.toFixed(2)}/hr
+        {/* Pay Arrangement Selector (if employee has multiple) */}
+        {employee.payRateArrangements.length > 1 && (
+          <div className="mb-3">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Pay Arrangement
+            </label>
+            <select
+              value={selectedArrangementId}
+              onChange={(e) => handleArrangementChange(parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              {employee.payRateArrangements.map((arr) => (
+                <option key={arr.id} value={arr.id}>
+                  {arr.payment_method?.toUpperCase()}
+                  {arr.tax_classification && ` (${arr.tax_classification})`}
+                  {arr.pay_schedule && ` - ${arr.pay_schedule}`}
+                  {' @ $'}{arr.rate.toFixed(2)}/hr
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="text-gray-900 font-bold text-lg">
-            ${employee.totalPay.toFixed(2)}
+        )}
+
+        {/* Display selected arrangement details */}
+        {employee.payRateArrangements.length === 1 && currentArrangement && (
+          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-gray-700">
+            <strong>{currentArrangement.payment_method?.toUpperCase()}</strong>
+            {currentArrangement.tax_classification && ` (${currentArrangement.tax_classification})`}
+            {currentArrangement.pay_schedule && ` - ${currentArrangement.pay_schedule}`}
           </div>
-        </div>
+        )}
 
-        {/* Payment Method Selection */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="cash">Cash</option>
-            <option value="check">Check</option>
-            <option value="w2">W-2</option>
-            <option value="1099">1099</option>
-          </select>
+        {/* Show paid arrangements (if any) */}
+        {employee.paidArrangements.size > 0 && (
+          <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded text-xs">
+            <div className="font-semibold text-green-800 mb-1">Already Paid:</div>
+            {Array.from(employee.paidArrangements.entries()).map(([arrId, paidInfo]) => {
+              const arr = employee.payRateArrangements.find(a => a.id === arrId)
+              return (
+                <div key={arrId} className="text-gray-700">
+                  {arr?.payment_method?.toUpperCase()} {arr?.tax_classification && `(${arr.tax_classification})`}: {formatHoursMinutes(paidInfo.hours)} = ${paidInfo.pay.toFixed(2)}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
-          {paymentMethod === 'check' && (
+        {/* Manual Hours Input (for Carlos/Mere who split hours between arrangements) */}
+        {employee.payRateArrangements.length > 1 && (
+          <div className="mb-3">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Hours for this arrangement (Total: {formatHoursMinutes(employee.totalHours)})
+            </label>
             <input
               type="text"
-              placeholder="Check #"
-              value={checkNumber}
-              onChange={(e) => setCheckNumber(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              inputMode="decimal"
+              placeholder="Enter hours (e.g., 7.5 for 7h 30m)"
+              value={manualHours}
+              onChange={(e) => setManualHours(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-          )}
+            <div className="text-xs text-gray-500 mt-1">
+              Tip: 7.5 = 7h 30m, 8.25 = 8h 15m, 40 = 40h
+            </div>
+          </div>
+        )}
+
+        {/* Total calculation */}
+        <div className="flex justify-between items-center text-sm mb-3">
+          <div className="text-gray-600">
+            {formatHoursMinutes(hoursForCalc)} @ ${hourlyRate.toFixed(2)}/hr
+          </div>
+          <div className="text-gray-900 font-bold text-lg">
+            ${totalPay.toFixed(2)}
+          </div>
         </div>
 
         {/* Finalize Button */}
         <button
-          onClick={() => onFinalize(employee.id, paymentMethod, checkNumber)}
+          onClick={() => onFinalize(employee.id, selectedArrangementId, parseFloat(manualHours) || 0)}
           disabled={isFinalizing}
           className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-md transition-all"
           type="button"
