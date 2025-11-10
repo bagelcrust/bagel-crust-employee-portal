@@ -8,8 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Create Supabase client with auto-generated types and employees schema
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+// Create Supabase client with employees schema
+// NOTE: Temporarily not using Database generic type due to TypeScript inference issues
+// The types are still exported below for manual type assertions where needed
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   db: { schema: 'employees' }
 });
 

@@ -333,7 +333,7 @@ export interface Database {
         Args: {
           p_start_date: string
           p_end_date: string
-          p_employee_id?: string
+          p_employee_id: string | undefined
         }
         Returns: {
           id: number
