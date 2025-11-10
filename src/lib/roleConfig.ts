@@ -6,7 +6,7 @@
  * ROLE PERMISSIONS:
  * - staff_one: Only Hours tab (typically Spanish-speaking production staff)
  * - staff_two, cashier: Standard tabs (Schedule, Time Off, Hours, Profile)
- * - owner: All tabs including Payroll (Schedule, Time Off, Hours, Payroll, Profile)
+ * - owner: Management tabs (Schedule, Payroll, Profile) - No Time Off or Hours
  */
 
 export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile'
@@ -44,17 +44,21 @@ const STAFF_ONE_TABS: TabConfig[] = [
  * @returns Array of tab configurations the role can access
  */
 export function getTabsForRole(role: string): TabConfig[] {
+  // Normalize role: trim whitespace and convert to lowercase for comparison
+  const normalizedRole = role?.trim().toLowerCase()
+
   // Staff 1 only gets Hours tab
-  if (role === 'staff_one') {
+  if (normalizedRole === 'staff_one') {
     return STAFF_ONE_TABS
   }
 
-  // Owner gets all tabs including Payroll
-  if (role === 'owner') {
+  // Owner gets management tabs (Schedule, Payroll, Profile)
+  // No Time Off or Hours tabs - those are for employees to track their own data
+  if (normalizedRole === 'owner') {
     return OWNER_TABS
   }
 
-  // Everyone else gets standard tabs
+  // Everyone else gets standard tabs (Schedule, Time Off, Hours, Profile)
   return STANDARD_TABS
 }
 
