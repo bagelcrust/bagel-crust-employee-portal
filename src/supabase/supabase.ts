@@ -23,6 +23,7 @@ export type PublishedShift = Database['employees']['Tables']['published_shifts']
 export type TimeOff = Database['employees']['Tables']['time_off_notices']['Row'];
 export type PayRate = Database['employees']['Tables']['pay_rates']['Row'];
 export type Availability = Database['employees']['Tables']['availability']['Row'];
+export type PayrollRecord = Database['employees']['Tables']['payroll_records']['Row'];
 
 // Insert types for creating new records
 export type EmployeeInsert = Database['employees']['Tables']['employees']['Insert'];
@@ -32,6 +33,7 @@ export type DraftShiftInsert = Database['employees']['Tables']['draft_shifts']['
 export type PublishedShiftInsert = Database['employees']['Tables']['published_shifts']['Insert'];
 export type TimeOffInsert = Database['employees']['Tables']['time_off_notices']['Insert'];
 export type PayRateInsert = Database['employees']['Tables']['pay_rates']['Insert'];
+export type PayrollRecordInsert = Database['employees']['Tables']['payroll_records']['Insert'];
 
 // Update types for modifying records
 export type EmployeeUpdate = Database['employees']['Tables']['employees']['Update'];
@@ -41,6 +43,7 @@ export type DraftShiftUpdate = Database['employees']['Tables']['draft_shifts']['
 export type PublishedShiftUpdate = Database['employees']['Tables']['published_shifts']['Update'];
 export type TimeOffUpdate = Database['employees']['Tables']['time_off_notices']['Update'];
 export type PayRateUpdate = Database['employees']['Tables']['pay_rates']['Update'];
+export type PayrollRecordUpdate = Database['employees']['Tables']['payroll_records']['Update'];
 
 // Helper to get display name
 export function getDisplayName(employee: Employee): string {
