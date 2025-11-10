@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import { publishSchedule } from '../edgeFunctions'
+import { scheduleBuilder } from '../edgeFunctions'
 import { conflictService } from './conflictService'
 import type { Conflict } from './conflictService'
 
@@ -29,7 +29,7 @@ export interface PublishResult {
 export const publishService = {
   /**
    * Publish all draft shifts for a week
-   * Uses edge function with service_role key to bypass RLS
+   * Uses comprehensive edge function with service_role key to bypass RLS
    * COPIES draft_shifts → published_shifts table (immutable historical record)
    * Validates no conflicts exist before publishing
    */
@@ -43,8 +43,8 @@ export const publishService = {
   ): Promise<PublishResult> {
     const { strictMode = true } = options
 
-    // Use edge function with service_role key to bypass RLS
-    const result = await publishSchedule(startDate, endDate, strictMode)
+    // Use comprehensive edge function with service_role key
+    const result = await scheduleBuilder.publishWeek(startDate, endDate, strictMode)
 
     return {
       success: result.success,
@@ -56,36 +56,13 @@ export const publishService = {
 
   /**
    * Clear all draft shifts for a week
+   * Uses comprehensive edge function with service_role key
    * Useful after publishing to clean up experimental workspace
    */
   async clearDrafts(startDate: string, endDate: string): Promise<number> {
-    const start = new Date(startDate)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(endDate)
-    end.setHours(23, 59, 59, 999)
-
-    // Get all draft shifts in range
-    const { data: draftShifts, error: fetchError } = await supabase
-      .from('draft_shifts')
-      .select('id')
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString())
-
-    if (fetchError) throw fetchError
-
-    if (!draftShifts || draftShifts.length === 0) {
-      return 0
-    }
-
-    // Delete drafts
-    const { error: deleteError } = await supabase
-      .from('draft_shifts')
-      .delete()
-      .in('id', draftShifts.map(s => s.id))
-
-    if (deleteError) throw deleteError
-
-    return draftShifts.length
+    // Use comprehensive edge function with service_role key
+    const clearedCount = await scheduleBuilder.clearDrafts(startDate, endDate)
+    return clearedCount
   },
 
   /**

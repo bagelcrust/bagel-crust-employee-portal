@@ -546,54 +546,150 @@ export async function deleteShift(shiftId: number) {
   return data;
 }
 
+// ============================================================================
+// SCHEDULE BUILDER - Comprehensive Operations (Single Edge Function)
+// ============================================================================
+
 /**
- * Schedule Builder Operations - ALL operations in one edge function
- * Uses service_role key to bypass RLS
+ * Schedule Builder namespace - All operations go through one edge function
+ * Uses service_role key to bypass RLS issues
  */
-export async function scheduleBuilderCreateShift(data: {
-  employee_id: string | null
-  start_time: string
-  end_time: string
-  location: string
-  role?: string | null
-}) {
-  const { data: result, error } = await supabase.functions.invoke('schedule-builder-operations', {
-    body: { operation: 'CREATE', data }
-  });
+export const scheduleBuilder = {
+  /**
+   * Get all schedule data (employees, shifts, time-offs, availability)
+   */
+  async getData(startDate: string, endDate: string) {
+    console.log('🌐 [Schedule Builder] GET_DATA', { startDate, endDate });
 
-  if (error) throw new Error(`Failed to create shift: ${error.message || JSON.stringify(error)}`);
-  if (!result?.success) throw new Error(result?.error || 'Failed to create shift');
+    const { data, error } = await supabase.functions.invoke('schedule-builder-operations', {
+      body: { operation: 'GET_DATA', data: { startDate, endDate } }
+    });
 
-  return result.shift;
-}
+    if (error) {
+      console.error('❌ [Schedule Builder] GET_DATA failed:', error);
+      throw new Error(`Failed to get schedule data: ${error.message || JSON.stringify(error)}`);
+    }
+    if (!data) {
+      throw new Error('Invalid response from schedule-builder-operations');
+    }
 
-export async function scheduleBuilderUpdateShift(shiftId: number, updates: {
-  employee_id?: string | null
-  start_time?: string
-  end_time?: string
-  location?: string
-  role?: string | null
-}) {
-  const { data: result, error } = await supabase.functions.invoke('schedule-builder-operations', {
-    body: { operation: 'UPDATE', data: { shift_id: shiftId, ...updates } }
-  });
+    return data;
+  },
 
-  if (error) throw new Error(`Failed to update shift: ${error.message || JSON.stringify(error)}`);
-  if (!result?.success) throw new Error(result?.error || 'Failed to update shift');
+  /**
+   * Create new shift with conflict validation
+   */
+  async createShift(shiftData: {
+    employee_id: string | null
+    start_time: string
+    end_time: string
+    location: string
+    role?: string | null
+  }) {
+    console.log('🌐 [Schedule Builder] CREATE_SHIFT', shiftData);
 
-  return result.shift;
-}
+    const { data, error } = await supabase.functions.invoke('schedule-builder-operations', {
+      body: { operation: 'CREATE_SHIFT', data: shiftData }
+    });
 
-export async function scheduleBuilderDeleteShift(shiftId: number) {
-  const { data: result, error } = await supabase.functions.invoke('schedule-builder-operations', {
-    body: { operation: 'DELETE', data: { shift_id: shiftId } }
-  });
+    if (error) {
+      console.error('❌ [Schedule Builder] CREATE_SHIFT failed:', error);
+      throw new Error(`Failed to create shift: ${error.message || JSON.stringify(error)}`);
+    }
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to create shift');
+    }
 
-  if (error) throw new Error(`Failed to delete shift: ${error.message || JSON.stringify(error)}`);
-  if (!result?.success) throw new Error(result?.error || 'Failed to delete shift');
+    return data.shift;
+  },
 
-  return result;
-}
+  /**
+   * Update existing shift with conflict validation
+   */
+  async updateShift(shiftId: number, updates: {
+    employee_id?: string | null
+    start_time?: string
+    end_time?: string
+    location?: string
+    role?: string | null
+  }) {
+    console.log('🌐 [Schedule Builder] UPDATE_SHIFT', { shiftId, updates });
+
+    const { data, error } = await supabase.functions.invoke('schedule-builder-operations', {
+      body: { operation: 'UPDATE_SHIFT', data: { shift_id: shiftId, ...updates } }
+    });
+
+    if (error) {
+      console.error('❌ [Schedule Builder] UPDATE_SHIFT failed:', error);
+      throw new Error(`Failed to update shift: ${error.message || JSON.stringify(error)}`);
+    }
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to update shift');
+    }
+
+    return data.shift;
+  },
+
+  /**
+   * Delete shift (draft or published)
+   */
+  async deleteShift(shiftId: number) {
+    console.log('🌐 [Schedule Builder] DELETE_SHIFT', { shiftId });
+
+    const { data, error } = await supabase.functions.invoke('schedule-builder-operations', {
+      body: { operation: 'DELETE_SHIFT', data: { shift_id: shiftId } }
+    });
+
+    if (error) {
+      console.error('❌ [Schedule Builder] DELETE_SHIFT failed:', error);
+      throw new Error(`Failed to delete shift: ${error.message || JSON.stringify(error)}`);
+    }
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to delete shift');
+    }
+
+    return data;
+  },
+
+  /**
+   * Publish all draft shifts for a week
+   */
+  async publishWeek(startDate: string, endDate: string, strictMode = true) {
+    console.log('🌐 [Schedule Builder] PUBLISH_WEEK', { startDate, endDate, strictMode });
+
+    const { data, error } = await supabase.functions.invoke('schedule-builder-operations', {
+      body: { operation: 'PUBLISH_WEEK', data: { startDate, endDate, strictMode } }
+    });
+
+    if (error) {
+      console.error('❌ [Schedule Builder] PUBLISH_WEEK failed:', error);
+      throw new Error(`Failed to publish week: ${error.message || JSON.stringify(error)}`);
+    }
+
+    return data;
+  },
+
+  /**
+   * Clear all draft shifts for a week
+   */
+  async clearDrafts(startDate: string, endDate: string) {
+    console.log('🌐 [Schedule Builder] CLEAR_DRAFTS', { startDate, endDate });
+
+    const { data, error } = await supabase.functions.invoke('schedule-builder-operations', {
+      body: { operation: 'CLEAR_DRAFTS', data: { startDate, endDate } }
+    });
+
+    if (error) {
+      console.error('❌ [Schedule Builder] CLEAR_DRAFTS failed:', error);
+      throw new Error(`Failed to clear drafts: ${error.message || JSON.stringify(error)}`);
+    }
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to clear drafts');
+    }
+
+    return data.clearedCount;
+  }
+};
 
 // ============================================================================
 // AGGREGATE PAGE-SPECIFIC APIs - Single endpoint per page

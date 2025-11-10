@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getScheduleBuilderData } from '../supabase/edgeFunctions'
+import { scheduleBuilder } from '../supabase/edgeFunctions'
 import type { DraftShift, PublishedShift, TimeOff, Employee } from '../supabase/supabase'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek, addDays } from 'date-fns'
 
@@ -55,9 +55,10 @@ export function useScheduleBuilder() {
   // Fetch ALL schedule builder data in a single HTTP request using Edge Function
   // This aggregates: employees, draft shifts, published shifts, open shifts, time-offs, availability, weekly hours, publish status
   // Reduces 7+ HTTP requests down to 1
+  // Uses comprehensive schedule-builder-operations edge function with service_role
   const { data: scheduleData, isLoading, refetch } = useQuery({
     queryKey: ['scheduleBuilderData', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => getScheduleBuilderData(
+    queryFn: () => scheduleBuilder.getData(
       format(currentWeekStart, 'yyyy-MM-dd'),
       format(currentWeekEnd, 'yyyy-MM-dd')
     ),

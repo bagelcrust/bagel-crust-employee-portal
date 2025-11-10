@@ -1,6 +1,6 @@
 import { supabase } from '../supabase'
+import { scheduleBuilder } from '../edgeFunctions'
 import type { DraftShift, PublishedShift } from '../supabase'
-import { conflictService } from './conflictService'
 import { etToUTC } from '../../lib/timezone'
 
 export interface CreateShiftInput {
@@ -38,105 +38,42 @@ export interface UpdateShiftInput {
 export const shiftService = {
   /**
    * Create new DRAFT shift
-   * RLS allows anon users to manage draft shifts
+   * Uses edge function with service_role to bypass RLS issues
+   * Includes server-side conflict validation
    */
   async createShift(input: CreateShiftInput): Promise<DraftShift> {
-    // Validate no conflict if assigning to employee
-    if (input.employee_id) {
-      const validation = await conflictService.validateShift(
-        input.employee_id,
-        input.start_time,
-        input.end_time
-      )
+    // Convert Eastern Time to UTC if needed
+    const startTime = input.start_time.includes('T') && !input.start_time.endsWith('Z')
+      ? etToUTC(input.start_time)
+      : input.start_time
+    const endTime = input.end_time.includes('T') && !input.end_time.endsWith('Z')
+      ? etToUTC(input.end_time)
+      : input.end_time
 
-      if (!validation.valid) {
-        throw new Error(validation.error || 'Shift conflicts with time-off')
-      }
-    }
+    // Call edge function (includes conflict validation)
+    const shift = await scheduleBuilder.createShift({
+      employee_id: input.employee_id,
+      start_time: startTime,
+      end_time: endTime,
+      location: input.location,
+      role: input.role || null
+    })
 
-    // Direct database insert (RLS policy allows ALL operations for anon users)
-    const { data, error } = await supabase
-      .from('draft_shifts')
-      .insert({
-        employee_id: input.employee_id,
-        start_time: input.start_time.includes('T') && !input.start_time.endsWith('Z')
-          ? etToUTC(input.start_time)
-          : input.start_time,
-        end_time: input.end_time.includes('T') && !input.end_time.endsWith('Z')
-          ? etToUTC(input.end_time)
-          : input.end_time,
-        location: input.location,
-        role: input.role || null
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data as DraftShift
+    return shift as DraftShift
   },
 
   /**
    * Update existing shift with conflict validation
+   * Uses edge function with service_role to bypass RLS issues
    *
    * HYBRID ARCHITECTURE BEHAVIOR:
    * - If shift exists in draft_shifts: Update it
    * - If shift doesn't exist (it's published): Create new draft with updated data
    * - This allows editing published shifts (they become drafts on edit)
+   * - Edge function handles all this logic server-side
    */
   async updateShift(shiftId: number, updates: UpdateShiftInput): Promise<DraftShift> {
-    // Try to get current draft shift data
-    const { data: currentShift, error: fetchError } = await supabase
-      .from('draft_shifts')
-      .select('*')
-      .eq('id', shiftId)
-      .single()
-
-    // If shift doesn't exist in drafts, it's a published shift
-    // Get it from published_shifts and create a new draft
-    if (fetchError?.code === 'PGRST116') {
-      const { data: publishedShift, error: pubError } = await supabase
-        .from('published_shifts')
-        .select('*')
-        .eq('id', shiftId)
-        .single()
-
-      if (pubError) throw new Error('Shift not found in drafts or published shifts')
-
-      // Create new draft with published shift data + updates
-      return this.createShift({
-        employee_id: updates.employee_id !== undefined ? updates.employee_id : publishedShift.employee_id,
-        start_time: updates.start_time || publishedShift.start_time,
-        end_time: updates.end_time || publishedShift.end_time,
-        location: updates.location || publishedShift.location || 'Calder',
-        role: updates.role !== undefined ? updates.role : publishedShift.role
-      })
-    }
-
-    if (fetchError) throw fetchError
-
-    // If changing employee or times, validate no conflict
-    if (updates.employee_id !== undefined || updates.start_time || updates.end_time) {
-
-      const employeeId = updates.employee_id !== undefined
-        ? updates.employee_id
-        : currentShift.employee_id
-      const startTime = updates.start_time || currentShift.start_time
-      const endTime = updates.end_time || currentShift.end_time
-
-      if (employeeId) {
-        const validation = await conflictService.validateShift(
-          employeeId,
-          startTime,
-          endTime
-        )
-
-        if (!validation.valid) {
-          throw new Error(validation.error || 'Shift update conflicts with time-off')
-        }
-      }
-    }
-
-    // Update draft shift directly - convert times to UTC if needed
+    // Convert Eastern Time to UTC if needed
     const updatesWithUTC = { ...updates }
     if (updates.start_time && updates.start_time.includes('T') && !updates.start_time.endsWith('Z')) {
       updatesWithUTC.start_time = etToUTC(updates.start_time)
@@ -145,28 +82,18 @@ export const shiftService = {
       updatesWithUTC.end_time = etToUTC(updates.end_time)
     }
 
-    const { data, error } = await supabase
-      .from('draft_shifts')
-      .update(updatesWithUTC)
-      .eq('id', shiftId)
-      .select()
-      .single()
+    // Call edge function (includes conflict validation and hybrid logic)
+    const shift = await scheduleBuilder.updateShift(shiftId, updatesWithUTC)
 
-    if (error) throw error
-    return data as DraftShift
+    return shift as DraftShift
   },
 
   /**
    * Delete shift by ID
-   * Only works for draft shifts (RLS blocks published shifts)
+   * Uses edge function with service_role to delete from draft_shifts or published_shifts
    */
   async deleteShift(shiftId: number): Promise<void> {
-    const { error } = await supabase
-      .from('draft_shifts')
-      .delete()
-      .eq('id', shiftId)
-
-    if (error) throw error
+    await scheduleBuilder.deleteShift(shiftId)
   },
 
   /**
