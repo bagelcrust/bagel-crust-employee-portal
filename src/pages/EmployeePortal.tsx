@@ -104,14 +104,12 @@ export default function EmployeePortal() {
   } = useEmployeeSchedule(employee?.id, isLoggedIn)
 
   const {
-    data: fullTeamSchedule,
-    isLoading: isTeamScheduleLoading
+    data: fullTeamSchedule
   } = useTeamSchedule(isLoggedIn)
 
   // Only load timesheet data if user has access to Hours tab (saves 2 Edge Function calls for owners!)
   const {
-    data: timesheetData,
-    isLoading: isTimesheetLoading
+    data: timesheetData
   } = useTimesheet(employee?.id, isLoggedIn && hasTimesheetTab)
 
   // Only load time-off data if user has access to Time Off tab
