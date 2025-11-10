@@ -14,8 +14,8 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt', // Changed from autoUpdate to prompt - gives user control
-      injectRegister: 'inline',
+      registerType: 'autoUpdate', // Auto-update ensures users always get latest role permissions
+      injectRegister: 'auto',
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Bagel Crust',
