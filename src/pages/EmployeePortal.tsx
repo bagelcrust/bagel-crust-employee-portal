@@ -91,6 +91,13 @@ export default function EmployeePortal() {
     loginError
   } = useEmployeeAuth()
 
+  // ============================================================================
+  // OPTIMIZED DATA LOADING - Only fetch data for tabs user can access
+  // ============================================================================
+  // Check which tabs this role has access to (avoid loading unnecessary data)
+  const hasTimesheetTab = employee?.role ? getTabsForRole(employee.role).some(tab => tab.key === 'timesheet') : false
+  const hasTimeOffTab = employee?.role ? getTabsForRole(employee.role).some(tab => tab.key === 'timeOff') : false
+
   const {
     data: scheduleData,
     isLoading: isScheduleLoading
@@ -101,16 +108,18 @@ export default function EmployeePortal() {
     isLoading: isTeamScheduleLoading
   } = useTeamSchedule(isLoggedIn)
 
+  // Only load timesheet data if user has access to Hours tab (saves 2 Edge Function calls for owners!)
   const {
     data: timesheetData,
     isLoading: isTimesheetLoading
-  } = useTimesheet(employee?.id, isLoggedIn)
+  } = useTimesheet(employee?.id, isLoggedIn && hasTimesheetTab)
 
+  // Only load time-off data if user has access to Time Off tab
   const {
     requests: timeOffRequests,
     submitRequest: submitTimeOffRequest,
     isSubmitting: isTimeOffSubmitting
-  } = useTimeOff(employee?.id)
+  } = useTimeOff(hasTimeOffTab ? employee?.id : undefined)
 
   // ============================================================================
   // ROLE-BASED TAB CONFIGURATION
@@ -237,7 +246,8 @@ export default function EmployeePortal() {
   }
 
   // Show loading after login (while data fetches)
-  const isLoadingData = isScheduleLoading || isTeamScheduleLoading || isTimesheetLoading
+  // Only wait for data that this role actually needs
+  const isLoadingData = isScheduleLoading || isTeamScheduleLoading || (hasTimesheetTab && isTimesheetLoading)
   if (isLoadingData) {
     return (
       <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
