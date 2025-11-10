@@ -72,8 +72,18 @@ export function useScheduleBuilder() {
     scheduleData: scheduleData
   })
 
-  // Extract data from edge function response
-  const employees = (scheduleData?.employees || []) as Employee[]
+  // Extract and sort employees (owners at bottom)
+  const employees = useMemo(() => {
+    const rawEmployees = (scheduleData?.employees || []) as Employee[]
+    return [...rawEmployees].sort((a, b) => {
+      // Put owners at the bottom
+      if (a.role === 'owner' && b.role !== 'owner') return 1
+      if (a.role !== 'owner' && b.role === 'owner') return -1
+      // Otherwise sort alphabetically by first name
+      return a.first_name.localeCompare(b.first_name)
+    })
+  }, [scheduleData?.employees])
+
   const shifts = (scheduleData?.shifts || []) as ScheduleShift[]
   const openShifts = (scheduleData?.openShifts || []) as DraftShift[]
   const timeOffs = (scheduleData?.timeOffs || []) as TimeOff[]
