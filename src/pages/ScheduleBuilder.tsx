@@ -622,9 +622,7 @@ export default function ScheduleBuilder() {
       <div
         ref={setNodeRef}
         style={style}
-        {...listeners}
-        {...attributes}
-        className="shift-card rounded px-2 py-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-center group relative z-10"
+        className="shift-card rounded px-2 py-1 hover:shadow-md transition-shadow text-center group relative z-10"
         onClick={(e) => {
           e.stopPropagation()
           if (!isDragging) {
@@ -644,12 +642,30 @@ export default function ScheduleBuilder() {
             borderRadius: '0.375rem',
             padding: '0.25rem 0.5rem'
           }}
+          className="cursor-pointer"
         >
+          {/* Drag handle - only this part is draggable */}
+          <div
+            {...listeners}
+            {...attributes}
+            className="absolute left-0 top-0 bottom-0 w-3 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+            style={{
+              background: shift.status === 'published'
+                ? 'rgba(30, 64, 175, 0.5)'
+                : 'rgba(147, 197, 253, 0.7)',
+              borderRadius: '0.375rem 0 0 0.375rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[8px] leading-none">⋮⋮</div>
+          </div>
+
           <div className={`text-xs font-medium ${
             shift.status === 'published' ? 'text-white' : 'text-blue-900'
           }`}>
             {formatShiftTime(shift.start_time, shift.end_time)}
           </div>
+
           {/* Delete button - visible on hover */}
           <Button
             onClick={(e) => {
