@@ -317,7 +317,70 @@ export interface Database {
       }
     }
     Views: {}
-    Functions: {}
+    Functions: {
+      clock_in_out: {
+        Args: {
+          p_employee_id: string
+        }
+        Returns: {
+          id: number
+          employee_id: string
+          event_type: string
+          event_timestamp: string
+        }[]
+      }
+      get_time_entries_et: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_employee_id?: string
+        }
+        Returns: {
+          id: number
+          employee_id: string
+          event_type: string
+          event_timestamp: string
+          event_time_et: string
+          event_date_et: string
+          employee_name: string
+        }[]
+      }
+      get_currently_working: {
+        Args: Record<string, never>
+        Returns: {
+          employee_id: string
+          employee_name: string
+          clock_in_time: string
+        }[]
+      }
+      calculate_all_employee_hours: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_published_only: boolean
+        }
+        Returns: {
+          employee_id: string
+          total_hours: number
+        }[]
+      }
+      detect_schedule_conflicts: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+        }
+        Returns: {
+          shift_id: number
+          employee_id: string
+          employee_name: string
+          shift_start: string
+          shift_end: string
+          timeoff_start: string
+          timeoff_end: string
+          reason: string
+        }[]
+      }
+    }
     Enums: {}
   }
 }
