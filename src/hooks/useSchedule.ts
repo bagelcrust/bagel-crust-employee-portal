@@ -56,11 +56,16 @@ export function useEmployeeSchedule(employeeId: string | undefined, enabled = tr
     queryFn: async () => {
       if (!employeeId) throw new Error('Employee ID required')
 
+      console.log('[SCHEDULE] Fetching employee schedule...', new Date().toISOString())
+      const start = performance.now()
+
       // Fetch both weeks in parallel using Edge Function (handles timezone correctly)
       const [thisWeekSchedules, nextWeekSchedules] = await Promise.all([
         getSchedule('this-week', employeeId),
         getSchedule('next-week', employeeId)
       ])
+
+      console.log(`[SCHEDULE] Employee schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
 
       // Group by day
       const thisWeekByDay = groupScheduleByDay(thisWeekSchedules)
@@ -114,11 +119,16 @@ export function useTeamSchedule(enabled = true) {
   return useQuery({
     queryKey: ['team-schedule'],
     queryFn: async () => {
+      console.log('[TEAM SCHEDULE] Fetching team schedule...', new Date().toISOString())
+      const start = performance.now()
+
       // Fetch both weeks in parallel using Edge Function (handles timezone correctly)
       const [thisWeekSchedules, nextWeekSchedules] = await Promise.all([
         getSchedule('this-week'), // No employeeId = all employees
         getSchedule('next-week')
       ])
+
+      console.log(`[TEAM SCHEDULE] Team schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
 
       // Group by day (includes all employees)
       const fullThisWeekByDay = groupTeamScheduleByDay(thisWeekSchedules)

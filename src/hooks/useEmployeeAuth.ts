@@ -16,7 +16,10 @@ export function useEmployeeAuth() {
   // Login mutation with PIN (uses Edge Function)
   const loginMutation = useMutation({
     mutationFn: async (pin: string) => {
+      console.log('[AUTH] Starting PIN verification...', new Date().toISOString())
+      const start = performance.now()
       const employee = await getEmployeeByPin(pin)
+      console.log(`[AUTH] PIN verification took ${(performance.now() - start).toFixed(0)}ms`)
 
       if (!employee) {
         throw new Error('Invalid PIN')
@@ -25,6 +28,7 @@ export function useEmployeeAuth() {
       return employee
     },
     onSuccess: (employee) => {
+      console.log('[AUTH] Login successful, setting employee state')
       setEmployee(employee)
       setIsLoggedIn(true)
     }

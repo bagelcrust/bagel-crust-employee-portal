@@ -245,9 +245,9 @@ export default function EmployeePortal() {
     )
   }
 
-  // Show loading after login (while data fetches)
-  // Only wait for data that this role actually needs
-  const isLoadingData = isScheduleLoading || isTeamScheduleLoading || (hasTimesheetTab && isTimesheetLoading)
+  // Show loading after login - only wait for employee schedule (skip team schedule for faster UX)
+  // Team schedule loads in background while user views their personal schedule
+  const isLoadingData = isScheduleLoading
   if (isLoadingData) {
     return (
       <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
