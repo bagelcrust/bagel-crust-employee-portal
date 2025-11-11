@@ -175,7 +175,7 @@ serve(async (req) => {
 
     if (payRateError) throw payRateError
 
-    // Helper: Format date in Eastern Time
+    // Helper: Format date in Eastern Time (full timestamp with timezone)
     const formatET = (utcTimestamp: string) => {
       const date = new Date(utcTimestamp)
       const formatter = new Intl.DateTimeFormat('en-US', {
@@ -187,6 +187,19 @@ serve(async (req) => {
         minute: '2-digit',
         hour12: true,
         timeZoneName: 'short'
+      })
+      return formatter.format(date)
+    }
+
+    // Helper: Get time-only in 24-hour format (HH:MM) for frontend formatting
+    // Returns format like "08:00" or "14:30" which formatTime() can convert to 12-hour
+    const getTimeOnly24h = (utcTimestamp: string) => {
+      const date = new Date(utcTimestamp)
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
       })
       return formatter.format(date)
     }
@@ -221,6 +234,8 @@ serve(async (req) => {
           clockOut: entry.event_timestamp,
           clockInEST: formatET(currentClockIn.event_timestamp),
           clockOutEST: formatET(entry.event_timestamp),
+          clockInTime: getTimeOnly24h(currentClockIn.event_timestamp), // 24-hour format for formatTime()
+          clockOutTime: getTimeOnly24h(entry.event_timestamp), // 24-hour format for formatTime()
           clockInOffset: getOffset(currentClockIn.event_timestamp),
           clockOutOffset: getOffset(entry.event_timestamp),
           hoursWorked: Math.round(hoursWorked * 100) / 100 // Round to 2 decimals

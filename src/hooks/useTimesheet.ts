@@ -67,14 +67,10 @@ export function useTimesheet(employeeId: string | undefined, enabled = true) {
           // Parse Eastern Time strings (already converted server-side!)
           const clockInDate = new Date(shift.clockIn)
 
-          // Extract time from "Nov 5, 2025 6:00 AM EST"
-          // Split: ["Nov", "5,", "2025", "6:00", "AM", "EST"]
-          // We want: "6:00 AM"
-          const clockInParts = shift.clockInEST.split(' ')
-          const clockOutParts = shift.clockOutEST.split(' ')
-
-          const clockInTime = `${clockInParts[3]} ${clockInParts[4]}` // "6:00 AM"
-          const clockOutTime = `${clockOutParts[3]} ${clockOutParts[4]}` // "2:30 PM"
+          // Use clockInTime and clockOutTime from Edge Function (24-hour format like "08:00" or "14:30")
+          // These will be formatted by formatTime() in TimesheetTab to "8:00 AM" or "2:30 PM"
+          const clockInTime = shift.clockInTime // "08:00" or "14:30"
+          const clockOutTime = shift.clockOutTime // "08:00" or "14:30"
 
           return {
             date: shift.clockIn.split('T')[0], // YYYY-MM-DD

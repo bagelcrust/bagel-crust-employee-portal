@@ -167,6 +167,8 @@ export interface PayrollShift {
   clockOut: string;
   clockInEST: string;
   clockOutEST: string;
+  clockInTime: string; // 24-hour format time (e.g., "08:00", "14:30") for formatTime()
+  clockOutTime: string; // 24-hour format time (e.g., "08:00", "14:30") for formatTime()
   clockInOffset: string;
   clockOutOffset: string;
   hoursWorked: number;
