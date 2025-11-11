@@ -93,30 +93,46 @@ export function TimeOffTab({
             Your Requests
           </h3>
           <div className="rounded-lg overflow-hidden">
-            {requests.map((request, index) => {
-              const startDate = new Date(request.start_date)
-              const endDate = new Date(request.end_date)
-              const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+            {requests
+              .filter((request) => {
+                // Filter out past time-off (end date is before today)
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const [year, month, day] = request.end_date.split('-').map(Number)
+                const endDate = new Date(year, month - 1, day)
+                return endDate >= today
+              })
+              .map((request, index, filteredRequests) => {
+                // Parse date string components directly to avoid timezone bugs
+                // Input: "2025-11-20" -> Output: Nov 20
+                const parseDate = (dateStr: string) => {
+                  const [year, month, day] = dateStr.split('-').map(Number)
+                  return new Date(year, month - 1, day)
+                }
 
-              return (
-                <div
-                  key={request.id}
-                  className={`p-4 text-center ${index < requests.length - 1 ? 'border-b border-black/5' : ''}`}
-                >
-                  <div className="text-base font-bold text-gray-800 mb-1">
-                    {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </div>
-                  <div className="text-[13px] text-gray-500 mb-1.5">
-                    {days} day{days !== 1 ? 's' : ''}
-                  </div>
-                  {request.reason && (
-                    <div className="text-sm text-gray-400 italic">
-                      {request.reason}
+                const startDate = parseDate(request.start_date)
+                const endDate = parseDate(request.end_date)
+                const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+                return (
+                  <div
+                    key={request.id}
+                    className={`p-4 text-center ${index < filteredRequests.length - 1 ? 'border-b border-black/5' : ''}`}
+                  >
+                    <div className="text-base font-bold text-gray-800 mb-1">
+                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </div>
-                  )}
-                </div>
-              )
-            })}
+                    <div className="text-[13px] text-gray-500 mb-1.5">
+                      {days} day{days !== 1 ? 's' : ''}
+                    </div>
+                    {request.reason && (
+                      <div className="text-sm text-gray-400 italic">
+                        {request.reason}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
           </div>
         </div>
       )}
