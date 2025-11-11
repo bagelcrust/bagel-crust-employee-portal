@@ -56,12 +56,28 @@ export function useTimeOff(employeeId: string | undefined) {
 
       const { timeOffs } = await response.json()
 
+      // Helper: Convert UTC timestamp to Eastern Time date string (YYYY-MM-DD)
+      const utcToEasternDate = (utcTimestamp: string): string => {
+        const date = new Date(utcTimestamp)
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        })
+        const parts = formatter.formatToParts(date)
+        const year = parts.find(p => p.type === 'year')?.value
+        const month = parts.find(p => p.type === 'month')?.value
+        const day = parts.find(p => p.type === 'day')?.value
+        return `${year}-${month}-${day}`
+      }
+
       // Map database fields to interface format
       return (timeOffs || []).map((notice: any) => ({
         id: notice.id,
         employee_id: notice.employee_id,
-        start_date: notice.start_time.split('T')[0], // Convert timestamp to date
-        end_date: notice.end_time.split('T')[0],     // Convert timestamp to date
+        start_date: utcToEasternDate(notice.start_time), // Convert UTC to ET date
+        end_date: utcToEasternDate(notice.end_time),     // Convert UTC to ET date
         reason: notice.reason || '',
         status: notice.status as 'pending' | 'approved' | 'denied',
         created_at: notice.requested_date || notice.start_time
