@@ -17,27 +17,47 @@ export interface TimeOffRequest {
 
 /**
  * Hook to manage time-off requests
- * Connected to Supabase time_off_notices table
+ * Connected to Supabase time-off Edge Function
+ *
+ * CRITICAL: ALL date/time logic is handled by the Edge Function
+ * to avoid browser timezone bugs. We just pass date strings (YYYY-MM-DD).
  */
 export function useTimeOff(employeeId: string | undefined) {
   const queryClient = useQueryClient()
 
-  // Fetch time-off requests from Supabase
+  // Fetch time-off requests from Edge Function
   const { data: requests = [] } = useQuery({
     queryKey: ['time-off', employeeId],
     queryFn: async () => {
       if (!employeeId) return []
 
-      const { data, error } = await supabase
-        .from('time_off_notices')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .order('start_time', { ascending: false })
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
 
-      if (error) throw error
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/time-off`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            operation: 'getForEmployee',
+            employeeId
+          })
+        }
+      )
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to fetch time-off requests')
+      }
+
+      const { timeOffs } = await response.json()
 
       // Map database fields to interface format
-      return (data || []).map(notice => ({
+      return (timeOffs || []).map((notice: any) => ({
         id: notice.id,
         employee_id: notice.employee_id,
         start_date: notice.start_time.split('T')[0], // Convert timestamp to date
@@ -51,7 +71,7 @@ export function useTimeOff(employeeId: string | undefined) {
     staleTime: 5 * 60 * 1000
   })
 
-  // Submit time-off request mutation
+  // Submit time-off request via Edge Function
   const submitMutation = useMutation({
     mutationFn: async (params: {
       employee_id: string
@@ -59,39 +79,44 @@ export function useTimeOff(employeeId: string | undefined) {
       end_date: string
       reason: string
     }) => {
-      // Convert date strings to timestamps (start of day for start, end of day for end)
-      const startTime = new Date(params.start_date)
-      startTime.setHours(5, 0, 0, 0) // 12:00 AM Eastern = 5:00 AM UTC (EST)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
 
-      const endTime = new Date(params.end_date)
-      endTime.setHours(4, 59, 59, 999) // 11:59:59 PM Eastern = 4:59:59 AM UTC next day
+      // Call Edge Function - it handles all timezone logic server-side
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/time-off`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            operation: 'request',
+            employeeId: params.employee_id,
+            startDate: params.start_date,  // Just pass YYYY-MM-DD string
+            endDate: params.end_date,      // Edge Function handles timezone conversion
+            reason: params.reason
+          })
+        }
+      )
 
-      const { data, error } = await supabase
-        .from('time_off_notices')
-        .insert({
-          employee_id: params.employee_id,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          reason: params.reason || null,
-          status: 'pending',
-          requested_date: new Date().toISOString(),
-          requested_via: 'app',
-          source_text: null
-        })
-        .select()
-        .single()
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to submit time-off request')
+      }
 
-      if (error) throw error
+      const { timeOff } = await response.json()
 
       // Map response to interface format
       return {
-        id: data.id,
-        employee_id: data.employee_id,
-        start_date: data.start_time.split('T')[0],
-        end_date: data.end_time.split('T')[0],
-        reason: data.reason || '',
-        status: data.status as 'pending' | 'approved' | 'denied',
-        created_at: data.requested_date || data.start_time
+        id: timeOff.id,
+        employee_id: timeOff.employee_id,
+        start_date: timeOff.start_time.split('T')[0],
+        end_date: timeOff.end_time.split('T')[0],
+        reason: timeOff.reason || '',
+        status: timeOff.status as 'pending' | 'approved' | 'denied',
+        created_at: timeOff.requested_date || timeOff.start_time
       }
     },
     onSuccess: () => {
