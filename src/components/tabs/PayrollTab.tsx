@@ -22,6 +22,18 @@ interface WorkedShift {
   hoursWorked: number
   isIncomplete?: boolean
   isAutoClockOut?: boolean
+  isSuspicious?: boolean
+}
+
+interface FlaggedActivity {
+  employeeId: string
+  employeeName: string
+  date: string
+  dayName: string
+  clockIn: string
+  clockOut: string
+  hoursWorked: number
+  reason: string
 }
 
 interface PayRateArrangement {
@@ -55,6 +67,7 @@ export function PayrollTab() {
   const [loading, setLoading] = useState(true)
   const [weekSelection, setWeekSelection] = useState<'this' | 'last' | 'lastPayPeriod'>('this') // Default to THIS week
   const [employees, setEmployees] = useState<EmployeePayroll[]>([])
+  const [flaggedActivities, setFlaggedActivities] = useState<FlaggedActivity[]>([])
   const [finalizingEmployee, setFinalizingEmployee] = useState<string | null>(null)
 
   useEffect(() => {
@@ -166,13 +179,17 @@ export function PayrollTab() {
               const matchesAutoPattern = outSeconds <= 5 && (outMinutes === 0 || outMinutes === 30)
               const isAutoClockOut = !isManuallyEdited && matchesAutoPattern
 
+              // Detect suspicious activity: shifts under 5 minutes (0.083 hours)
+              const isSuspicious = hours < 0.083 && hours > 0
+
               workedShifts.push({
                 date: format(inTime, 'yyyy-MM-dd'),
                 dayName: format(inTime, 'EEEE'),
                 clockIn: format(inTime, 'h:mm a'),
                 clockOut: format(outTime, 'h:mm a'),
                 hoursWorked: hours,
-                isAutoClockOut
+                isAutoClockOut,
+                isSuspicious
               })
 
               clockIn = null
@@ -265,6 +282,26 @@ export function PayrollTab() {
         })
         .sort((a: EmployeePayroll, b: EmployeePayroll) => a.name.localeCompare(b.name))
 
+      // Collect all flagged activities (suspicious shifts < 5 minutes)
+      const flagged: FlaggedActivity[] = []
+      payrollData.forEach((emp: EmployeePayroll) => {
+        emp.workedShifts.forEach((shift: WorkedShift) => {
+          if (shift.isSuspicious && shift.clockOut) {
+            flagged.push({
+              employeeId: emp.id,
+              employeeName: emp.name,
+              date: shift.date,
+              dayName: shift.dayName,
+              clockIn: shift.clockIn,
+              clockOut: shift.clockOut,
+              hoursWorked: shift.hoursWorked,
+              reason: 'Shift under 5 minutes'
+            })
+          }
+        })
+      })
+
+      setFlaggedActivities(flagged)
       setEmployees(payrollData)
       setLoading(false)
     } catch (error) {
@@ -430,6 +467,39 @@ export function PayrollTab() {
         </div>
       ) : (
         <div>
+          {/* Flagged Activity Section */}
+          {flaggedActivities.length > 0 && (
+            <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-300 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg font-bold text-orange-800">⚠️ Flagged Activity</span>
+                <span className="text-sm text-orange-600">({flaggedActivities.length} suspicious {flaggedActivities.length === 1 ? 'shift' : 'shifts'})</span>
+              </div>
+              <div className="space-y-2">
+                {flaggedActivities.map((activity, idx) => (
+                  <div key={idx} className="bg-white p-3 rounded border border-orange-200">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-gray-800">{activity.employeeName}</div>
+                        <div className="text-sm text-gray-600">
+                          {activity.dayName}, {format(new Date(activity.date), 'MMM d')}
+                        </div>
+                        <div className="text-sm text-gray-700 mt-1">
+                          {activity.clockIn} - {activity.clockOut}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-orange-700">{activity.reason}</div>
+                        <div className="text-xs text-orange-600 mt-1">
+                          {Math.round(activity.hoursWorked * 60)} seconds
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Employee List */}
           <div className="space-y-4 mb-4">
             {employees.map((employee) => (
