@@ -257,32 +257,8 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
         <h2 className="text-[28px] font-bold text-gray-800 mb-8 tracking-tight">
           Open Shifts
         </h2>
-        <div className="flex flex-col gap-3">
-          {/* Placeholder shifts */}
-          {[
-            { date: 'Tuesday 11-7', time: '9:00 AM - 5:00 PM', location: 'Main Street' },
-            { date: 'Thursday 11-9', time: '2:00 PM - 10:00 PM', location: 'Downtown' },
-            { date: 'Saturday 11-11', time: '6:00 AM - 2:00 PM', location: 'Main Street' }
-          ].map((shift, idx) => (
-            <div key={idx} className="p-5 bg-white border border-gray-200 rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex-1">
-                  <div className="text-lg font-bold text-gray-800 mb-2">
-                    {shift.date}
-                  </div>
-                  <div className="text-[15px] text-blue-600 font-medium mb-2">
-                    {shift.time}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {shift.location}
-                  </div>
-                </div>
-                <button className="bg-blue-600 text-white border-none px-6 py-2.5 rounded-lg text-sm font-semibold cursor-pointer whitespace-nowrap">
-                  Claim
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center justify-center py-12">
+          <p className="text-gray-500 text-lg">Coming soon</p>
         </div>
       </div>
 
