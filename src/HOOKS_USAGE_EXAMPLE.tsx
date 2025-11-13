@@ -214,7 +214,7 @@ export default function EmployeePortalWithHooks() {
           </button>
 
           {/* Show previous requests */}
-          {timeOffRequests.map(request => (
+          {timeOffRequests.map((request: any) => (
             <div key={request.id}>
               {request.start_date} - {request.end_date} ({request.status})
             </div>

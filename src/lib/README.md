@@ -48,9 +48,13 @@ Date and timezone utilities with automatic DST handling.
 **Key Functions:**
 - `formatInEasternTime(date, format)` - Convert UTC to Eastern Time
 - `getEasternTimeParts(date)` - Get date/time parts in ET
-- `easternTimeToUTC(easternTimeString)` - Convert ET string to UTC Date
-- `isDST(date)` - Check if date is in Daylight Saving Time
-- `getEasternOffset(date)` - Get current UTC offset for ET
+
+**Deprecated (Deleted):**
+- ~~`easternTimeToUTC()`~~ - Had timezone bugs, never used
+- ~~`isDST()`~~ - Checked wrong timezone, never used
+- ~~`getEasternOffset()`~~ - Returned incorrect values, never used
+
+**Use `timezone.ts` instead:** `etToUTC()`, `utcToET()`, `buildETDateTime()`
 
 **Example:**
 ```typescript

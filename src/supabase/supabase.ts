@@ -222,129 +222,14 @@ export const timeclockApi = {
   }
 };
 
-// Schedule API functions
-export const scheduleApi = {
-  // Get today's schedule (optimized with join)
-  async getTodaySchedule() {
-    const today = new Date();
-    const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-    const todayEnd = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+// DELETED: scheduleApi
+// All schedule operations now use Edge Functions (getSchedule, scheduleBuilder)
+// scheduleApi had timezone bugs and was completely unused
 
-    const { data, error } = await supabase
-      .from('shifts')
-      .select(`
-        *,
-        employee:employees(*)
-      `)
-      .gte('start_time', todayStart)
-      .lte('start_time', todayEnd)
-      .order('start_time');
-
-    if (error) throw error;
-    return data || [];
-  },
-
-  // DEPRECATED: Use getSchedule() Edge Function instead
-  // These functions duplicate timezone logic and are error-prone
-  // Kept for backward compatibility only
-  async getWeeklySchedule() {
-    console.warn('scheduleApi.getWeeklySchedule() is DEPRECATED. Use getSchedule("this-week") Edge Function instead.');
-    throw new Error('Use getSchedule() Edge Function instead of scheduleApi.getWeeklySchedule()');
-  },
-
-  async getNextWeekSchedule() {
-    console.warn('scheduleApi.getNextWeekSchedule() is DEPRECATED. Use getSchedule("next-week") Edge Function instead.');
-    throw new Error('Use getSchedule() Edge Function instead of scheduleApi.getNextWeekSchedule()');
-  },
-
-  // Get week schedule (with optional join)
-  async getWeekSchedule(startDate: string, endDate: string, includeEmployee = false) {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-
-    const selectQuery = includeEmployee ? `*, employee:employees(*)` : '*';
-
-    const { data, error } = await supabase
-      .from('shifts')
-      .select(selectQuery)
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString())
-      .order('start_time');
-
-    if (error) throw error;
-    return data || [];
-  }
-};
-
-// Time-off API functions
-export const timeOffApi = {
-  // Get time-offs for a date range
-  async getTimeOffsForRange(startDate: string, endDate: string) {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-
-    const { data, error } = await supabase
-      .from('time_off_notices')
-      .select('*')
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString())
-      .order('start_time');
-
-    if (error) throw error;
-    return data as TimeOff[];
-  }
-};
-
-// Conflict resolution API
-export const conflictApi = {
-  // Delete shifts that conflict with time-offs
-  // Returns the IDs of deleted shifts
-  async resolveConflicts(startDate: string, endDate: string) {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-
-    // Get all shifts and time-offs for the date range
-    const [shifts, timeOffs] = await Promise.all([
-      scheduleApi.getWeekSchedule(start.toISOString(), end.toISOString(), false),
-      timeOffApi.getTimeOffsForRange(start.toISOString(), end.toISOString())
-    ]);
-
-    // Find conflicting shift IDs
-    const conflictingShiftIds: number[] = [];
-
-    (shifts as unknown as Shift[]).forEach(shift => {
-      const shiftDate = new Date(shift.start_time).toDateString();
-
-      // Check if there's a time-off for this employee on the same day
-      const hasTimeOff = timeOffs.some(timeOff => {
-        const timeOffDate = new Date(timeOff.start_time).toDateString();
-        return timeOff.employee_id === shift.employee_id && timeOffDate === shiftDate;
-      });
-
-      if (hasTimeOff) {
-        conflictingShiftIds.push(shift.id);
-      }
-    });
-
-    // Delete conflicting shifts if any found
-    if (conflictingShiftIds.length > 0) {
-      const { error } = await supabase
-        .from('shifts')
-        .delete()
-        .in('id', conflictingShiftIds);
-
-      if (error) throw error;
-    }
-
-    return conflictingShiftIds;
-  }
-};
+// DELETED: timeOffApi, conflictApi
+// All time-off and conflict operations now use Edge Functions
+// (getTimeOffsForRange, resolveScheduleConflicts from edgeFunctions.ts)
+// These APIs had timezone bugs and were completely unused
 
 // Pay Rates API functions
 export const payRatesApi = {

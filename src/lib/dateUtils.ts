@@ -121,47 +121,6 @@ export function getEasternTimeParts(date: Date) {
   }
 }
 
-/**
- * Create a UTC Date from Eastern Time values
- * Use this when user enters a time in Eastern Time and you need to store it in database
- *
- * @param easternTimeString - Date/time string in Eastern Time (e.g., "2025-11-04 06:30:00")
- * @returns Date object in UTC (ready for database)
- *
- * Example:
- * easternTimeToUTC("2025-11-04 06:30:00") → Date object representing UTC time
- */
-export function easternTimeToUTC(easternTimeString: string): Date {
-  // Parse as if it's in America/New_York timezone
-  // JavaScript will handle the conversion to UTC
-  const date = new Date(easternTimeString + ' GMT-0500') // EST offset (will adjust for EDT automatically)
-  return date
-}
-
-/**
- * Check if a date falls within DST (Daylight Saving Time)
- *
- * @param date - Date to check
- * @returns true if date is in EDT (UTC-4), false if EST (UTC-5)
- */
-export function isDST(date: Date): boolean {
-  // Get timezone offset in January (definitely EST) and July (definitely EDT)
-  const jan = new Date(date.getFullYear(), 0, 1)
-  const jul = new Date(date.getFullYear(), 6, 1)
-
-  const janOffset = jan.getTimezoneOffset()
-  const julOffset = jul.getTimezoneOffset()
-
-  // DST is when offset is less (closer to UTC)
-  return Math.max(janOffset, julOffset) !== date.getTimezoneOffset()
-}
-
-/**
- * Get current offset for Eastern Time
- *
- * @param date - Date to check
- * @returns Offset string (e.g., "UTC-5" for EST, "UTC-4" for EDT)
- */
-export function getEasternOffset(date: Date): string {
-  return isDST(date) ? 'UTC-4' : 'UTC-5'
-}
+// DELETED: easternTimeToUTC(), isDST(), getEasternOffset()
+// These functions had timezone bugs and were never used in the codebase
+// Use timezone.ts utilities instead: etToUTC(), utcToET(), buildETDateTime()
