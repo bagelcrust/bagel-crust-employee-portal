@@ -274,6 +274,7 @@ export interface Database {
           payment_method: string | null
           check_number: string | null
           status: 'pending' | 'paid' | 'cancelled'
+          payment_type: 'regular' | 'one_time'
           notes: string | null
           created_at: string | null
           updated_at: string | null
@@ -292,6 +293,7 @@ export interface Database {
           payment_method?: string | null
           check_number?: string | null
           status?: 'pending' | 'paid' | 'cancelled'
+          payment_type?: 'regular' | 'one_time'
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
@@ -310,6 +312,7 @@ export interface Database {
           payment_method?: string | null
           check_number?: string | null
           status?: 'pending' | 'paid' | 'cancelled'
+          payment_type?: 'regular' | 'one_time'
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null

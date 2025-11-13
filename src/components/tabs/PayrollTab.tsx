@@ -21,6 +21,7 @@ interface WorkedShift {
   clockOut: string | null
   hoursWorked: number
   isIncomplete?: boolean
+  isAutoClockOut?: boolean
 }
 
 interface PayRateArrangement {
@@ -52,7 +53,7 @@ interface EmployeePayroll {
 
 export function PayrollTab() {
   const [loading, setLoading] = useState(true)
-  const [weekSelection, setWeekSelection] = useState<'this' | 'last' | 'lastPayPeriod'>('last') // Default to last week
+  const [weekSelection, setWeekSelection] = useState<'this' | 'last' | 'lastPayPeriod'>('this') // Default to THIS week
   const [employees, setEmployees] = useState<EmployeePayroll[]>([])
   const [finalizingEmployee, setFinalizingEmployee] = useState<string | null>(null)
 
@@ -156,12 +157,22 @@ export function PayrollTab() {
               const hours = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
               totalHours += hours
 
+              // Detect auto clock-out: Check manually_edited field first
+              // If manually edited, it's NOT auto (even if time matches pattern)
+              // Otherwise, use time pattern as fallback for backwards compatibility
+              const isManuallyEdited = event.manually_edited === true
+              const outSeconds = outTime.getSeconds()
+              const outMinutes = outTime.getMinutes()
+              const matchesAutoPattern = outSeconds <= 5 && (outMinutes === 0 || outMinutes === 30)
+              const isAutoClockOut = !isManuallyEdited && matchesAutoPattern
+
               workedShifts.push({
                 date: format(inTime, 'yyyy-MM-dd'),
                 dayName: format(inTime, 'EEEE'),
                 clockIn: format(inTime, 'h:mm a'),
                 clockOut: format(outTime, 'h:mm a'),
-                hoursWorked: hours
+                hoursWorked: hours,
+                isAutoClockOut
               })
 
               clockIn = null
@@ -215,7 +226,8 @@ export function PayrollTab() {
           const selectedArrangement = unpaidArrangements[0] || arrangements[0]
 
           // Employee is fully paid if all arrangements are paid AND they have worked hours
-          const isFullyPaid = arrangements.length > 0 && arrangements.every(arr => paidArrangements.has(arr.id))
+          // BUT: Don't show as paid if we're viewing "This Week" (current week)
+          const isFullyPaid = weekSelection !== 'this' && arrangements.length > 0 && arrangements.every(arr => paidArrangements.has(arr.id))
 
           const hourlyRate = selectedArrangement?.rate || 0
           const totalPay = totalHours * hourlyRate
@@ -401,7 +413,7 @@ export function PayrollTab() {
           }`}
           type="button"
         >
-          Last Pay Period
+          Last Period
         </button>
       </div>
 
@@ -424,6 +436,7 @@ export function PayrollTab() {
               <EmployeePayrollCard
                 key={employee.id}
                 employee={employee}
+                weekSelection={weekSelection}
                 onFinalize={handleFinalizeEmployee}
                 isFinalizing={finalizingEmployee === employee.id}
               />
@@ -460,15 +473,14 @@ export function PayrollTab() {
  */
 interface EmployeePayrollCardProps {
   employee: EmployeePayroll
+  weekSelection: 'this' | 'last' | 'lastPayPeriod'
   onFinalize: (employeeId: string, arrangementId: number, manualHours: number) => void
   isFinalizing: boolean
 }
 
-function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePayrollCardProps) {
+function EmployeePayrollCard({ employee, weekSelection, onFinalize, isFinalizing }: EmployeePayrollCardProps) {
   // Select arrangement: if paid, use the one from record; otherwise use selectedArrangement
-  const [selectedArrangementId, setSelectedArrangementId] = useState(
-    employee.selectedArrangement?.id || employee.payRateArrangements[0]?.id
-  )
+  const selectedArrangementId = employee.selectedArrangement?.id || employee.payRateArrangements[0]?.id
 
   // Calculate smart default hours based on arrangement and already-paid hours
   const calculateDefaultHours = (arrangementId: number): number => {
@@ -495,13 +507,13 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
     return remainingHours
   }
 
-  const [manualHours, setManualHours] = useState<string>(() => {
+  const manualHours = (() => {
     // Initialize with smart default for multi-arrangement employees
     if (employee.payRateArrangements.length > 1) {
       return calculateDefaultHours(selectedArrangementId).toFixed(2)
     }
     return ''
-  })
+  })()
 
   // Get current arrangement based on selection
   const currentArrangement = employee.payRateArrangements.find(arr => arr.id === selectedArrangementId) || employee.payRateArrangements[0]
@@ -510,14 +522,6 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
   const hourlyRate = currentArrangement?.rate || 0
   const hoursForCalc = manualHours ? parseFloat(manualHours) : employee.totalHours
   const totalPay = hoursForCalc * hourlyRate
-
-  // Update manual hours when arrangement changes
-  const handleArrangementChange = (newArrangementId: number) => {
-    setSelectedArrangementId(newArrangementId)
-    if (employee.payRateArrangements.length > 1) {
-      setManualHours(calculateDefaultHours(newArrangementId).toFixed(2))
-    }
-  }
 
   // If already paid, show read-only card
   if (employee.isPaid) {
@@ -544,7 +548,12 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
               >
                 <div className="text-[15px] text-gray-800">
                   <div className="font-bold">{shift.dayName}</div>
-                  <div className="text-[14px] text-gray-600">{shift.clockIn} - {shift.clockOut || '???'}</div>
+                  <div className="text-[14px] text-gray-600 flex items-center gap-2">
+                    <span>{shift.clockIn} - {shift.clockOut || '???'}</span>
+                    {shift.isAutoClockOut && (
+                      <span className="px-1.5 py-0.5 bg-yellow-600 text-white text-[10px] font-bold rounded">AUTO</span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-[17px] font-bold text-gray-900 text-right">
                   {shift.isIncomplete ? '' : formatHoursMinutes(shift.hoursWorked)}
@@ -598,14 +607,21 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
               className={`grid grid-cols-[1fr_auto] gap-2 items-center py-2.5 px-3 rounded ${
                 shift.isIncomplete
                   ? 'bg-orange-100 border-2 border-orange-400'
+                  : shift.isAutoClockOut
+                  ? 'bg-yellow-50 border-2 border-yellow-400'
                   : idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'
               }`}
             >
-              <div className={`text-[15px] ${shift.isIncomplete ? 'text-orange-800 font-semibold' : 'text-gray-800'}`}>
+              <div className={`text-[15px] ${shift.isIncomplete ? 'text-orange-800 font-semibold' : shift.isAutoClockOut ? 'text-yellow-900 font-semibold' : 'text-gray-800'}`}>
                 <div className="font-bold">{shift.dayName}</div>
-                <div className="text-[14px] text-gray-600">{shift.clockIn} - {shift.clockOut || '???'}</div>
+                <div className="text-[14px] text-gray-600 flex items-center gap-2">
+                  <span>{shift.clockIn} - {shift.clockOut || '???'}</span>
+                  {shift.isAutoClockOut && (
+                    <span className="px-1.5 py-0.5 bg-yellow-600 text-white text-[10px] font-bold rounded">AUTO</span>
+                  )}
+                </div>
               </div>
-              <div className={`text-[17px] font-bold text-right ${shift.isIncomplete ? 'text-orange-700' : 'text-gray-900'}`}>
+              <div className={`text-[17px] font-bold text-right ${shift.isIncomplete ? 'text-orange-700' : shift.isAutoClockOut ? 'text-yellow-700' : 'text-gray-900'}`}>
                 {shift.isIncomplete ? '' : formatHoursMinutes(shift.hoursWorked)}
               </div>
             </div>
@@ -615,73 +631,6 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
 
       {/* Payment Section */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-        {/* Pay Arrangement Selector (if employee has multiple) */}
-        {employee.payRateArrangements.length > 1 && (
-          <div className="mb-3">
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              Pay Arrangement
-            </label>
-            <select
-              value={selectedArrangementId}
-              onChange={(e) => handleArrangementChange(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              {employee.payRateArrangements.map((arr) => (
-                <option key={arr.id} value={arr.id}>
-                  {arr.payment_method?.toUpperCase()}
-                  {arr.tax_classification && ` (${arr.tax_classification})`}
-                  {arr.pay_schedule && ` - ${arr.pay_schedule}`}
-                  {' @ $'}{arr.rate.toFixed(2)}/hr
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Display selected arrangement details */}
-        {employee.payRateArrangements.length === 1 && currentArrangement && (
-          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-gray-700">
-            <strong>{currentArrangement.payment_method?.toUpperCase()}</strong>
-            {currentArrangement.tax_classification && ` (${currentArrangement.tax_classification})`}
-            {currentArrangement.pay_schedule && ` - ${currentArrangement.pay_schedule}`}
-          </div>
-        )}
-
-        {/* Show paid arrangements (if any) */}
-        {employee.paidArrangements.size > 0 && (
-          <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded text-xs">
-            <div className="font-semibold text-green-800 mb-1">Already Paid:</div>
-            {Array.from(employee.paidArrangements.entries()).map(([arrId, paidInfo]) => {
-              const arr = employee.payRateArrangements.find(a => a.id === arrId)
-              return (
-                <div key={arrId} className="text-gray-700">
-                  {arr?.payment_method?.toUpperCase()} {arr?.tax_classification && `(${arr.tax_classification})`}: {formatHoursMinutes(paidInfo.hours)} = ${paidInfo.pay.toFixed(2)}
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Manual Hours Input (for Carlos/Mere who split hours between arrangements) */}
-        {employee.payRateArrangements.length > 1 && (
-          <div className="mb-3">
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              Hours for this arrangement (Total: {formatHoursMinutes(employee.totalHours)})
-            </label>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="Enter hours (e.g., 7.5 for 7h 30m)"
-              value={manualHours}
-              onChange={(e) => setManualHours(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-            <div className="text-xs text-gray-500 mt-1">
-              Tip: 7.5 = 7h 30m, 8.25 = 8h 15m, 40 = 40h
-            </div>
-          </div>
-        )}
-
         {/* Total calculation */}
         <div className="flex justify-between items-center text-sm mb-3">
           <div className="text-gray-600">
@@ -692,15 +641,17 @@ function EmployeePayrollCard({ employee, onFinalize, isFinalizing }: EmployeePay
           </div>
         </div>
 
-        {/* Finalize Button */}
-        <button
-          onClick={() => onFinalize(employee.id, selectedArrangementId, parseFloat(manualHours) || 0)}
-          disabled={isFinalizing}
-          className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-md transition-all"
-          type="button"
-        >
-          {isFinalizing ? 'Finalizing...' : '✓ Finalize Payment'}
-        </button>
+        {/* Finalize Button - Hide for current week */}
+        {weekSelection !== 'this' && (
+          <button
+            onClick={() => onFinalize(employee.id, selectedArrangementId, parseFloat(manualHours) || 0)}
+            disabled={isFinalizing}
+            className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-md transition-all"
+            type="button"
+          >
+            {isFinalizing ? 'Finalizing...' : '✓ Finalize Payment'}
+          </button>
+        )}
       </div>
     </div>
   )
