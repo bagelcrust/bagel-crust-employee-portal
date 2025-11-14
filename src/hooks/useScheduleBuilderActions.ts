@@ -50,7 +50,7 @@ export function useScheduleBuilderActions({
   refetchPublishStatus,
   modalState,
   setModalState,
-  editModalState: _editModalState, // Unused - kept for interface compatibility
+  editModalState,
   setEditModalState
 }: UseScheduleBuilderActionsProps) {
   const { toast } = useToast()
@@ -97,28 +97,34 @@ export function useScheduleBuilderActions({
   }, [timeOffsByEmployeeAndDay, daysOfWeek, setModalState])
 
   // Handle save shift from modal
-  const handleSaveShift = useCallback(async (
-    startTime: string,
-    endTime: string,
-    location: string,
+  const handleSaveShift = useCallback(async (shiftData: {
+    date: string
+    startTime: string
+    endTime: string
+    location: string
     isOpenShift: boolean
-  ) => {
+  }) => {
     if (import.meta.env.DEV) {
       console.log('💾 SAVING NEW SHIFT:', {
-        employeeId: isOpenShift ? null : modalState.employeeId,
-        startTime,
-        endTime,
-        location,
-        isOpenShift
+        employeeId: shiftData.isOpenShift ? null : modalState.employeeId,
+        date: shiftData.date,
+        startTime: shiftData.startTime,
+        endTime: shiftData.endTime,
+        location: shiftData.location,
+        isOpenShift: shiftData.isOpenShift
       })
     }
 
     try {
+      // Combine date with times to create ISO timestamps
+      const startDateTime = new Date(`${shiftData.date}T${shiftData.startTime}:00`)
+      const endDateTime = new Date(`${shiftData.date}T${shiftData.endTime}:00`)
+
       await shiftService.createShift({
-        employee_id: isOpenShift ? null : modalState.employeeId,
-        start_time: startTime,
-        end_time: endTime,
-        location: location
+        employee_id: shiftData.isOpenShift ? null : modalState.employeeId,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        location: shiftData.location
       })
 
       await refetchShifts()
@@ -400,17 +406,30 @@ export function useScheduleBuilderActions({
   }, [setEditModalState])
 
   // Handle save edited shift
-  const handleEditShift = useCallback(async (
-    shiftId: number,
-    startTime: string,
-    endTime: string,
+  const handleEditShift = useCallback(async (shiftData: {
+    id: number
+    startTime: string
+    endTime: string
     location: string
-  ) => {
+  }) => {
     try {
-      await shiftService.updateShift(shiftId, {
-        start_time: startTime,
-        end_time: endTime,
-        location: location
+      // Get original shift to preserve the date
+      const originalShift = editModalState.shift
+      if (!originalShift) {
+        throw new Error('No shift data available')
+      }
+
+      const originalStart = new Date(originalShift.start_time)
+      const dateStr = originalStart.toISOString().split('T')[0]
+
+      // Combine date with new times
+      const startDateTime = new Date(`${dateStr}T${shiftData.startTime}:00`)
+      const endDateTime = new Date(`${dateStr}T${shiftData.endTime}:00`)
+
+      await shiftService.updateShift(shiftData.id, {
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        location: shiftData.location
       })
 
       await refetchShifts()
@@ -418,7 +437,7 @@ export function useScheduleBuilderActions({
       console.error('❌ SHIFT UPDATE FAILED:', error)
       throw error
     }
-  }, [refetchShifts])
+  }, [refetchShifts, editModalState])
 
   // Handle availability click (preset times in modal)
   const handleAvailabilityClick = useCallback((

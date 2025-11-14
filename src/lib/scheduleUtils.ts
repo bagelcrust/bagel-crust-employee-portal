@@ -6,6 +6,7 @@
  */
 
 import { format } from 'date-fns'
+import type { TimeOff } from '../supabase/supabase'
 
 /**
  * Shift status types
@@ -23,18 +24,6 @@ export interface Shift {
   location: string
   role: string
   status: ShiftStatus
-}
-
-/**
- * Time-off entry type
- */
-export interface TimeOff {
-  id: number
-  employee_id: string
-  start_time: string
-  end_time: string
-  reason: string | null
-  status: string
 }
 
 /**
@@ -79,11 +68,22 @@ export function formatShiftTimeDetailed(
  * @returns true if all-day time-off
  */
 export function isAllDayTimeOff(timeOff: TimeOff): boolean {
-  const start = new Date(timeOff.start_time)
-  const end = new Date(timeOff.end_time)
-  const startHour = start.getUTCHours()
-  const endHour = end.getUTCHours()
-  return startHour === 5 && endHour === 4
+  // Check the all_day flag first (most reliable)
+  if (timeOff.all_day !== null && timeOff.all_day !== undefined) {
+    return timeOff.all_day
+  }
+
+  // Fallback: check timestamps if they exist
+  if (timeOff.start_time && timeOff.end_time) {
+    const start = new Date(timeOff.start_time)
+    const end = new Date(timeOff.end_time)
+    const startHour = start.getUTCHours()
+    const endHour = end.getUTCHours()
+    return startHour === 5 && endHour === 4
+  }
+
+  // Default to true if we have no timestamps
+  return true
 }
 
 /**
@@ -154,7 +154,11 @@ export function calculateShiftDuration(startTime: string, endTime: string): numb
  */
 export function getTimeOffForDate(timeOffs: TimeOff[], date: Date): TimeOff | null {
   return timeOffs.find(timeOff => {
-    const timeOffDate = new Date(timeOff.start_time).toDateString()
+    // Use start_date if available, fallback to start_time
+    const timeOffDateStr = timeOff.start_date || (timeOff.start_time ? new Date(timeOff.start_time).toISOString().split('T')[0] : null)
+    if (!timeOffDateStr) return false
+
+    const timeOffDate = new Date(timeOffDateStr).toDateString()
     return timeOffDate === date.toDateString()
   }) || null
 }
@@ -210,17 +214,19 @@ export function validateShiftConflicts(
     }
   }
 
-  // Check for time-off conflicts
+  // Check for time-off conflicts (only if times are defined)
   for (const timeOff of timeOffs) {
-    if (doShiftsOverlap(
-      newShift.start_time,
-      newShift.end_time,
-      timeOff.start_time,
-      timeOff.end_time
-    )) {
-      return {
-        isValid: false,
-        message: `Employee has time-off: ${timeOff.reason || 'No reason'}`
+    if (timeOff.start_time && timeOff.end_time) {
+      if (doShiftsOverlap(
+        newShift.start_time,
+        newShift.end_time,
+        timeOff.start_time,
+        timeOff.end_time
+      )) {
+        return {
+          isValid: false,
+          message: `Employee has time-off: ${timeOff.reason || 'No reason'}`
+        }
       }
     }
   }

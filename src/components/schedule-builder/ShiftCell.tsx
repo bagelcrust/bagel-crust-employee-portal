@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react'
 import { DraggableShift } from './DraggableShift'
 import { AvailabilityOverlay } from './AvailabilityOverlay'
 import { TimeOffOverlay } from './TimeOffOverlay'
-import { formatShiftTime, isAllDayTimeOff } from '@/lib'
+import { isAllDayTimeOff } from '@/lib'
 import type { ScheduleShift } from '@/hooks'
 import type { TimeOff } from '@/supabase/supabase'
 
@@ -96,9 +96,11 @@ export function ShiftCell({
   // Filter availability to exclude time-off periods (only show truly available times)
   const filteredAvailability = sortedAvailability.filter(avail => {
     // Exclude if it overlaps with any partial time-off
-    const hasOverlap = partialTimeOffs.some(timeOff =>
-      timeRangesOverlap(avail.start_time, avail.end_time, timeOff.start_time, timeOff.end_time)
-    )
+    const hasOverlap = partialTimeOffs.some(timeOff => {
+      // Only check overlap if time-off has start/end times
+      if (!timeOff.start_time || !timeOff.end_time) return false
+      return timeRangesOverlap(avail.start_time, avail.end_time, timeOff.start_time, timeOff.end_time)
+    })
     return !hasOverlap
   })
 
@@ -163,7 +165,7 @@ export function ShiftCell({
                 title={timeOff.reason || 'Time off'}
               >
                 <div className="text-xs font-medium text-orange-900">
-                  {isAllDay ? 'Time Off' : formatShiftTime(timeOff.start_time, timeOff.end_time)}
+                  {isAllDay || !timeOff.start_time || !timeOff.end_time ? 'Time Off' : `${timeOff.start_time_only || ''} - ${timeOff.end_time_only || ''}`}
                 </div>
               </div>
             )
