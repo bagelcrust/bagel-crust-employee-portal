@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Trash2, Repeat, Copy } from 'lucide-react'
-import { DndContext, DragOverlay } from '@dnd-kit/core'
+import { ChevronLeft, ChevronRight, Send, Loader2, Trash2, Repeat } from 'lucide-react'
 import { useScheduleBuilder } from '../hooks'
 import { useScheduleBuilderActions } from '../hooks/useScheduleBuilderActions'
-import { ShiftCell } from '../components/schedule-builder'
+import { ShiftCell, OpenShiftCell } from '../components/schedule-builder'
 import { AddShiftDialog } from '../components/AddShiftDialog'
 import { EditShiftDialog } from '../components/EditShiftDialog'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import {
-  formatShiftTime,
   formatShiftHours,
   PAGE_TITLES,
   SCHEDULE_MESSAGES
@@ -93,13 +89,17 @@ export default function ScheduleBuilderV2() {
     initialStartTime?: string
     initialEndTime?: string
     initialLocation?: string
+    pastShifts?: any[]
+    availabilityWindow?: { start: string; end: string } | null
   }>({
     isOpen: false,           // Popup starts closed
     employeeId: null,
     employeeName: '',
     date: new Date(),
     hasTimeOff: false,
-    timeOffReason: ''
+    timeOffReason: '',
+    pastShifts: [],
+    availabilityWindow: null
   })
 
   // Edit Shift Popup State
@@ -127,12 +127,9 @@ export default function ScheduleBuilderV2() {
     handleDeleteShift,      // When you click trash icon → delete shift
     handleDuplicateShift,   // When you click duplicate → copy shift
     handleRepeatLastWeek,   // When you click Repeat → copy last week
-    handleDragStart,        // When you start dragging shift
-    handleDragEnd,          // When you drop shift in new cell
     handleShiftClick,       // When you click existing shift → open Edit popup
     handleEditShift,        // When you save edited shift → update database
     handleAvailabilityClick,// When you click availability overlay
-    activeShift,            // Which shift is currently being dragged
     draftCount              // Number of draft shifts not published yet
   } = useScheduleBuilderActions({
     currentWeekStart,
@@ -185,97 +182,70 @@ export default function ScheduleBuilderV2() {
 
   return (
     // ┌─────────────────────────────────────────────────────────────┐
-    // │ MAIN CONTAINER (Full Screen)                               │
+    // │ MAIN CONTAINER (Full Screen) - DARK MODE                   │
     // │ Tailwind: h-screen (height: 100vh)                         │
     // │           flex flex-col (vertical layout)                   │
-    // │           bg-gradient-to-br (blue→purple gradient)          │
+    // │           bg-black (pure black background)                  │
     // └─────────────────────────────────────────────────────────────┘
-    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="h-screen flex flex-col bg-black">
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* HEADER SECTION (Week navigation + Publish buttons)       */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <div className="px-6 py-4">  {/* Tailwind: padding around header */}
+      <div className="px-3 py-1">  {/* Tailwind: padding around header */}
         <div className="max-w-[1600px] mx-auto">  {/* Tailwind: max width + center */}
 
-          {/* Shadcn/UI: Card component from /src/components/ui/card.tsx */}
-          <Card className="shadow-lg bg-white/90 backdrop-blur-lg border-white/50">
-
-            {/* Shadcn/UI: CardContent (inner container of Card) */}
-            <CardContent className="flex items-center gap-3 p-5">
+          {/* Header Card - DARK MODE */}
+          <div className="rounded bg-zinc-900/40 border border-zinc-800/40">
+            <div className="flex items-center gap-2 px-2 py-1">
 
               {/* ─────────────────────────────────────────────── */}
               {/* TODAY BUTTON                                    */}
               {/* Shadcn/UI: Button from /src/components/ui/button.tsx */}
               {/* Props: variant="outline", size="sm"            */}
               {/* ─────────────────────────────────────────────── */}
+              <div className="flex items-center gap-1.5">
+                <Button
+                  onClick={goToPreviousWeek}
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </Button>
+
+                <div className="px-2.5 py-1 rounded text-sm font-medium text-white">
+                  {dateRangeString}
+                </div>
+
+                <Button
+                  onClick={goToNextWeek}
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
               <Button
-                onClick={goToToday}           // Section 3: Action handler
-                disabled={isThisWeek}         // Section 1: Data from hook
-                variant="outline"             // Shadcn: button style variant
-                size="sm"                     // Shadcn: button size
-                className="border-2"          // Tailwind: thicker border
+                onClick={goToToday}
+                disabled={isThisWeek}
+                variant="ghost"
+                size="sm"
+                className="h-7 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               >
                 Today
               </Button>
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* DATE RANGE DISPLAY                              */}
-              {/* Regular HTML button (not Shadcn)               */}
-              {/* Tailwind: px-4 py-2 (padding), rounded-lg      */}
-              {/* ─────────────────────────────────────────────── */}
-              <button
-                className="px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2 font-medium text-gray-700"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.7)',  // Custom CSS (not Tailwind)
-                  border: '1px solid rgba(0, 0, 0, 0.08)'
-                }}
-              >
-                {/* Lucide Icon: Calendar (from lucide-react package) */}
-                <Calendar className="w-4 h-4 text-gray-500" />
-                {dateRangeString}  {/* Section 1: Data from hook */}
-              </button>
-
-              {/* ─────────────────────────────────────────────── */}
-              {/* WEEK NAVIGATION ARROWS                          */}
-              {/* ─────────────────────────────────────────────── */}
-              <div className="flex gap-1">  {/* Tailwind: flex container with gap */}
-
-                {/* Shadcn/UI: Button (Previous Week) */}
-                <Button
-                  onClick={goToPreviousWeek}  // Section 3: Action handler
-                  variant="ghost"             // Shadcn: transparent background
-                  size="icon"                 // Shadcn: icon-only size
-                  className="h-9 w-9"         // Tailwind: square button
-                >
-                  {/* Lucide Icon: ChevronLeft */}
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-
-                {/* Shadcn/UI: Button (Next Week) */}
-                <Button
-                  onClick={goToNextWeek}      // Section 3: Action handler
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                >
-                  {/* Lucide Icon: ChevronRight */}
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </div>
-
-              {/* ─────────────────────────────────────────────── */}
-              {/* REPEAT LAST WEEK BUTTON                         */}
-              {/* Shadcn/UI: Button with custom Tailwind styling */}
-              {/* ─────────────────────────────────────────────── */}
               <Button
-                onClick={handleRepeatLastWeek}  // Section 3: Action handler
-                variant="outline"
+                onClick={handleRepeatLastWeek}
+                disabled={isWeekPublished}
+                variant="ghost"
                 size="sm"
-                className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50"  // Tailwind: custom colors
+                className="h-7 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               >
-                {/* Lucide Icon: Repeat */}
-                <Repeat className="w-4 h-4 mr-2" />
+                <Repeat className="w-3 h-3 mr-1" />
                 Repeat Last Week
               </Button>
 
@@ -290,113 +260,103 @@ export default function ScheduleBuilderV2() {
               {/* Shadcn/UI: Badge from /src/components/ui/badge.tsx */}
               {/* Only shows if isWeekPublished is true          */}
               {/* ─────────────────────────────────────────────── */}
-              {isWeekPublished && (
-                <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
-                  ✓ Published
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {isWeekPublished && (
+                  <span className="text-xs text-zinc-500 uppercase tracking-wide">
+                    ✓ Published
+                  </span>
+                )}
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* PUBLISH BUTTON                                  */}
-              {/* Shadcn/UI: Button (blue, primary action)       */}
-              {/* ─────────────────────────────────────────────── */}
-              <Button
-                onClick={handlePublish}       // Section 3: Action handler
-                disabled={draftCount === 0}   // Disabled if no drafts
-                size="sm"
-                className="shadow-md"         // Tailwind: drop shadow
-              >
-                {/* Lucide Icon: Send */}
-                <Send className="w-4 h-4 mr-2" />
-                Publish ({draftCount})  {/* Section 3: Data from hook */}
-              </Button>
+                <button
+                  onClick={handlePublish}
+                  disabled={draftCount === 0}
+                  className="h-7 rounded px-2.5 text-sm font-medium bg-white hover:bg-zinc-100 text-black disabled:opacity-30 disabled:pointer-events-none inline-flex items-center gap-1.5"
+                >
+                  <Send className="w-3 h-3" />
+                  Publish {draftCount > 0 && `(${draftCount})`}
+                </button>
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* CLEAR DRAFTS BUTTON                             */}
-              {/* Shadcn/UI: Button (red, destructive action)    */}
-              {/* ─────────────────────────────────────────────── */}
-              <Button
-                onClick={handleClearDrafts}   // Section 3: Action handler
-                disabled={draftCount === 0}   // Disabled if no drafts
-                variant="destructive"         // Shadcn: red color
-                size="sm"
-                className="shadow-md"
-              >
-                {/* Lucide Icon: Trash2 */}
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear
-              </Button>
-            </CardContent>
-          </Card>
+                <Button
+                  onClick={handleClearDrafts}
+                  disabled={draftCount === 0}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Schedule Grid & Availability Container - Scrollable */}
-      <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="max-w-[1600px] mx-auto space-y-6">
-          {/* Schedule Grid */}
-          <Card className="overflow-hidden shadow-lg bg-white/90 backdrop-blur-lg border-white/50">
+      <div className="flex-1 overflow-auto px-3 pb-2">
+        <div className="max-w-[1600px] mx-auto">
+          {/* Schedule Grid - DARK MODE */}
+          <div className="rounded-lg overflow-hidden bg-zinc-900/40 border border-zinc-800/40">
             {isLoading ? (
               <div className="flex items-center justify-center h-full p-20">
                 <div className="text-center">
-                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
-                  <div className="text-sm text-gray-600">{SCHEDULE_MESSAGES.LOADING_SCHEDULE}</div>
+                  <Loader2 className="w-8 h-8 text-zinc-400 animate-spin mx-auto mb-2" />
+                  <div className="text-sm text-zinc-400">{SCHEDULE_MESSAGES.LOADING_SCHEDULE}</div>
                 </div>
               </div>
             ) : (
-              <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <div className="overflow-auto">
-                  <table className="w-full border-collapse">
+              <div className="overflow-auto">
+                <table className="w-full border-collapse">
                     <thead>
                       <tr>
                         <th
-                          className="sticky top-0 left-0 z-20 border-r border-b px-5 py-4 text-left font-semibold text-sm text-gray-700 min-w-[220px]"
-                          style={{
-                            background: 'rgba(249, 250, 251, 0.95)',
-                            backdropFilter: 'blur(10px)',
-                            borderColor: 'rgba(0, 0, 0, 0.06)'
-                          }}
+                          className="sticky top-0 left-0 z-20 border-r border-b px-2 py-1 text-left text-xs font-normal text-zinc-500 uppercase tracking-wide min-w-[140px] bg-zinc-900/70 backdrop-blur-[10px] border-zinc-800/50"
                         >
-                          Employee ({staffEmployees.length})
+                          Employee
                         </th>
-                        {daysOfWeek.map((day, index) => (
-                          <th
-                            key={index}
-                            className="sticky top-0 z-10 border-r border-b px-3 py-3 text-center font-semibold text-sm min-w-[120px]"
-                            style={{
-                              background: day.isToday
-                                ? 'rgba(224, 231, 255, 0.5)'
-                                : 'rgba(249, 250, 251, 0.95)',
-                              backdropFilter: 'blur(10px)',
-                              borderColor: 'rgba(0, 0, 0, 0.06)'
-                            }}
-                          >
-                            {day.isToday ? (
-                              <span className="inline-block bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
-                                {day.dayName}, {day.dayNumber}
-                              </span>
-                            ) : (
-                              <span className="text-gray-700">
-                                {day.dayName}, {day.dayNumber}
-                              </span>
-                            )}
-                          </th>
-                        ))}
+                        {daysOfWeek.map((day, index) => {
+                          const fullDate = day.date.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })
+
+                          return (
+                            <th
+                              key={index}
+                              className={`sticky top-0 z-10 border-r px-2 py-1 text-center min-w-[100px] ${
+                                day.isToday ? 'bg-zinc-900' : 'bg-zinc-900/70 border-b border-zinc-800/50'
+                              }`}
+                              style={day.isToday ? {
+                                borderBottom: '6px solid rgba(255, 255, 255, 0.5)'
+                              } : undefined}
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <div className={`text-xs font-normal uppercase tracking-wide ${
+                                  day.isToday ? 'text-white/90' : 'text-zinc-500'
+                                }`}>
+                                  {day.dayName}
+                                </div>
+                                <div className={`text-sm ${
+                                  day.isToday ? 'font-semibold text-white' : 'font-medium text-white'
+                                }`}>
+                                  {fullDate}
+                                </div>
+                              </div>
+                            </th>
+                          )
+                        })}
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Open Shifts Row */}
-                      {openShifts.length > 0 && (
-                        <tr className="bg-yellow-50/50">
+                      {/* Open Shifts Row - DARK MODE */}
+                      <tr>
                           <td
-                            className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
-                            style={{
-                              background: 'rgba(254, 252, 232, 0.9)',
-                              backdropFilter: 'blur(10px)',
-                              borderColor: 'rgba(0, 0, 0, 0.04)'
-                            }}
+                            className="sticky left-0 z-10 border-r border-b px-2 py-1 bg-zinc-900/60 backdrop-blur-[10px] border-zinc-800/50"
                           >
-                            🔓 Open Shifts ({openShifts.length})
+                            <div className="text-sm font-medium text-white">
+                              Open Shifts <span className="text-xs text-zinc-500">({openShifts.length} total)</span>
+                            </div>
                           </td>
                           {daysOfWeek.map((day, dayIndex) => {
                             const shiftsForDay = openShifts.filter(shift => {
@@ -404,68 +364,23 @@ export default function ScheduleBuilderV2() {
                               return shiftDate === day.date.toDateString()
                             })
                             return (
-                              <td
+                              <OpenShiftCell
                                 key={dayIndex}
-                                className="border-r border-b p-1.5 min-h-[50px] align-top"
-                                style={{
-                                  borderColor: 'rgba(0, 0, 0, 0.04)',
-                                  background: 'rgba(254, 243, 199, 0.15)'
-                                }}
-                              >
-                                {shiftsForDay.length > 0 && (
-                                  <div className="space-y-1">
-                                    {shiftsForDay.map((shift) => (
-                                      <div
-                                        key={shift.id}
-                                        className="rounded px-2 py-1 cursor-pointer hover:shadow-md transition-shadow text-center group relative"
-                                        style={{
-                                          background: 'rgba(147, 197, 253, 0.5)',
-                                          border: '1px solid rgba(147, 197, 253, 0.8)',
-                                          backdropFilter: 'blur(5px)'
-                                        }}
-                                        onClick={() => handleShiftClick({ ...shift, status: 'draft' }, 'Open Shift')}
-                                      >
-                                        <div className="text-xs font-medium text-blue-900">
-                                          {formatShiftTime(shift.start_time, shift.end_time)}
-                                        </div>
-                                        <Button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDuplicateShift({ ...shift, status: 'draft' }, 'Open Shift')
-                                          }}
-                                          size="icon"
-                                          variant="default"
-                                          className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          title="Duplicate shift"
-                                        >
-                                          <Copy className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDeleteShift(shift.id)
-                                          }}
-                                          size="icon"
-                                          variant="destructive"
-                                          className="absolute top-0 right-0 -mt-1 -mr-1 rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          title="Delete shift"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </td>
+                                dayIndex={dayIndex}
+                                date={day.date}
+                                shifts={shiftsForDay}
+                                onCellClick={handleCellClick}
+                                onShiftClick={handleShiftClick}
+                                onDuplicateShift={handleDuplicateShift}
+                              />
                             )
                           })}
                         </tr>
-                      )}
 
                       {/* Employee Rows */}
                       {staffEmployees.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="text-center py-8 text-gray-500">
+                          <td colSpan={8} className="text-center py-8 text-zinc-400">
                             No staff employees found
                           </td>
                         </tr>
@@ -477,21 +392,12 @@ export default function ScheduleBuilderV2() {
                           return (
                             <tr
                               key={employee.id}
-                              className="transition-colors hover:bg-white/40"
                             >
                               <td
-                                className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
-                                style={{
-                                  background: 'rgba(255, 255, 255, 0.8)',
-                                  backdropFilter: 'blur(10px)',
-                                  borderColor: 'rgba(0, 0, 0, 0.04)'
-                                }}
+                                className="sticky left-0 z-10 border-r border-b px-2 py-1 bg-zinc-900/60 backdrop-blur-[10px] border-zinc-800/50"
                               >
-                                <div className="flex items-center justify-between">
-                                  <span>{employee.first_name}</span>
-                                  <span className="text-xs text-gray-500 font-normal ml-2">
-                                    {formattedHours}
-                                  </span>
+                                <div className="text-sm font-medium text-white">
+                                  {employee.first_name} <span className="text-xs text-zinc-500">({formattedHours})</span>
                                 </div>
                               </td>
                               {daysOfWeek.map((day, dayIndex) => {
@@ -511,7 +417,6 @@ export default function ScheduleBuilderV2() {
                                     isToday={day.isToday}
                                     onCellClick={() => handleCellClick(employee.id, employee.first_name, day.date, dayIndex)}
                                     onShiftClick={handleShiftClick}
-                                    onDeleteShift={handleDeleteShift}
                                     onAvailabilityClick={(avail) => handleAvailabilityClick(employee.id, employee.first_name, day.date, dayIndex, avail)}
                                   />
                                 )
@@ -520,30 +425,55 @@ export default function ScheduleBuilderV2() {
                           )
                         })
                       )}
+
+                      {/* Totals Row */}
+                      <tr className="border-t-2 border-zinc-700">
+                        <td className="sticky left-0 z-10 border-r border-b px-2 py-1 bg-zinc-900/60 backdrop-blur-[10px] border-zinc-800/50">
+                          <div className="text-sm font-medium text-white">
+                            Total Staff <span className="text-xs text-zinc-500">({staffEmployees.length} employees)</span>
+                          </div>
+                        </td>
+                        {daysOfWeek.map((day, dayIndex) => {
+                          // Calculate how many people have shifts this day
+                          const peopleScheduled = staffEmployees.filter(emp => {
+                            const shiftsForDay = shiftsByEmployeeAndDay[emp.id]?.[dayIndex] || []
+                            return shiftsForDay.length > 0
+                          }).length
+
+                          // Calculate total hours for this day
+                          const totalHours = staffEmployees.reduce((sum, emp) => {
+                            const shiftsForDay = shiftsByEmployeeAndDay[emp.id]?.[dayIndex] || []
+                            const dayHours = shiftsForDay.reduce((shiftSum, shift) => {
+                              const start = new Date(shift.start_time)
+                              const end = new Date(shift.end_time)
+                              const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+                              return shiftSum + hours
+                            }, 0)
+                            return sum + dayHours
+                          }, 0)
+
+                          return (
+                            <td
+                              key={dayIndex}
+                              className="border-r border-b p-1.5 text-center"
+                              style={{
+                                borderColor: 'rgba(255, 255, 255, 0.08)',
+                                background: day.isToday ? 'rgba(255, 255, 255, 0.03)' : 'rgba(24, 24, 27, 0.4)'
+                              }}
+                            >
+                              <div className="text-xs text-white">
+                                <span className="font-semibold">{peopleScheduled}</span>
+                                <span className="text-zinc-500 ml-1">({formatShiftHours(totalHours)})</span>
+                              </div>
+                            </td>
+                          )
+                        })}
+                      </tr>
                     </tbody>
                   </table>
                 </div>
-                <DragOverlay>
-                  {activeShift ? (
-                    <div className="rounded px-2 py-1 shadow-lg" style={{
-                      background: activeShift.status === 'published'
-                        ? 'rgba(30, 64, 175, 0.85)'
-                        : 'rgba(147, 197, 253, 0.5)',
-                      border: activeShift.status === 'published'
-                        ? '1px solid rgba(30, 64, 175, 1)'
-                        : '1px solid rgba(147, 197, 253, 0.8)'
-                    }}>
-                      <div className={`text-xs font-medium ${
-                        activeShift.status === 'published' ? 'text-white' : 'text-blue-900'
-                      }`}>
-                        {formatShiftTime(activeShift.start_time, activeShift.end_time)}
-                      </div>
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
             )}
-          </Card>
+          </div>
 
         </div>
       </div>
@@ -560,6 +490,8 @@ export default function ScheduleBuilderV2() {
         initialStartTime={modalState.initialStartTime}
         initialEndTime={modalState.initialEndTime}
         initialLocation={modalState.initialLocation}
+        pastShifts={modalState.pastShifts}
+        availabilityWindow={modalState.availabilityWindow}
       />
 
       {/* Edit Shift Dialog */}
@@ -567,6 +499,7 @@ export default function ScheduleBuilderV2() {
         isOpen={editModalState.isOpen}
         onClose={() => setEditModalState({ ...editModalState, isOpen: false })}
         onSave={handleEditShift}
+        onDelete={handleDeleteShift}
         shift={editModalState.shift}
         employeeName={editModalState.employeeName}
       />
