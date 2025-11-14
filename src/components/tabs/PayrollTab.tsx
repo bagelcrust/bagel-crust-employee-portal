@@ -170,14 +170,13 @@ export function PayrollTab() {
               const hours = (outTime.getTime() - inTime.getTime()) / (1000 * 60 * 60)
               totalHours += hours
 
-              // Detect auto clock-out: Check manually_edited field first
-              // If manually edited, it's NOT auto (even if time matches pattern)
-              // Otherwise, use time pattern as fallback for backwards compatibility
+              // Detect auto clock-out: ONLY flag the 6:30 PM auto clock-out feature
+              // Convert to Eastern Time and check if it's 6:30 PM
               const isManuallyEdited = event.manually_edited === true
-              const outSeconds = outTime.getSeconds()
-              const outMinutes = outTime.getMinutes()
-              const matchesAutoPattern = outSeconds <= 5 && (outMinutes === 0 || outMinutes === 30)
-              const isAutoClockOut = !isManuallyEdited && matchesAutoPattern
+              const outHourET = parseInt(outTime.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }))
+              const outMinuteET = parseInt(outTime.toLocaleString('en-US', { timeZone: 'America/New_York', minute: '2-digit' }))
+              const is630PM = outHourET === 18 && outMinuteET === 30
+              const isAutoClockOut = !isManuallyEdited && is630PM
 
               // Detect suspicious activity: shifts under 5 minutes (0.083 hours)
               const isSuspicious = hours < 0.083 && hours > 0
