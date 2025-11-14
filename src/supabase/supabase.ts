@@ -71,7 +71,7 @@ export const employeeApi = {
 
   // Get employee by PIN
   async getByPin(pin: string) {
-    const { data, error} = await supabase
+    const { data, error } = await supabase
       .from('employees')
       .select('*')
       .eq('pin', pin)
@@ -80,18 +80,6 @@ export const employeeApi = {
 
     if (error) throw error;
     return data as Employee | null;
-  },
-
-  // Get employee availability
-  async getAvailability(employeeId: string) {
-    const { data, error } = await supabase
-      .from('availability')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .order('day_of_week');
-
-    if (error) throw error;
-    return data as Availability[];
   }
 };
 
@@ -243,106 +231,6 @@ export const timeclockApi = {
 // (getTimeOffsForRange, resolveScheduleConflicts from edgeFunctions.ts)
 // These APIs had timezone bugs and were completely unused
 
-// Shift Service (for Schedule Builder)
-export const shiftService = {
-  async createShift(shiftData: DraftShiftInsert) {
-    const { data, error } = await supabase
-      .from('draft_shifts')
-      .insert(shiftData)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async updateShift(shiftId: number, updates: DraftShiftUpdate) {
-    const { data, error } = await supabase
-      .from('draft_shifts')
-      .update(updates)
-      .eq('id', shiftId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async deleteShift(shiftId: number) {
-    const { error } = await supabase
-      .from('draft_shifts')
-      .delete()
-      .eq('id', shiftId);
-
-    if (error) throw error;
-  },
-
-  async getPublishedShifts(startDate: string, endDate: string) {
-    const { data, error } = await supabase
-      .from('published_shifts')
-      .select('*')
-      .gte('start_time', startDate)
-      .lte('start_time', endDate)
-      .order('start_time');
-
-    if (error) throw error;
-    return data || [];
-  }
-};
-
-// Publish Service (for Schedule Builder)
-export const publishService = {
-  async publishWeek(startDate: string, endDate: string, _options: { strictMode?: boolean } = {}) {
-    // Simple publish: copy drafts to published_shifts
-    const { data: drafts, error: fetchError } = await supabase
-      .from('draft_shifts')
-      .select('*')
-      .gte('start_time', startDate)
-      .lte('start_time', endDate);
-
-    if (fetchError) throw fetchError;
-
-    if (!drafts || drafts.length === 0) {
-      return {
-        success: false,
-        message: 'No draft shifts to publish',
-        conflicts: []
-      };
-    }
-
-    // Insert into published_shifts
-    const { error: insertError } = await supabase
-      .from('published_shifts')
-      .insert(drafts.map(d => ({
-        employee_id: d.employee_id,
-        start_time: d.start_time,
-        end_time: d.end_time,
-        location: d.location,
-        role: d.role
-      })));
-
-    if (insertError) throw insertError;
-
-    return {
-      success: true,
-      message: `Published ${drafts.length} shifts`,
-      conflicts: []
-    };
-  },
-
-  async clearDrafts(startDate: string, endDate: string) {
-    const { data, error } = await supabase
-      .from('draft_shifts')
-      .delete()
-      .gte('start_time', startDate)
-      .lte('start_time', endDate)
-      .select();
-
-    if (error) throw error;
-    return data?.length || 0;
-  }
-};
-
 // Pay Rates API functions
 export const payRatesApi = {
   // Get all pay rates
@@ -384,3 +272,10 @@ export const payRatesApi = {
     return data || [];
   }
 };
+
+// Export new backend services
+export { conflictService } from './services/conflictService';
+export { shiftService } from './services/shiftService';
+export { publishService } from './services/publishService';
+export { openShiftsService } from './services/openShiftsService';
+export { hoursService } from './services/hoursService';

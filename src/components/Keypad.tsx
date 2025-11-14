@@ -1,82 +1,95 @@
 import { useState } from 'react'
-import { Delete } from 'lucide-react'
+
+/**
+ * UNIFIED KEYPAD COMPONENT
+ *
+ * Single keypad component used throughout the app for PIN entry.
+ * Auto-submits when PIN is complete (4 digits).
+ *
+ * Used in:
+ * - Clock In/Out terminal page
+ * - Employee Portal login
+ *
+ * Features:
+ * - Auto-submit on complete PIN (4 digits)
+ * - Built-in PIN display (dots)
+ * - Backspace support
+ * - Glass morphism styling
+ * - Self-managing state
+ * - Automatic reset after submission
+ *
+ * Why one component?
+ * - Single source of truth
+ * - Consistent behavior everywhere
+ * - Easier maintenance
+ * - Less code duplication
+ */
 
 interface KeypadProps {
   onComplete: (pin: string) => void
-  disabled?: boolean
   maxLength?: number
+  disabled?: boolean
 }
 
-export function Keypad({ onComplete, disabled = false, maxLength = 4 }: KeypadProps) {
-  const [pin, setPin] = useState('')
+export function Keypad({
+  onComplete,
+  maxLength = 4,
+  disabled = false
+}: KeypadProps) {
+  const [value, setValue] = useState('')
 
-  const handleNumber = (num: number) => {
-    if (disabled || pin.length >= maxLength) return
+  const handleInput = (digit: string) => {
+    if (disabled || value.length >= maxLength) return
 
-    const newPin = pin + num
-    setPin(newPin)
+    const newValue = value + digit
+    setValue(newValue)
 
-    // Auto-submit when max length reached
-    if (newPin.length === maxLength) {
-      onComplete(newPin)
-      setPin('') // Clear for next entry
+    // Auto-submit when PIN is complete
+    if (newValue.length === maxLength) {
+      onComplete(newValue)
+      // Clear after short delay for visual feedback
+      setTimeout(() => setValue(''), 500)
     }
   }
 
   const handleBackspace = () => {
     if (disabled) return
-    setPin(prev => prev.slice(0, -1))
+    setValue(value.slice(0, -1))
   }
 
   return (
-    <div className="w-full max-w-sm">
-      {/* PIN Display */}
-      <div className="flex justify-center gap-3 mb-8">
+    <div className="w-[330px]">
+      {/* PIN Display - Glass Effect */}
+      <div className="h-[68px] bg-white/60 backdrop-blur-md border border-white/80 rounded-[10px] flex items-center justify-center mb-5 gap-[14px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
         {Array.from({ length: maxLength }).map((_, i) => (
           <div
             key={i}
-            className={`w-4 h-4 rounded-full transition-colors ${
-              i < pin.length
-                ? 'bg-blue-600'
-                : 'bg-gray-200'
+            className={`w-[14px] h-[14px] rounded-full transition-all duration-[250ms] ease-in-out ${
+              i < value.length ? 'bg-blue-600' : 'bg-black/10'
             }`}
           />
         ))}
       </div>
 
-      {/* Number Grid */}
-      <div className="grid grid-cols-3 gap-3">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+      {/* Keypad Grid */}
+      <div className="grid grid-cols-3 gap-[10px]">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, '←', 0].map((item) => (
           <button
-            key={num}
-            onClick={() => handleNumber(num)}
+            key={item}
+            onClick={() => {
+              if (item === '←') handleBackspace()
+              else if (typeof item === 'number') handleInput(item.toString())
+            }}
             disabled={disabled}
-            className="h-16 text-2xl font-semibold rounded-xl bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm border border-gray-200"
+            className={`h-[68px] ${
+              item === '←' ? 'text-[22px]' : 'text-[26px]'
+            } font-semibold bg-white/50 backdrop-blur-md border border-white/60 rounded-[10px] cursor-pointer text-gray-800 transition-all duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-white/70 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/50 disabled:hover:translate-y-0 ${
+              item === 0 ? 'col-start-2' : ''
+            }`}
           >
-            {num}
+            {item}
           </button>
         ))}
-
-        {/* Empty space */}
-        <div />
-
-        {/* Zero button */}
-        <button
-          onClick={() => handleNumber(0)}
-          disabled={disabled}
-          className="h-16 text-2xl font-semibold rounded-xl bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm border border-gray-200"
-        >
-          0
-        </button>
-
-        {/* Backspace button */}
-        <button
-          onClick={handleBackspace}
-          disabled={disabled || pin.length === 0}
-          className="h-16 flex items-center justify-center rounded-xl bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm border border-gray-200"
-        >
-          <Delete className="w-6 h-6 text-gray-600" />
-        </button>
       </div>
     </div>
   )

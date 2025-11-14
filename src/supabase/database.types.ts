@@ -9,30 +9,103 @@ export type Json =
 export interface Database {
   employees: {
     Tables: {
-      availability: {
+      employees: {
+        Row: {
+          id: string
+          employee_code: string | null
+          first_name: string
+          last_name: string | null
+          email: string | null
+          hire_date: string | null
+          active: boolean | null
+          location: string | null
+          role: string | null
+          pay_schedule: string | null
+          pin: string | null
+          phone_number: string | null
+          user_id: string | null
+          preferred_language: string | null
+        }
+        Insert: {
+          id?: string
+          employee_code?: string | null
+          first_name: string
+          last_name?: string | null
+          email?: string | null
+          hire_date?: string | null
+          active?: boolean | null
+          location?: string | null
+          role?: string | null
+          pay_schedule?: string | null
+          pin?: string | null
+          phone_number?: string | null
+          user_id?: string | null
+          preferred_language?: string | null
+        }
+        Update: {
+          id?: string
+          employee_code?: string | null
+          first_name?: string
+          last_name?: string | null
+          email?: string | null
+          hire_date?: string | null
+          active?: boolean | null
+          location?: string | null
+          role?: string | null
+          pay_schedule?: string | null
+          pin?: string | null
+          phone_number?: string | null
+          user_id?: string | null
+          preferred_language?: string | null
+        }
+      }
+      time_entries: {
         Row: {
           id: number
           employee_id: string
-          day_of_week: string
-          start_time: string
-          end_time: string
-          effective_start_date: string
+          event_type: string
+          event_timestamp: string
         }
         Insert: {
           id?: number
           employee_id: string
-          day_of_week: string
-          start_time: string
-          end_time: string
-          effective_start_date: string
+          event_type: string
+          event_timestamp: string
         }
         Update: {
           id?: number
           employee_id?: string
-          day_of_week?: string
+          event_type?: string
+          event_timestamp?: string
+        }
+      }
+      shifts: {
+        Row: {
+          id: number
+          employee_id: string | null
+          start_time: string
+          end_time: string
+          location: string | null
+          role: string | null
+          status: string | null
+        }
+        Insert: {
+          id?: number
+          employee_id?: string | null
+          start_time: string
+          end_time: string
+          location?: string | null
+          role?: string | null
+          status?: string | null
+        }
+        Update: {
+          id?: number
+          employee_id?: string | null
           start_time?: string
           end_time?: string
-          effective_start_date?: string
+          location?: string | null
+          role?: string | null
+          status?: string | null
         }
       }
       draft_shifts: {
@@ -67,54 +140,74 @@ export interface Database {
           updated_at?: string | null
         }
       }
-      employees: {
+      published_shifts: {
         Row: {
-          id: string
-          employee_code: string
-          first_name: string
-          last_name: string | null
-          email: string | null
-          hire_date: string | null
-          active: boolean | null
+          id: number
+          employee_id: string | null
+          start_time: string
+          end_time: string
           location: string | null
           role: string | null
-          pay_schedule: string | null
-          pin: string | null
-          phone_number: string | null
-          user_id: string | null
-          preferred_language: string | null
+          published_at: string | null
+          week_start: string
+          week_end: string
         }
         Insert: {
-          id?: string
-          employee_code: string
-          first_name: string
-          last_name?: string | null
-          email?: string | null
-          hire_date?: string | null
-          active?: boolean | null
+          id?: number
+          employee_id?: string | null
+          start_time: string
+          end_time: string
           location?: string | null
           role?: string | null
-          pay_schedule?: string | null
-          pin?: string | null
-          phone_number?: string | null
-          user_id?: string | null
-          preferred_language?: string | null
+          published_at?: string | null
+          week_start: string
+          week_end: string
         }
         Update: {
-          id?: string
-          employee_code?: string
-          first_name?: string
-          last_name?: string | null
-          email?: string | null
-          hire_date?: string | null
-          active?: boolean | null
+          id?: number
+          employee_id?: string | null
+          start_time?: string
+          end_time?: string
           location?: string | null
           role?: string | null
-          pay_schedule?: string | null
-          pin?: string | null
-          phone_number?: string | null
-          user_id?: string | null
-          preferred_language?: string | null
+          published_at?: string | null
+          week_start?: string
+          week_end?: string
+        }
+      }
+      time_off_notices: {
+        Row: {
+          id: number
+          employee_id: string
+          start_time: string
+          end_time: string
+          reason: string | null
+          status: string
+          requested_date: string | null
+          requested_via: string | null
+          source_text: string | null
+        }
+        Insert: {
+          id?: number
+          employee_id: string
+          start_time: string
+          end_time: string
+          reason?: string | null
+          status?: string
+          requested_date?: string | null
+          requested_via?: string | null
+          source_text?: string | null
+        }
+        Update: {
+          id?: number
+          employee_id?: string
+          start_time?: string
+          end_time?: string
+          reason?: string | null
+          status?: string
+          requested_date?: string | null
+          requested_via?: string | null
+          source_text?: string | null
         }
       }
       pay_rates: {
@@ -124,9 +217,6 @@ export interface Database {
           rate: number
           pay_type: string
           effective_date: string
-          payment_method: string | null
-          pay_schedule: string | null
-          tax_classification: string | null
         }
         Insert: {
           id?: number
@@ -134,9 +224,6 @@ export interface Database {
           rate: number
           pay_type?: string
           effective_date: string
-          payment_method?: string | null
-          pay_schedule?: string | null
-          tax_classification?: string | null
         }
         Update: {
           id?: number
@@ -144,9 +231,32 @@ export interface Database {
           rate?: number
           pay_type?: string
           effective_date?: string
-          payment_method?: string | null
-          pay_schedule?: string | null
-          tax_classification?: string | null
+        }
+      }
+      availability: {
+        Row: {
+          id: number
+          employee_id: string
+          day_of_week: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+          start_time: string
+          end_time: string
+          effective_start_date: string
+        }
+        Insert: {
+          id?: number
+          employee_id: string
+          day_of_week: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+          start_time: string
+          end_time: string
+          effective_start_date: string
+        }
+        Update: {
+          id?: number
+          employee_id?: string
+          day_of_week?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+          start_time?: string
+          end_time?: string
+          effective_start_date?: string
         }
       }
       payroll_records: {
@@ -163,12 +273,11 @@ export interface Database {
           payment_date: string | null
           payment_method: string | null
           check_number: string | null
-          status: string
+          status: 'pending' | 'paid' | 'cancelled'
+          payment_type: 'regular' | 'one_time'
           notes: string | null
           created_at: string | null
           updated_at: string | null
-          pay_rate_id: number | null
-          payment_type: string
         }
         Insert: {
           id?: number
@@ -183,12 +292,11 @@ export interface Database {
           payment_date?: string | null
           payment_method?: string | null
           check_number?: string | null
-          status?: string
+          status?: 'pending' | 'paid' | 'cancelled'
+          payment_type?: 'regular' | 'one_time'
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
-          pay_rate_id?: number | null
-          payment_type?: string
         }
         Update: {
           id?: number
@@ -203,166 +311,79 @@ export interface Database {
           payment_date?: string | null
           payment_method?: string | null
           check_number?: string | null
-          status?: string
+          status?: 'pending' | 'paid' | 'cancelled'
+          payment_type?: 'regular' | 'one_time'
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
-          pay_rate_id?: number | null
-          payment_type?: string
-        }
-      }
-      published_shifts: {
-        Row: {
-          id: number
-          employee_id: string | null
-          start_time: string
-          end_time: string
-          location: string | null
-          role: string | null
-          published_at: string | null
-          week_start: string
-          week_end: string
-          shift_status: string
-        }
-        Insert: {
-          id?: number
-          employee_id?: string | null
-          start_time: string
-          end_time: string
-          location?: string | null
-          role?: string | null
-          published_at?: string | null
-          week_start: string
-          week_end: string
-          shift_status?: string
-        }
-        Update: {
-          id?: number
-          employee_id?: string | null
-          start_time?: string
-          end_time?: string
-          location?: string | null
-          role?: string | null
-          published_at?: string | null
-          week_start?: string
-          week_end?: string
-          shift_status?: string
-        }
-      }
-      shifts: {
-        Row: {
-          id: number
-          employee_id: string
-          start_time: string
-          end_time: string
-          location: string | null
-          role: string | null
-          status: string | null
-        }
-        Insert: {
-          id?: number
-          employee_id: string
-          start_time: string
-          end_time: string
-          location?: string | null
-          role?: string | null
-          status?: string | null
-        }
-        Update: {
-          id?: number
-          employee_id?: string
-          start_time?: string
-          end_time?: string
-          location?: string | null
-          role?: string | null
-          status?: string | null
-        }
-      }
-      time_entries: {
-        Row: {
-          id: number
-          employee_id: string
-          event_type: string
-          event_timestamp: string
-          manually_edited: boolean
-        }
-        Insert: {
-          id?: number
-          employee_id: string
-          event_type: string
-          event_timestamp: string
-          manually_edited?: boolean
-        }
-        Update: {
-          id?: number
-          employee_id?: string
-          event_type?: string
-          event_timestamp?: string
-          manually_edited?: boolean
-        }
-      }
-      time_off_notices: {
-        Row: {
-          id: number
-          employee_id: string
-          start_time: string | null
-          end_time: string | null
-          reason: string | null
-          status: string
-          requested_date: string | null
-          requested_via: string | null
-          source_text: string | null
-          all_day: boolean | null
-          start_date: string | null
-          end_date: string | null
-          start_time_only: string | null
-          end_time_only: string | null
-        }
-        Insert: {
-          id?: number
-          employee_id: string
-          start_time?: string | null
-          end_time?: string | null
-          reason?: string | null
-          status?: string
-          requested_date?: string | null
-          requested_via?: string | null
-          source_text?: string | null
-          all_day?: boolean | null
-          start_date?: string | null
-          end_date?: string | null
-          start_time_only?: string | null
-          end_time_only?: string | null
-        }
-        Update: {
-          id?: number
-          employee_id?: string
-          start_time?: string | null
-          end_time?: string | null
-          reason?: string | null
-          status?: string
-          requested_date?: string | null
-          requested_via?: string | null
-          source_text?: string | null
-          all_day?: boolean | null
-          start_date?: string | null
-          end_date?: string | null
-          start_time_only?: string | null
-          end_time_only?: string | null
         }
       }
     }
-    Views: {
-      [_ in never]: never
-    }
+    Views: {}
     Functions: {
-      [_ in never]: never
+      clock_in_out: {
+        Args: {
+          p_employee_id: string
+        }
+        Returns: {
+          id: number
+          employee_id: string
+          event_type: string
+          event_timestamp: string
+        }[]
+      }
+      get_time_entries_et: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_employee_id: string | undefined
+        }
+        Returns: {
+          id: number
+          employee_id: string
+          event_type: string
+          event_timestamp: string
+          event_time_et: string
+          event_date_et: string
+          employee_name: string
+        }[]
+      }
+      get_currently_working: {
+        Args: Record<string, never>
+        Returns: {
+          employee_id: string
+          employee_name: string
+          clock_in_time: string
+        }[]
+      }
+      calculate_all_employee_hours: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_published_only: boolean
+        }
+        Returns: {
+          employee_id: string
+          total_hours: number
+        }[]
+      }
+      detect_schedule_conflicts: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+        }
+        Returns: {
+          shift_id: number
+          employee_id: string
+          employee_name: string
+          shift_start: string
+          shift_end: string
+          timeoff_start: string
+          timeoff_end: string
+          reason: string
+        }[]
+      }
     }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    Enums: {}
   }
 }

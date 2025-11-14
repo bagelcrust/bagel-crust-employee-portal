@@ -1,24 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import { Loader2 } from 'lucide-react'
 
 interface AddShiftDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (shiftData: {
-    date: string
-    startTime: string
-    endTime: string
-    location: string
-    isOpenShift: boolean
-  }) => void
-  employeeName?: string
-  date?: string
-  hasTimeOff?: boolean
-  timeOffReason?: string
+  onSave: (startTime: string, endTime: string, location: string, isOpenShift: boolean) => Promise<void>
+  employeeName: string
+  date: Date
+  hasTimeOff: boolean
+  timeOffReason: string
   initialStartTime?: string
   initialEndTime?: string
   initialLocation?: string
@@ -29,110 +31,167 @@ export function AddShiftDialog({
   onClose,
   onSave,
   employeeName,
-  date = '',
-  hasTimeOff = false,
+  date,
+  hasTimeOff,
   timeOffReason,
-  initialStartTime = '09:00',
-  initialEndTime = '17:00',
-  initialLocation = 'Calder'
+  initialStartTime,
+  initialEndTime,
+  initialLocation,
 }: AddShiftDialogProps) {
-  const [startTime, setStartTime] = useState(initialStartTime)
-  const [endTime, setEndTime] = useState(initialEndTime)
-  const [location, setLocation] = useState(initialLocation)
+  const { toast } = useToast()
+  const [startTime, setStartTime] = useState(initialStartTime || '09:00')
+  const [endTime, setEndTime] = useState(initialEndTime || '17:00')
+  const [location, setLocation] = useState(initialLocation || 'Calder')
   const [isOpenShift, setIsOpenShift] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
-      setStartTime(initialStartTime)
-      setEndTime(initialEndTime)
-      setLocation(initialLocation)
+      setStartTime(initialStartTime || '09:00')
+      setEndTime(initialEndTime || '17:00')
+      setLocation(initialLocation || 'Calder')
       setIsOpenShift(false)
     }
   }, [isOpen, initialStartTime, initialEndTime, initialLocation])
 
-  const handleSave = () => {
-    onSave({
-      date,
-      startTime,
-      endTime,
-      location,
-      isOpenShift
-    })
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Validation
+    if (!startTime || !endTime) {
+      toast({
+        title: 'Validation Error',
+        description: 'Start time and end time are required',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Create ISO string for start and end times
+      const startDate = new Date(date)
+      const [startHours, startMins] = startTime.split(':')
+      startDate.setHours(parseInt(startHours, 10), parseInt(startMins, 10), 0, 0)
+
+      const endDate = new Date(date)
+      const [endHours, endMins] = endTime.split(':')
+      endDate.setHours(parseInt(endHours, 10), parseInt(endMins, 10), 0, 0)
+
+      // If end time is before start time, assume next day
+      if (endDate < startDate) {
+        endDate.setDate(endDate.getDate() + 1)
+      }
+
+      await onSave(startDate.toISOString(), endDate.toISOString(), location, isOpenShift)
+
+      // Toast notification removed per user request - green background is enough feedback
+      // toast({
+      //   title: 'Shift Created',
+      //   description: `Added shift for ${employeeName}`,
+      // })
+
+      onClose()
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create shift',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Shift{employeeName ? ` - ${employeeName}` : ''}</DialogTitle>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-xl">Add Shift for {employeeName}</DialogTitle>
+          <DialogDescription className="text-base">
+            {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {hasTimeOff && timeOffReason && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm text-orange-900">
-              ⚠️ Employee has time-off: {timeOffReason}
-            </div>
-          )}
+        {hasTimeOff && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <p className="text-sm font-medium text-orange-900">
+              ⚠️ {employeeName} has time-off on this day
+            </p>
+            <p className="text-xs text-orange-700 mt-1">{timeOffReason}</p>
+          </div>
+        )}
 
-          <div>
-            <Label>Date</Label>
-            <Input value={date} disabled className="bg-gray-50" />
+        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+          {/* Start Time */}
+          <div className="space-y-2">
+            <Label htmlFor="start-time" className="text-sm font-medium">
+              Start Time
+            </Label>
+            <Input
+              id="start-time"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full text-base h-11"
+              required
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Start Time</Label>
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>End Time</Label>
-              <Input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              />
-            </div>
+          {/* End Time */}
+          <div className="space-y-2">
+            <Label htmlFor="end-time" className="text-sm font-medium">
+              End Time
+            </Label>
+            <Input
+              id="end-time"
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full text-base h-11"
+              required
+            />
           </div>
 
-          <div>
-            <Label>Location</Label>
-            <Select value={location} onValueChange={setLocation}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Calder">Calder</SelectItem>
-                <SelectItem value="Downtown">Downtown</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Location */}
+          <div className="space-y-2">
+            <Label htmlFor="location" className="text-sm font-medium">
+              Location
+            </Label>
+            <Input
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full text-base h-11"
+              placeholder="Calder"
+            />
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Open Shift Checkbox */}
+          <div className="flex items-start space-x-3 pt-2">
             <input
               type="checkbox"
-              id="openShift"
+              id="open-shift"
               checked={isOpenShift}
               onChange={(e) => setIsOpenShift(e.target.checked)}
-              className="rounded"
+              className="h-5 w-5 mt-0.5 rounded border-gray-300 cursor-pointer"
             />
-            <Label htmlFor="openShift" className="cursor-pointer">
-              Open shift (not assigned to specific employee)
+            <Label htmlFor="open-shift" className="text-sm font-normal cursor-pointer leading-relaxed">
+              Create as Open Shift (unassigned, anyone can take it)
             </Label>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
+          <DialogFooter className="gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-[100px]">
               Cancel
             </Button>
-            <Button onClick={handleSave}>
+            <Button type="submit" disabled={isLoading} className="min-w-[120px]">
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Shift
             </Button>
-          </div>
-        </div>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

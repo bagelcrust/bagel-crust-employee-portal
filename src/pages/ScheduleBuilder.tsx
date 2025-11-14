@@ -1,88 +1,128 @@
-import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Trash2, Repeat, Copy } from 'lucide-react'
-import { DndContext, DragOverlay } from '@dnd-kit/core'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { ChevronLeft, ChevronRight, Calendar, Send, Loader2, Plus, Trash2, Copy, Repeat, Clock } from 'lucide-react'
+import { format } from 'date-fns'
+import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { useScheduleBuilder } from '../hooks'
-import { useScheduleBuilderActions } from '../hooks/useScheduleBuilderActions'
-import { ShiftCell } from '../components/schedule-builder'
+import type { ScheduleShift } from '../hooks'
+import { shiftService, publishService } from '../supabase/supabase'
 import { AddShiftDialog } from '../components/AddShiftDialog'
 import { EditShiftDialog } from '../components/EditShiftDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
 import {
   formatShiftTime,
   formatShiftHours,
+  formatAvailabilityTime,
+  isAllDayTimeOff,
+  countDraftShifts,
   PAGE_TITLES,
   SCHEDULE_MESSAGES
 } from '../lib'
 
 /**
- * SCHEDULE BUILDER V2 - Clean, Component-Based Architecture
+ * SCHEDULE BUILDER - Full-Featured with Draft/Publish Workflow
  *
- * ✅ REFACTORED (Nov 12, 2025)
- * - Components extracted to /components/schedule-builder/
- * - Event handlers extracted to useScheduleBuilderActions hook
- * - Debug logs wrapped in DEV check
- * - Single responsibility per component
- * - ~400 lines (down from 1,320)
+ * ✅ REFACTORED WITH UTILITIES (Nov 6, 2025)
+ * - Uses scheduleUtils for shift formatting, conflict detection, counting
+ * - Uses constants for all messages and page titles
+ * - Uses useCallback for event handler optimization
+ * - Uses useMemo for computed values
+ * - Clean, maintainable, utility-driven code
  *
  * Features:
  * - Real employee data from Supabase
- * - Weekly grid with drag & drop
- * - Draft/publish workflow
- * - Conflict validation
- * - Time-off and availability display
- *
- * Following Bryan's Electrical Panel Principle:
- * - Every component in its proper place
- * - Easy to navigate and maintain
- * - Clear separation of concerns
+ * - Real shifts displayed in weekly grid
+ * - Week navigation (Today, Previous, Next)
+ * - Click cell to add shift (with conflict validation)
+ * - Open shifts pool at top
+ * - Publish button to make schedule visible to employees
+ * - Weekly hours displayed next to employee names
+ * - Drag & drop to reassign shifts (coming soon)
  */
 
-export default function ScheduleBuilderV2() {
-  // ═══════════════════════════════════════════════════════════════
-  // 📦 SECTION 1: GET DATA FROM DATABASE
-  // ═══════════════════════════════════════════════════════════════
-  // This hook calls the Edge Function to get all schedule data:
-  // - Employees list
-  // - Shifts for this week
-  // - Time-offs
-  // - Availability
-  // - Weekly hours calculated
-  // Think of it like: "Waiter, bring me everything for this week"
-
+export default function ScheduleBuilder() {
+  const { toast } = useToast()
   const {
-    dateRangeString,        // "Nov 11, 2025 - Nov 17, 2025"
-    isThisWeek,             // true/false (is current week selected?)
-    daysOfWeek,             // Array of 7 days (Mon-Sun)
-    goToToday,              // Function: jump to current week
-    goToPreviousWeek,       // Function: go back one week
-    goToNextWeek,           // Function: go forward one week
-    currentWeekStart,       // Date object (Monday of week)
-    currentWeekEnd,         // Date object (Sunday of week)
-    employees,              // Array of all employees
-    openShifts,             // Shifts not assigned to anyone
-    shiftsByEmployeeAndDay, // Organized: employee → day → shifts
-    timeOffsByEmployeeAndDay, // Organized: employee → day → time-offs
-    availabilityByEmployeeAndDay, // Organized: employee → day → availability
-    timeOffs: _timeOffs,    // Unused - kept for destructuring compatibility
-    weeklyHours,            // Total hours per employee this week
-    isWeekPublished,        // true/false (is schedule published?)
-    isLoading,              // true/false (still loading data?)
-    refetchShifts,          // Function: reload shifts from database
-    refetchPublishStatus    // Function: reload publish status
+    dateRangeString,
+    isThisWeek,
+    daysOfWeek,
+    goToToday,
+    goToPreviousWeek,
+    goToNextWeek,
+    currentWeekStart,
+    currentWeekEnd,
+    employees,
+    openShifts,
+    shiftsByEmployeeAndDay,
+    timeOffsByEmployeeAndDay,
+    availabilityByEmployeeAndDay,
+    timeOffs,
+    weeklyHours,
+    isWeekPublished,
+    isLoading,
+    refetchShifts,
+    refetchPublishStatus
   } = useScheduleBuilder()
 
-  // Filter to only show staff_two employees (front-of-house staff)
-  const staffEmployees = employees.filter(emp => emp.role === 'staff_two')
+  // DEBUG: Comprehensive logging
+  console.log('🔍 SCHEDULE BUILDER - RENDER CYCLE')
+  console.log('📊 Loading State:', { isLoading })
+  console.log('👥 Employees:', {
+    count: employees.length,
+    data: employees.map(e => ({ id: e.id, name: `${e.first_name} ${e.last_name}` }))
+  })
+  console.log('📅 Week Data:', {
+    dateRange: dateRangeString,
+    isThisWeek,
+    weekStart: currentWeekStart.toISOString(),
+    weekEnd: currentWeekEnd.toISOString(),
+    daysCount: daysOfWeek.length,
+    days: daysOfWeek.map(d => ({ date: d.date.toISOString(), dayName: d.dayName, isToday: d.isToday }))
+  })
+  console.log('🔓 Open Shifts:', {
+    count: openShifts.length,
+    shifts: openShifts.map(s => ({
+      id: s.id,
+      time: `${s.start_time} - ${s.end_time}`,
+      location: s.location
+    }))
+  })
+  console.log('📋 Shifts by Employee:', {
+    employeeCount: Object.keys(shiftsByEmployeeAndDay).length,
+    breakdown: Object.entries(shiftsByEmployeeAndDay).map(([empId, days]) => {
+      const emp = employees.find(e => e.id === empId)
+      return {
+        employee: emp ? `${emp.first_name} ${emp.last_name}` : empId,
+        totalShifts: Object.values(days).flat().length,
+        byDay: Object.entries(days).map(([dayIdx, shifts]) => ({
+          day: daysOfWeek[parseInt(dayIdx)]?.dayName,
+          count: shifts.length
+        }))
+      }
+    })
+  })
+  console.log('🏖️ Time-Offs:', {
+    total: timeOffs?.length || 0,
+    byEmployee: employees.map(emp => {
+      const empTimeOffs = timeOffs.filter(t => t.employee_id === emp.id)
+      return {
+        name: `${emp.first_name} ${emp.last_name}`,
+        count: empTimeOffs.length,
+        timeOffs: empTimeOffs.map(t => ({
+          start: t.start_time,
+          end: t.end_time,
+          reason: t.reason
+        }))
+      }
+    }).filter(e => e.count > 0)
+  })
+  console.log('⏰ Weekly Hours:', weeklyHours)
+  console.log('📢 Publish Status:', { isWeekPublished })
 
-  // ═══════════════════════════════════════════════════════════════
-  // 📝 SECTION 2: POPUP WINDOWS (MODALS)
-  // ═══════════════════════════════════════════════════════════════
-  // State containers that control popup windows
-  // Like: "Is the 'Add Shift' popup open? What data should it show?"
-
-  // Add Shift Popup State
+  // Modal state
   const [modalState, setModalState] = useState<{
     isOpen: boolean
     employeeId: string | null
@@ -94,7 +134,7 @@ export default function ScheduleBuilderV2() {
     initialEndTime?: string
     initialLocation?: string
   }>({
-    isOpen: false,           // Popup starts closed
+    isOpen: false,
     employeeId: null,
     employeeName: '',
     date: new Date(),
@@ -102,230 +142,807 @@ export default function ScheduleBuilderV2() {
     timeOffReason: ''
   })
 
-  // Edit Shift Popup State
+  // Edit modal state
   const [editModalState, setEditModalState] = useState<{
     isOpen: boolean
-    shift: any | null
+    shift: ScheduleShift | null
     employeeName: string
   }>({
-    isOpen: false,           // Popup starts closed
+    isOpen: false,
     shift: null,
     employeeName: ''
   })
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🎬 SECTION 3: ACTIONS (WHAT HAPPENS WHEN YOU CLICK THINGS)
-  // ═══════════════════════════════════════════════════════════════
-  // Functions that handle user clicks: add shift, delete shift, drag, etc.
-  // Think of it like: "What should happen when Bryan clicks this button?"
+  // Drag state for drag-and-drop
+  const [activeShift, setActiveShift] = useState<ScheduleShift | null>(null)
 
-  const {
-    handleCellClick,        // When you click empty cell → open Add Shift popup
-    handleSaveShift,        // When you save new shift → send to database
-    handlePublish,          // When you click Publish → copy drafts to published
-    handleClearDrafts,      // When you click Clear → delete all drafts
-    handleDeleteShift,      // When you click trash icon → delete shift
-    handleDuplicateShift,   // When you click duplicate → copy shift
-    handleRepeatLastWeek,   // When you click Repeat → copy last week
-    handleDragStart,        // When you start dragging shift
-    handleDragEnd,          // When you drop shift in new cell
-    handleShiftClick,       // When you click existing shift → open Edit popup
-    handleEditShift,        // When you save edited shift → update database
-    handleAvailabilityClick,// When you click availability overlay
-    activeShift,            // Which shift is currently being dragged
-    draftCount              // Number of draft shifts not published yet
-  } = useScheduleBuilderActions({
-    currentWeekStart,
-    currentWeekEnd,
-    employees,
-    daysOfWeek,
-    timeOffsByEmployeeAndDay,
-    availabilityByEmployeeAndDay,
-    shiftsByEmployeeAndDay,
-    refetchShifts,
-    refetchPublishStatus,
-    modalState,
-    setModalState,
-    editModalState,
-    setEditModalState
-  })
-
-  // ═══════════════════════════════════════════════════════════════
-  // ⚙️ SECTION 4: AUTOMATIC TASKS (RUN ON THEIR OWN)
-  // ═══════════════════════════════════════════════════════════════
-  // Things that happen automatically without user clicking
-
-  // Task 1: Print debug info to console (only on dev server)
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('🔍 SCHEDULE BUILDER V2 - RENDER')
-      console.log('📊 Loading:', isLoading)
-      console.log('👥 Staff Employees:', staffEmployees.length)
-      console.log('📅 Week:', dateRangeString)
-      console.log('🔓 Open Shifts:', openShifts.length)
-      console.log('📢 Published:', isWeekPublished)
-      console.log('📝 Draft Count:', draftCount)
-    }
-  }, [isLoading, staffEmployees.length, dateRangeString, openShifts.length, isWeekPublished, draftCount])
-
-  // Task 2: Set browser tab title to "Schedule Builder"
+  // Set page title using constant
   useEffect(() => {
     document.title = PAGE_TITLES.SCHEDULE_BUILDER
   }, [])
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🎨 SECTION 5: DISPLAY THE PAGE (UI)
-  // ═══════════════════════════════════════════════════════════════
-  // Everything below is what the user SEES on screen
-  // Structure:
-  //   1. Header (week navigation, publish button)
-  //   2. Schedule Grid (7 days × employees)
-  //   3. Employee Availability List (bottom section)
-  //   4. Hidden Popups (Add Shift, Edit Shift)
+  // Handle cell click (add shift) - memoized with useCallback
+  const handleCellClick = useCallback((
+    employeeId: string,
+    employeeName: string,
+    date: Date,
+    dayIndex: number
+  ) => {
+    console.log('🖱️ CELL CLICKED:', {
+      employeeId,
+      employeeName,
+      date: date.toISOString(),
+      dayIndex,
+      dayName: daysOfWeek[dayIndex]?.dayName
+    })
+
+    // Check if employee has ALL-DAY time-off on this day (partial time-offs are allowed)
+    const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
+    const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
+    const timeOffReason = hasAllDayTimeOff ? timeOffsForDay.find(t => isAllDayTimeOff(t))?.reason || 'No reason' : ''
+
+    console.log('🖱️ Time-off check:', { hasAllDayTimeOff, timeOffReason, timeOffsForDay })
+
+    setModalState({
+      isOpen: true,
+      employeeId,
+      employeeName,
+      date,
+      hasTimeOff: hasAllDayTimeOff,
+      timeOffReason
+    })
+  }, [timeOffsByEmployeeAndDay, daysOfWeek])
+
+  // Handle save shift from modal - memoized with useCallback
+  const handleSaveShift = useCallback(async (
+    startTime: string,
+    endTime: string,
+    location: string,
+    isOpenShift: boolean
+  ) => {
+    console.log('💾 SAVING NEW SHIFT:', {
+      employeeId: isOpenShift ? null : modalState.employeeId,
+      employeeName: modalState.employeeName,
+      startTime,
+      endTime,
+      location,
+      isOpenShift
+    })
+
+    try {
+      const result = await shiftService.createShift({
+        employee_id: isOpenShift ? null : modalState.employeeId,
+        start_time: startTime,
+        end_time: endTime,
+        location: location
+      })
+
+      console.log('✅ SHIFT CREATED:', result)
+      console.log('🔄 Refetching shifts...')
+      await refetchShifts()
+      console.log('✅ REFETCH COMPLETE')
+    } catch (error: any) {
+      console.error('❌ SHIFT CREATION FAILED:', error)
+      throw error // Re-throw to let modal handle error display
+    }
+  }, [modalState.employeeId, modalState.employeeName, refetchShifts])
+
+  // Handle publish week - memoized with useCallback
+  const handlePublish = useCallback(async () => {
+    console.log('📢 PUBLISH BUTTON CLICKED')
+
+    if (!confirm(SCHEDULE_MESSAGES.PUBLISH_CONFIRM)) {
+      console.log('❌ Publish cancelled by user')
+      return
+    }
+
+    console.log('🚀 Publishing week:', {
+      weekStart: currentWeekStart.toISOString(),
+      weekEnd: currentWeekEnd.toISOString()
+    })
+
+    try {
+      const result = await publishService.publishWeek(
+        currentWeekStart.toISOString(),
+        currentWeekEnd.toISOString(),
+        { strictMode: true } // Block if any conflicts
+      )
+
+      console.log('📢 Publish result:', result)
+
+      if (result.success) {
+        console.log('✅ Publish successful, clearing drafts...')
+        // Auto-clear drafts after successful publish to prevent duplicate shifts showing
+        await publishService.clearDrafts(
+          currentWeekStart.toISOString().split('T')[0],
+          currentWeekEnd.toISOString().split('T')[0]
+        )
+
+        console.log('🔄 Refetching shifts and publish status...')
+        toast({
+          title: 'Schedule Published',
+          description: result.message,
+        })
+        refetchShifts()
+        refetchPublishStatus()
+      } else {
+        console.error('❌ Publish failed - conflicts detected:', result.conflicts)
+        toast({
+          title: 'Cannot Publish',
+          description: `${result.message}\n\nConflicts: ${result.conflicts.map((c: any) => `${c.employeeName} on ${c.shiftDate}`).join(', ')}`,
+          variant: 'destructive',
+        })
+      }
+    } catch (error: any) {
+      console.error('❌ PUBLISH ERROR:', error)
+      toast({
+        title: SCHEDULE_MESSAGES.PUBLISH_ERROR,
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus, toast])
+
+  // Handle clear drafts - memoized with useCallback
+  const handleClearDrafts = useCallback(async () => {
+    if (!confirm('Clear all draft shifts for this week? This cannot be undone.')) {
+      return
+    }
+
+    try {
+      const clearedCount = await publishService.clearDrafts(
+        currentWeekStart.toISOString().split('T')[0],
+        currentWeekEnd.toISOString().split('T')[0]
+      )
+
+      toast({
+        title: 'Drafts Cleared',
+        description: `Cleared ${clearedCount} draft shift(s)`,
+      })
+      refetchShifts()
+      refetchPublishStatus()
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: `Error clearing drafts: ${error.message}`,
+        variant: 'destructive',
+      })
+    }
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, refetchPublishStatus, toast])
+
+  // Handle delete shift - memoized with useCallback
+  const handleDeleteShift = useCallback(async (shiftId: number) => {
+    console.log('🗑️ DELETE SHIFT CLICKED:', { shiftId })
+
+    try {
+      console.log('🚀 Deleting shift from database...')
+      await shiftService.deleteShift(shiftId)
+      console.log('✅ SHIFT DELETED FROM DB:', shiftId)
+
+      // CRITICAL: Await refetch so UI updates with fresh data
+      console.log('🔄 Refetching fresh data...')
+      await refetchShifts()
+      console.log('✅ REFETCH COMPLETE - UI should update now')
+    } catch (error: any) {
+      console.error('❌ DELETE FAILED:', error)
+      toast({
+        title: 'Delete Failed',
+        description: error.message || 'Could not delete shift',
+        variant: 'destructive',
+      })
+    }
+  }, [refetchShifts, toast])
+
+  // Handle duplicate shift - memoized with useCallback
+  const handleDuplicateShift = useCallback((shift: ScheduleShift, employeeName: string) => {
+    // Extract time from UTC timestamp to Eastern Time HH:mm format
+    const startDate = new Date(shift.start_time)
+    const endDate = new Date(shift.end_time)
+    const startHours = String(startDate.getHours()).padStart(2, '0')
+    const startMins = String(startDate.getMinutes()).padStart(2, '0')
+    const endHours = String(endDate.getHours()).padStart(2, '0')
+    const endMins = String(endDate.getMinutes()).padStart(2, '0')
+
+    setModalState({
+      isOpen: true,
+      employeeId: shift.employee_id,
+      employeeName,
+      date: startDate,
+      hasTimeOff: false,
+      timeOffReason: '',
+      initialStartTime: `${startHours}:${startMins}`,
+      initialEndTime: `${endHours}:${endMins}`,
+      initialLocation: shift.location || 'Calder'
+    })
+  }, [])
+
+  // Handle repeat last week - memoized with useCallback
+  const handleRepeatLastWeek = useCallback(async () => {
+    if (!confirm('Copy all published shifts from last week to this week as drafts?')) {
+      return
+    }
+
+    try {
+      // Calculate last week's dates
+      const lastWeekStart = new Date(currentWeekStart)
+      lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+      const lastWeekEnd = new Date(currentWeekEnd)
+      lastWeekEnd.setDate(lastWeekEnd.getDate() - 7)
+
+      // Fetch published shifts from last week
+      const lastWeekShifts = await shiftService.getPublishedShifts(
+        lastWeekStart.toISOString().split('T')[0],
+        lastWeekEnd.toISOString().split('T')[0]
+      )
+
+      if (lastWeekShifts.length === 0) {
+        toast({
+          title: 'No Shifts Found',
+          description: 'No published shifts found in last week',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Create draft shifts for this week (adjust dates by +7 days)
+      let createdCount = 0
+      for (const shift of lastWeekShifts) {
+        const startDate = new Date(shift.start_time)
+        startDate.setDate(startDate.getDate() + 7)
+        const endDate = new Date(shift.end_time)
+        endDate.setDate(endDate.getDate() + 7)
+
+        await shiftService.createShift({
+          employee_id: shift.employee_id,
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+          location: shift.location || 'Calder',
+          role: shift.role
+        })
+        createdCount++
+      }
+
+      toast({
+        title: 'Shifts Copied',
+        description: `Created ${createdCount} draft shift(s) from last week`,
+      })
+      refetchShifts()
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: `Error repeating last week: ${error.message}`,
+        variant: 'destructive',
+      })
+    }
+  }, [currentWeekStart, currentWeekEnd, refetchShifts, toast])
+
+  // Handle drag start - memoized with useCallback
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const shiftId = event.active.id as number
+    console.log('🎯 DRAG START:', { shiftId })
+
+    // Find shift from all employees and days
+    const allShifts = Object.values(shiftsByEmployeeAndDay).flatMap(days =>
+      Object.values(days).flatMap(shifts => shifts)
+    ) as ScheduleShift[]
+    const shift = allShifts.find(s => s.id === shiftId)
+
+    if (shift) {
+      console.log('🎯 Shift found for drag:', {
+        id: shift.id,
+        employeeId: shift.employee_id,
+        startTime: shift.start_time,
+        endTime: shift.end_time,
+        status: shift.status
+      })
+      setActiveShift(shift)
+    } else {
+      console.error('❌ Shift not found for drag:', shiftId)
+    }
+  }, [shiftsByEmployeeAndDay])
+
+  // Handle drag end - memoized with useCallback
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { over } = event
+    console.log('🎯 DRAG END:', { over: over?.id, activeShift: activeShift?.id })
+
+    setActiveShift(null)
+
+    if (!over || !activeShift) {
+      console.log('❌ No valid drop target or active shift')
+      return
+    }
+
+    // Parse drop target ID (format: "cell-{employeeId}-{dayIndex}")
+    const dropId = over.id as string
+    if (!dropId.startsWith('cell-')) {
+      console.log('❌ Invalid drop target ID:', dropId)
+      return
+    }
+
+    const [, targetEmployeeId, targetDayIndexStr] = dropId.split('-')
+    const targetDayIndex = parseInt(targetDayIndexStr, 10)
+
+    console.log('🎯 Drop target:', { targetEmployeeId, targetDayIndex })
+
+    // Get target date from daysOfWeek
+    const targetDay = daysOfWeek[targetDayIndex]
+    if (!targetDay) {
+      console.error('❌ Target day not found:', targetDayIndex)
+      return
+    }
+
+    // Check if employee has ALL-DAY time-off on target day (partial time-offs are allowed)
+    const timeOffsForDay = timeOffsByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
+    const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
+    if (hasAllDayTimeOff) {
+      console.log('❌ Cannot drop - employee has all-day time-off:', timeOffsForDay)
+      toast({
+        title: 'Cannot Move Shift',
+        description: 'Cannot move shift to a day with all-day time-off',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Check if employee has no availability on target day
+    const availabilityForTargetDay = availabilityByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
+    const partialTimeOffsForDay = timeOffsForDay.filter(timeOff => !isAllDayTimeOff(timeOff))
+    const hasNoAvailability = availabilityForTargetDay.length === 0 && partialTimeOffsForDay.length === 0
+    if (hasNoAvailability) {
+      console.log('❌ Cannot drop - employee is not available:', targetDayIndex)
+      toast({
+        title: 'Cannot Move Shift',
+        description: 'Cannot move shift to a day when employee is not available',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    console.log('🚀 Moving shift:', {
+      shiftId: activeShift.id,
+      from: { employeeId: activeShift.employee_id, date: activeShift.start_time },
+      to: { employeeId: targetEmployeeId, date: targetDay.date }
+    })
+
+    try {
+      // Calculate new start/end times for target day
+      const originalStartDate = new Date(activeShift.start_time)
+      const originalEndDate = new Date(activeShift.end_time)
+      const targetDate = new Date(targetDay.date)
+
+      // Preserve the time of day, change only the date
+      const newStartDate = new Date(targetDate)
+      newStartDate.setHours(originalStartDate.getHours(), originalStartDate.getMinutes(), 0, 0)
+      const newEndDate = new Date(targetDate)
+      newEndDate.setHours(originalEndDate.getHours(), originalEndDate.getMinutes(), 0, 0)
+
+      console.log('🚀 Updating shift:', {
+        newStartTime: newStartDate.toISOString(),
+        newEndTime: newEndDate.toISOString()
+      })
+
+      // Update shift with new employee and/or date
+      await shiftService.updateShift(activeShift.id, {
+        employee_id: targetEmployeeId,
+        start_time: newStartDate.toISOString(),
+        end_time: newEndDate.toISOString()
+      })
+
+      console.log('✅ SHIFT MOVED SUCCESSFULLY')
+      console.log('🔄 Refetching shifts...')
+      toast({
+        title: 'Shift Moved',
+        description: 'The shift has been reassigned',
+      })
+      refetchShifts()
+    } catch (error: any) {
+      console.error('❌ MOVE SHIFT FAILED:', error)
+      toast({
+        title: 'Error',
+        description: `Error moving shift: ${error.message}`,
+        variant: 'destructive',
+      })
+    }
+  }, [activeShift, daysOfWeek, timeOffsByEmployeeAndDay, refetchShifts, toast])
+
+  // Handle click on shift to edit - memoized with useCallback
+  const handleShiftClick = useCallback((shift: ScheduleShift, employeeName: string) => {
+    console.log('✏️ SHIFT CLICKED FOR EDIT:', {
+      shiftId: shift.id,
+      employeeName,
+      startTime: shift.start_time,
+      endTime: shift.end_time,
+      location: shift.location,
+      status: shift.status
+    })
+
+    setEditModalState({
+      isOpen: true,
+      shift,
+      employeeName
+    })
+  }, [])
+
+  // Handle save edited shift - memoized with useCallback
+  // When a shift is edited, it automatically becomes a draft (even if it was published)
+  const handleEditShift = useCallback(async (
+    shiftId: number,
+    startTime: string,
+    endTime: string,
+    location: string
+  ) => {
+    console.log('💾 SAVING EDITED SHIFT:', {
+      shiftId,
+      startTime,
+      endTime,
+      location
+    })
+
+    try {
+      const result = await shiftService.updateShift(shiftId, {
+        start_time: startTime,
+        end_time: endTime,
+        location: location
+      })
+
+      console.log('✅ SHIFT UPDATED:', result)
+      console.log('🔄 Refetching fresh data...')
+      await refetchShifts()
+      console.log('✅ REFETCH COMPLETE')
+    } catch (error: any) {
+      console.error('❌ SHIFT UPDATE FAILED:', error)
+      throw error // Re-throw to let modal handle error display
+    }
+  }, [refetchShifts])
+
+  // Calculate draft count using utility - memoized for performance
+  const draftCount = useMemo(() => {
+    const allShifts = Object.values(shiftsByEmployeeAndDay).flatMap(days =>
+      Object.values(days).flatMap(shifts => shifts)
+    ) as ScheduleShift[]
+    const count = countDraftShifts(allShifts)
+    console.log('📝 Draft Count:', count, 'Total shifts:', allShifts.length)
+    return count
+  }, [shiftsByEmployeeAndDay])
+
+  // Helper component: Draggable Shift
+  const DraggableShift = ({ shift, employeeName }: { shift: ScheduleShift; employeeName: string }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: shift.id,
+      data: { shift }
+    })
+
+    const style = transform ? {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      opacity: isDragging ? 0.5 : 1
+    } : undefined
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="shift-card rounded px-2 py-1 hover:shadow-md transition-shadow text-center group relative z-10"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!isDragging) {
+            handleShiftClick(shift, employeeName)
+          }
+        }}
+      >
+        <div
+          style={{
+            background: shift.status === 'published'
+              ? 'rgba(30, 64, 175, 0.85)' // Dark blue for published
+              : 'rgba(147, 197, 253, 0.5)', // Light blue for draft
+            border: shift.status === 'published'
+              ? '1px solid rgba(30, 64, 175, 1)'
+              : '1px solid rgba(147, 197, 253, 0.8)',
+            backdropFilter: 'blur(5px)',
+            borderRadius: '0.375rem',
+            padding: '0.25rem 0.5rem'
+          }}
+          className="cursor-pointer"
+        >
+          {/* Drag handle - only this part is draggable */}
+          <div
+            {...listeners}
+            {...attributes}
+            className="absolute left-0 top-0 bottom-0 w-3 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+            style={{
+              background: shift.status === 'published'
+                ? 'rgba(30, 64, 175, 0.5)'
+                : 'rgba(147, 197, 253, 0.7)',
+              borderRadius: '0.375rem 0 0 0.375rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[8px] leading-none">⋮⋮</div>
+          </div>
+
+          <div className={`text-xs font-medium ${
+            shift.status === 'published' ? 'text-white' : 'text-blue-900'
+          }`}>
+            {formatShiftTime(shift.start_time, shift.end_time)}
+          </div>
+
+          {/* Delete button - visible on hover */}
+          <Button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDeleteShift(shift.id)
+            }}
+            size="icon"
+            variant="destructive"
+            className="absolute top-0 right-0 -mt-1 -mr-1 rounded-full h-6 w-6 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+            title="Delete shift"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Helper component: Droppable Cell with Availability on Hover
+  const DroppableCell = ({ employeeId, employeeName, dayIndex, children, className, style, hasTimeOff }: {
+    employeeId: string
+    employeeName: string
+    dayIndex: number
+    children: React.ReactNode
+    className?: string
+    style?: React.CSSProperties
+    hasTimeOff: boolean
+  }) => {
+    const { setNodeRef, isOver } = useDroppable({
+      id: `cell-${employeeId}-${dayIndex}`,
+      disabled: hasTimeOff
+    })
+
+    // Get shifts for this employee on this day
+    const shiftsForDay = shiftsByEmployeeAndDay[employeeId]?.[dayIndex] || []
+
+    // Get time-offs for this employee on this day
+    const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
+
+    // Get availability for this employee on this day (sorted by start time)
+    const allAvailability = (availabilityByEmployeeAndDay[employeeId]?.[dayIndex] || [])
+      .sort((a, b) => {
+        const aTime = a.start_time.split(':').map(Number)
+        const bTime = b.start_time.split(':').map(Number)
+        return (aTime[0] * 60 + aTime[1]) - (bTime[0] * 60 + bTime[1])
+      })
+
+    // Check if there's an all-day time-off
+    const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
+
+    // Check for partial time-offs (not all-day)
+    const partialTimeOffs = timeOffsForDay.filter(timeOff => !isAllDayTimeOff(timeOff))
+
+    // Helper: Check if two time ranges overlap
+    const timeRangesOverlap = (start1: string, end1: string, start2: string, end2: string) => {
+      const parseTime = (timeStr: string) => {
+        // Handle both timestamp formats (ISO: "2025-11-14T07:00:00") and time-only formats ("07:00:00")
+        let time = timeStr
+        if (timeStr.includes('T')) {
+          // Convert UTC timestamp to Eastern Time before extracting time portion
+          const date = new Date(timeStr)
+          const easternTime = date.toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          })
+          time = easternTime
+        }
+        const [h, m] = time.split(':').map(Number)
+        return h * 60 + m
+      }
+      const s1 = parseTime(start1)
+      const e1 = parseTime(end1)
+      const s2 = parseTime(start2)
+      const e2 = parseTime(end2)
+      return s1 < e2 && s2 < e1
+    }
+
+    // Filter availability to exclude time-off periods (only show truly available times)
+    const availabilityForDay = allAvailability.filter(avail => {
+      // Exclude if it overlaps with any partial time-off
+      const hasOverlap = partialTimeOffs.some(timeOff =>
+        timeRangesOverlap(avail.start_time, avail.end_time, timeOff.start_time, timeOff.end_time)
+      )
+      return !hasOverlap
+    })
+
+    // Check if employee has NO availability at all (not available)
+    const hasNoAvailability = availabilityForDay.length === 0 && !hasAllDayTimeOff && partialTimeOffs.length === 0
+
+    // Hide availability overlay if there are already shifts scheduled
+    const showAvailability = shiftsForDay.length === 0
+
+    // Handle clicking on availability block to preset times
+    const handleAvailabilityClick = (avail: any) => {
+      console.log('🎯 Availability clicked:', avail)
+
+      setModalState({
+        isOpen: true,
+        employeeId,
+        employeeName,
+        date: daysOfWeek[dayIndex]?.date || new Date(),
+        hasTimeOff: hasAllDayTimeOff,
+        timeOffReason: hasAllDayTimeOff ? timeOffsForDay.find(t => isAllDayTimeOff(t))?.reason || '' : '',
+        initialStartTime: avail.start_time.substring(0, 5), // "09:00:00" -> "09:00"
+        initialEndTime: avail.end_time.substring(0, 5),
+        initialLocation: 'Calder'
+      })
+    }
+
+    return (
+      <td
+        ref={setNodeRef}
+        className={`${className} ${isOver && !hasTimeOff && !hasNoAvailability ? 'bg-blue-100/50 ring-2 ring-blue-400' : ''} ${hasNoAvailability || hasAllDayTimeOff ? 'cursor-not-allowed' : 'cursor-pointer'} group relative`}
+        style={style}
+        onClick={(e) => {
+          // Only handle cell click if clicking empty space (not on a shift card)
+          const target = e.target as HTMLElement
+          const isClickingShift = target.closest('.shift-card')
+          // Prevent clicking on unavailable cells (time-off or no availability)
+          if (!hasTimeOff && !hasNoAvailability && !isClickingShift) {
+            handleCellClick(employeeId, employeeName, daysOfWeek[dayIndex]?.date || new Date(), dayIndex)
+          }
+        }}
+      >
+        {children}
+        {/* Availability/Unavailability info - shown on hover (only when no shifts scheduled) */}
+        {showAvailability && hasAllDayTimeOff ? (
+          // Show "Unavailable" with orange background for all-day time-off
+          <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center"
+            style={{
+              background: 'rgba(251, 146, 60, 0.25)',
+            }}
+          >
+            <p className="text-xs font-bold text-orange-900">
+              Unavailable
+            </p>
+            {timeOffsForDay[0].reason && (
+              <p className="text-xs text-orange-800 mt-1 text-center">
+                {timeOffsForDay[0].reason}
+              </p>
+            )}
+          </div>
+        ) : showAvailability && hasNoAvailability ? (
+          // Show "Not Available" with gray background when no availability data exists
+          <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center"
+            style={{
+              background: 'rgba(156, 163, 175, 0.2)',
+            }}
+          >
+            <p className="text-xs font-bold text-gray-600">
+              Not Available
+            </p>
+          </div>
+        ) : showAvailability && availabilityForDay.length > 0 ? (
+          // Show only available times (green overlay)
+          <div className="absolute inset-0 backdrop-blur-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-center items-center gap-1"
+            style={{
+              background: 'rgba(134, 239, 172, 0.3)',
+            }}
+          >
+            {/* Clickable availability blocks */}
+            <div className="text-center pointer-events-auto space-y-1">
+              {availabilityForDay.map((avail, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAvailabilityClick(avail)
+                  }}
+                  className="block w-full text-xs font-medium text-gray-700 hover:text-green-900 hover:bg-green-200/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                >
+                  {formatAvailabilityTime(avail.start_time)} - {formatAvailabilityTime(avail.end_time)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </td>
+    )
+  }
 
   return (
-    // ┌─────────────────────────────────────────────────────────────┐
-    // │ MAIN CONTAINER (Full Screen)                               │
-    // │ Tailwind: h-screen (height: 100vh)                         │
-    // │           flex flex-col (vertical layout)                   │
-    // │           bg-gradient-to-br (blue→purple gradient)          │
-    // └─────────────────────────────────────────────────────────────┘
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
-
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* HEADER SECTION (Week navigation + Publish buttons)       */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      <div className="px-6 py-4">  {/* Tailwind: padding around header */}
-        <div className="max-w-[1600px] mx-auto">  {/* Tailwind: max width + center */}
-
-          {/* Shadcn/UI: Card component from /src/components/ui/card.tsx */}
+      {/* Header */}
+      <div className="px-6 py-4">
+        <div className="max-w-[1600px] mx-auto">
           <Card className="shadow-lg bg-white/90 backdrop-blur-lg border-white/50">
-
-            {/* Shadcn/UI: CardContent (inner container of Card) */}
             <CardContent className="flex items-center gap-3 p-5">
+            {/* Today Button */}
+            <Button
+              onClick={goToToday}
+              disabled={isThisWeek}
+              variant="outline"
+              size="sm"
+              className="border-2"
+            >
+              Today
+            </Button>
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* TODAY BUTTON                                    */}
-              {/* Shadcn/UI: Button from /src/components/ui/button.tsx */}
-              {/* Props: variant="outline", size="sm"            */}
-              {/* ─────────────────────────────────────────────── */}
+            {/* Date Range Display */}
+            <button
+              className="px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2 font-medium text-gray-700"
+              style={{
+                background: 'rgba(255, 255, 255, 0.7)',
+                border: '1px solid rgba(0, 0, 0, 0.08)'
+              }}
+            >
+              <Calendar className="w-4 h-4 text-gray-500" />
+              {dateRangeString}
+            </button>
+
+            {/* Navigation Arrows */}
+            <div className="flex gap-1">
               <Button
-                onClick={goToToday}           // Section 3: Action handler
-                disabled={isThisWeek}         // Section 1: Data from hook
-                variant="outline"             // Shadcn: button style variant
-                size="sm"                     // Shadcn: button size
-                className="border-2"          // Tailwind: thicker border
+                onClick={goToPreviousWeek}
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
               >
-                Today
+                <ChevronLeft className="w-5 h-5" />
               </Button>
-
-              {/* ─────────────────────────────────────────────── */}
-              {/* DATE RANGE DISPLAY                              */}
-              {/* Regular HTML button (not Shadcn)               */}
-              {/* Tailwind: px-4 py-2 (padding), rounded-lg      */}
-              {/* ─────────────────────────────────────────────── */}
-              <button
-                className="px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2 font-medium text-gray-700"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.7)',  // Custom CSS (not Tailwind)
-                  border: '1px solid rgba(0, 0, 0, 0.08)'
-                }}
-              >
-                {/* Lucide Icon: Calendar (from lucide-react package) */}
-                <Calendar className="w-4 h-4 text-gray-500" />
-                {dateRangeString}  {/* Section 1: Data from hook */}
-              </button>
-
-              {/* ─────────────────────────────────────────────── */}
-              {/* WEEK NAVIGATION ARROWS                          */}
-              {/* ─────────────────────────────────────────────── */}
-              <div className="flex gap-1">  {/* Tailwind: flex container with gap */}
-
-                {/* Shadcn/UI: Button (Previous Week) */}
-                <Button
-                  onClick={goToPreviousWeek}  // Section 3: Action handler
-                  variant="ghost"             // Shadcn: transparent background
-                  size="icon"                 // Shadcn: icon-only size
-                  className="h-9 w-9"         // Tailwind: square button
-                >
-                  {/* Lucide Icon: ChevronLeft */}
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-
-                {/* Shadcn/UI: Button (Next Week) */}
-                <Button
-                  onClick={goToNextWeek}      // Section 3: Action handler
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                >
-                  {/* Lucide Icon: ChevronRight */}
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </div>
-
-              {/* ─────────────────────────────────────────────── */}
-              {/* REPEAT LAST WEEK BUTTON                         */}
-              {/* Shadcn/UI: Button with custom Tailwind styling */}
-              {/* ─────────────────────────────────────────────── */}
               <Button
-                onClick={handleRepeatLastWeek}  // Section 3: Action handler
-                variant="outline"
-                size="sm"
-                className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50"  // Tailwind: custom colors
+                onClick={goToNextWeek}
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
               >
-                {/* Lucide Icon: Repeat */}
-                <Repeat className="w-4 h-4 mr-2" />
-                Repeat Last Week
+                <ChevronRight className="w-5 h-5" />
               </Button>
+            </div>
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* SPACER (pushes remaining items to the right)    */}
-              {/* Tailwind: flex-1 (takes all available space)   */}
-              {/* ─────────────────────────────────────────────── */}
-              <div className="flex-1" />
+            {/* Repeat Last Week Button */}
+            <Button
+              onClick={handleRepeatLastWeek}
+              variant="outline"
+              size="sm"
+              className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              <Repeat className="w-4 h-4 mr-2" />
+              Repeat Last Week
+            </Button>
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* PUBLISHED STATUS BADGE                          */}
-              {/* Shadcn/UI: Badge from /src/components/ui/badge.tsx */}
-              {/* Only shows if isWeekPublished is true          */}
-              {/* ─────────────────────────────────────────────── */}
-              {isWeekPublished && (
-                <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
-                  ✓ Published
-                </Badge>
-              )}
+            {/* Spacer */}
+            <div className="flex-1" />
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* PUBLISH BUTTON                                  */}
-              {/* Shadcn/UI: Button (blue, primary action)       */}
-              {/* ─────────────────────────────────────────────── */}
-              <Button
-                onClick={handlePublish}       // Section 3: Action handler
-                disabled={draftCount === 0}   // Disabled if no drafts
-                size="sm"
-                className="shadow-md"         // Tailwind: drop shadow
-              >
-                {/* Lucide Icon: Send */}
-                <Send className="w-4 h-4 mr-2" />
-                Publish ({draftCount})  {/* Section 3: Data from hook */}
-              </Button>
+            {/* Published Status Badge */}
+            {isWeekPublished && (
+              <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+                ✓ Published
+              </Badge>
+            )}
 
-              {/* ─────────────────────────────────────────────── */}
-              {/* CLEAR DRAFTS BUTTON                             */}
-              {/* Shadcn/UI: Button (red, destructive action)    */}
-              {/* ─────────────────────────────────────────────── */}
-              <Button
-                onClick={handleClearDrafts}   // Section 3: Action handler
-                disabled={draftCount === 0}   // Disabled if no drafts
-                variant="destructive"         // Shadcn: red color
-                size="sm"
-                className="shadow-md"
-              >
-                {/* Lucide Icon: Trash2 */}
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear
-              </Button>
+            {/* Publish Button */}
+            <Button
+              onClick={handlePublish}
+              disabled={draftCount === 0}
+              size="sm"
+              className="shadow-md"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Publish ({draftCount})
+            </Button>
+
+            {/* Clear Drafts Button */}
+            <Button
+              onClick={handleClearDrafts}
+              disabled={draftCount === 0}
+              variant="destructive"
+              size="sm"
+              className="shadow-md"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear
+            </Button>
             </CardContent>
           </Card>
         </div>
@@ -337,7 +954,7 @@ export default function ScheduleBuilderV2() {
           {/* Schedule Grid */}
           <Card className="overflow-hidden shadow-lg bg-white/90 backdrop-blur-lg border-white/50">
             {isLoading ? (
-              <div className="flex items-center justify-center h-full p-20">
+              <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
                   <div className="text-sm text-gray-600">{SCHEDULE_MESSAGES.LOADING_SCHEDULE}</div>
@@ -347,204 +964,333 @@ export default function ScheduleBuilderV2() {
               <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="overflow-auto">
                   <table className="w-full border-collapse">
-                    <thead>
-                      <tr>
+                  <thead>
+                    <tr>
+                      <th
+                        className="sticky top-0 left-0 z-20 border-r border-b px-5 py-4 text-left font-semibold text-sm text-gray-700 min-w-[220px]"
+                        style={{
+                          background: 'rgba(249, 250, 251, 0.95)',
+                          backdropFilter: 'blur(10px)',
+                          borderColor: 'rgba(0, 0, 0, 0.06)'
+                        }}
+                      >
+                        Employee ({employees.length})
+                      </th>
+                      {daysOfWeek.map((day, index) => (
                         <th
-                          className="sticky top-0 left-0 z-20 border-r border-b px-5 py-4 text-left font-semibold text-sm text-gray-700 min-w-[220px]"
+                          key={index}
+                          className="sticky top-0 z-10 border-r border-b px-3 py-3 text-center font-semibold text-sm min-w-[120px]"
                           style={{
-                            background: 'rgba(249, 250, 251, 0.95)',
+                            background: day.isToday
+                              ? 'rgba(224, 231, 255, 0.5)'
+                              : 'rgba(249, 250, 251, 0.95)',
                             backdropFilter: 'blur(10px)',
                             borderColor: 'rgba(0, 0, 0, 0.06)'
                           }}
                         >
-                          Employee ({staffEmployees.length})
+                          {day.isToday ? (
+                            <span className="inline-block bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                              {day.dayName}, {day.dayNumber}
+                            </span>
+                          ) : (
+                            <span className="text-gray-700">
+                              {day.dayName}, {day.dayNumber}
+                            </span>
+                          )}
                         </th>
-                        {daysOfWeek.map((day, index) => (
-                          <th
-                            key={index}
-                            className="sticky top-0 z-10 border-r border-b px-3 py-3 text-center font-semibold text-sm min-w-[120px]"
-                            style={{
-                              background: day.isToday
-                                ? 'rgba(224, 231, 255, 0.5)'
-                                : 'rgba(249, 250, 251, 0.95)',
-                              backdropFilter: 'blur(10px)',
-                              borderColor: 'rgba(0, 0, 0, 0.06)'
-                            }}
-                          >
-                            {day.isToday ? (
-                              <span className="inline-block bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
-                                {day.dayName}, {day.dayNumber}
-                              </span>
-                            ) : (
-                              <span className="text-gray-700">
-                                {day.dayName}, {day.dayNumber}
-                              </span>
-                            )}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Open Shifts Row */}
-                      {openShifts.length > 0 && (
-                        <tr className="bg-yellow-50/50">
-                          <td
-                            className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
-                            style={{
-                              background: 'rgba(254, 252, 232, 0.9)',
-                              backdropFilter: 'blur(10px)',
-                              borderColor: 'rgba(0, 0, 0, 0.04)'
-                            }}
-                          >
-                            🔓 Open Shifts ({openShifts.length})
-                          </td>
-                          {daysOfWeek.map((day, dayIndex) => {
-                            const shiftsForDay = openShifts.filter(shift => {
-                              const shiftDate = new Date(shift.start_time).toDateString()
-                              return shiftDate === day.date.toDateString()
-                            })
-                            return (
-                              <td
-                                key={dayIndex}
-                                className="border-r border-b p-1.5 min-h-[50px] align-top"
-                                style={{
-                                  borderColor: 'rgba(0, 0, 0, 0.04)',
-                                  background: 'rgba(254, 243, 199, 0.15)'
-                                }}
-                              >
-                                {shiftsForDay.length > 0 && (
-                                  <div className="space-y-1">
-                                    {shiftsForDay.map((shift) => (
-                                      <div
-                                        key={shift.id}
-                                        className="rounded px-2 py-1 cursor-pointer hover:shadow-md transition-shadow text-center group relative"
-                                        style={{
-                                          background: 'rgba(147, 197, 253, 0.5)',
-                                          border: '1px solid rgba(147, 197, 253, 0.8)',
-                                          backdropFilter: 'blur(5px)'
-                                        }}
-                                        onClick={() => handleShiftClick({ ...shift, status: 'draft' }, 'Open Shift')}
-                                      >
-                                        <div className="text-xs font-medium text-blue-900">
-                                          {formatShiftTime(shift.start_time, shift.end_time)}
-                                        </div>
-                                        <Button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDuplicateShift({ ...shift, status: 'draft' }, 'Open Shift')
-                                          }}
-                                          size="icon"
-                                          variant="default"
-                                          className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          title="Duplicate shift"
-                                        >
-                                          <Copy className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDeleteShift(shift.id)
-                                          }}
-                                          size="icon"
-                                          variant="destructive"
-                                          className="absolute top-0 right-0 -mt-1 -mr-1 rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          title="Delete shift"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      )}
-
-                      {/* Employee Rows */}
-                      {staffEmployees.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="text-center py-8 text-gray-500">
-                            No staff employees found
-                          </td>
-                        </tr>
-                      ) : (
-                        staffEmployees.map((employee) => {
-                          const hours = weeklyHours[employee.id] || 0
-                          const formattedHours = formatShiftHours(hours)
-
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Open Shifts Row */}
+                    {openShifts.length > 0 && (
+                      <tr className="bg-yellow-50/50">
+                        <td
+                          className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
+                          style={{
+                            background: 'rgba(254, 252, 232, 0.9)',
+                            backdropFilter: 'blur(10px)',
+                            borderColor: 'rgba(0, 0, 0, 0.04)'
+                          }}
+                        >
+                          🔓 Open Shifts ({openShifts.length})
+                        </td>
+                        {daysOfWeek.map((day, dayIndex) => {
+                          const shiftsForDay = openShifts.filter(shift => {
+                            const shiftDate = new Date(shift.start_time).toDateString()
+                            return shiftDate === day.date.toDateString()
+                          })
                           return (
-                            <tr
-                              key={employee.id}
-                              className="transition-colors hover:bg-white/40"
+                            <td
+                              key={dayIndex}
+                              className="border-r border-b p-1.5 min-h-[50px] align-top"
+                              style={{
+                                borderColor: 'rgba(0, 0, 0, 0.04)',
+                                background: 'rgba(254, 243, 199, 0.15)'
+                              }}
                             >
-                              <td
-                                className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
-                                style={{
-                                  background: 'rgba(255, 255, 255, 0.8)',
-                                  backdropFilter: 'blur(10px)',
-                                  borderColor: 'rgba(0, 0, 0, 0.04)'
-                                }}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span>{employee.first_name}</span>
-                                  <span className="text-xs text-gray-500 font-normal ml-2">
-                                    {formattedHours}
-                                  </span>
+                              {shiftsForDay.length > 0 && (
+                                <div className="space-y-1">
+                                  {shiftsForDay.map((shift) => (
+                                    <div
+                                      key={shift.id}
+                                      className="rounded px-2 py-1 cursor-pointer hover:shadow-md transition-shadow text-center group relative"
+                                      style={{
+                                        background: 'rgba(147, 197, 253, 0.5)', // Light blue for draft (open shifts are always drafts)
+                                        border: '1px solid rgba(147, 197, 253, 0.8)',
+                                        backdropFilter: 'blur(5px)'
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleShiftClick({ ...shift, status: 'draft' } as ScheduleShift, 'Open Shift')
+                                      }}
+                                    >
+                                      <div className="text-xs font-medium text-blue-900">
+                                        {formatShiftTime(shift.start_time, shift.end_time)}
+                                      </div>
+                                      {/* Duplicate button */}
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDuplicateShift({ ...shift, status: 'draft' } as ScheduleShift, 'Open Shift')
+                                        }}
+                                        size="icon"
+                                        variant="default"
+                                        className="absolute top-0 left-0 -mt-1 -ml-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Duplicate shift"
+                                      >
+                                        <Copy className="w-3 h-3" />
+                                      </Button>
+                                      {/* Delete button */}
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDeleteShift(shift.id)
+                                        }}
+                                        size="icon"
+                                        variant="destructive"
+                                        className="absolute top-0 right-0 -mt-1 -mr-1 rounded-full h-5 w-5 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Delete shift"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
                                 </div>
-                              </td>
-                              {daysOfWeek.map((day, dayIndex) => {
-                                const shiftsForDay = shiftsByEmployeeAndDay[employee.id]?.[dayIndex] || []
-                                const timeOffsForDay = timeOffsByEmployeeAndDay[employee.id]?.[dayIndex] || []
-                                const availabilityForDay = availabilityByEmployeeAndDay[employee.id]?.[dayIndex] || []
-
-                                return (
-                                  <ShiftCell
-                                    key={dayIndex}
-                                    employeeId={employee.id}
-                                    employeeName={employee.first_name}
-                                    dayIndex={dayIndex}
-                                    shifts={shiftsForDay}
-                                    timeOffs={timeOffsForDay}
-                                    availability={availabilityForDay}
-                                    isToday={day.isToday}
-                                    onCellClick={() => handleCellClick(employee.id, employee.first_name, day.date, dayIndex)}
-                                    onShiftClick={handleShiftClick}
-                                    onDeleteShift={handleDeleteShift}
-                                    onAvailabilityClick={(avail) => handleAvailabilityClick(employee.id, employee.first_name, day.date, dayIndex, avail)}
-                                  />
-                                )
-                              })}
-                            </tr>
+                              )}
+                            </td>
                           )
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                <DragOverlay>
-                  {activeShift ? (
-                    <div className="rounded px-2 py-1 shadow-lg" style={{
-                      background: activeShift.status === 'published'
-                        ? 'rgba(30, 64, 175, 0.85)'
-                        : 'rgba(147, 197, 253, 0.5)',
-                      border: activeShift.status === 'published'
-                        ? '1px solid rgba(30, 64, 175, 1)'
-                        : '1px solid rgba(147, 197, 253, 0.8)'
-                    }}>
-                      <div className={`text-xs font-medium ${
-                        activeShift.status === 'published' ? 'text-white' : 'text-blue-900'
-                      }`}>
-                        {formatShiftTime(activeShift.start_time, activeShift.end_time)}
-                      </div>
+                        })}
+                      </tr>
+                    )}
+
+                    {/* Employee Rows */}
+                    {employees.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-8 text-gray-500">
+                          No employees found
+                        </td>
+                      </tr>
+                    ) : (
+                      employees.map((employee) => {
+                        const hours = weeklyHours[employee.id] || 0
+                        const formattedHours = formatShiftHours(hours)
+
+                        return (
+                          <tr
+                            key={employee.id}
+                            className="transition-colors hover:bg-white/40"
+                          >
+                            <td
+                              className="sticky left-0 z-10 border-r border-b px-5 py-3 font-medium text-sm text-gray-800"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                backdropFilter: 'blur(10px)',
+                                borderColor: 'rgba(0, 0, 0, 0.04)'
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{employee.first_name}</span>
+                                <span className="text-xs text-gray-500 font-normal ml-2">
+                                  {formattedHours}
+                                </span>
+                              </div>
+                            </td>
+                            {daysOfWeek.map((day, dayIndex) => {
+                              const shiftsForDay = shiftsByEmployeeAndDay[employee.id]?.[dayIndex] || []
+                              const timeOffsForDay = timeOffsByEmployeeAndDay[employee.id]?.[dayIndex] || []
+                              // Only block cell if ALL-DAY time-off, not partial time-offs
+                              const hasAllDayTimeOff = timeOffsForDay.some(timeOff => isAllDayTimeOff(timeOff))
+
+                              return (
+                                <DroppableCell
+                                  key={dayIndex}
+                                  employeeId={employee.id}
+                                  employeeName={employee.first_name}
+                                  dayIndex={dayIndex}
+                                  hasTimeOff={hasAllDayTimeOff}
+                                  className={`border-r border-b p-1.5 min-h-[50px] align-top ${
+                                    !hasAllDayTimeOff ? 'cursor-pointer hover:bg-blue-50/30' : ''
+                                  }`}
+                                  style={{
+                                    borderColor: 'rgba(0, 0, 0, 0.04)',
+                                    background: day.isToday ? 'rgba(224, 231, 255, 0.15)' : 'transparent'
+                                  }}
+                                >
+                                  {(shiftsForDay.length > 0 || timeOffsForDay.length > 0) ? (
+                                    <div className="space-y-1">
+                                      {/* Shifts */}
+                                      {shiftsForDay.map((shift) => (
+                                        <DraggableShift
+                                          key={shift.id}
+                                          shift={shift}
+                                          employeeName={employee.first_name}
+                                        />
+                                      ))}
+                                      {/* Time-offs */}
+                                      {timeOffsForDay.map((timeOff) => {
+                                        const isAllDay = isAllDayTimeOff(timeOff)
+                                        return (
+                                          <div
+                                            key={timeOff.id}
+                                            className="rounded px-2 py-1 cursor-not-allowed transition-shadow text-center"
+                                            style={{
+                                              background: 'rgba(251, 146, 60, 0.15)',
+                                              border: '1px solid rgba(251, 146, 60, 0.35)',
+                                              backdropFilter: 'blur(5px)'
+                                            }}
+                                            title={timeOff.reason || 'Time off'}
+                                          >
+                                            <div className="text-xs font-medium text-orange-900">
+                                              {isAllDay ? 'Time Off' : formatShiftTime(timeOff.start_time, timeOff.end_time)}
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className="h-full min-h-[35px] flex items-center justify-center">
+                                      {!hasAllDayTimeOff && (
+                                        <Plus className="w-4 h-4 text-gray-300 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100" />
+                                      )}
+                                    </div>
+                                  )}
+                                </DroppableCell>
+                              )
+                            })}
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <DragOverlay>
+                {activeShift ? (
+                  <div className="rounded px-2 py-1 shadow-lg" style={{
+                    background: activeShift.status === 'published'
+                      ? 'rgba(30, 64, 175, 0.85)'
+                      : 'rgba(147, 197, 253, 0.5)',
+                    border: activeShift.status === 'published'
+                      ? '1px solid rgba(30, 64, 175, 1)'
+                      : '1px solid rgba(147, 197, 253, 0.8)'
+                  }}>
+                    <div className={`text-xs font-medium ${
+                      activeShift.status === 'published' ? 'text-white' : 'text-blue-900'
+                    }`}>
+                      {formatShiftTime(activeShift.start_time, activeShift.end_time)}
                     </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
             )}
           </Card>
 
+          {/* Employee Availability & Time-Off List */}
+          <Card className="overflow-hidden shadow-lg bg-white/90 backdrop-blur-lg border-white/50">
+            <CardHeader className="border-b border-gray-100">
+              <CardTitle className="text-lg">Employee Availability & Time-Offs</CardTitle>
+              <CardDescription>Regular availability and time-off notices for this week</CardDescription>
+            </CardHeader>
+
+            {/* List */}
+            <CardContent className="p-0">
+              <div className="divide-y max-h-[400px] overflow-y-auto">
+              {employees.map((employee) => {
+                // Get time-offs for this employee this week
+                const employeeTimeOffs = timeOffs.filter(t => t.employee_id === employee.id)
+
+                // Get availability for this employee (grouped by day)
+                const employeeAvailability = availabilityByEmployeeAndDay[employee.id] || {}
+                // Index 0 = Monday, 1 = Tuesday, ... 6 = Sunday (matches edge function mapping)
+                const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                const availabilityText = Object.entries(employeeAvailability)
+                  .sort(([dayA], [dayB]) => Number(dayA) - Number(dayB))
+                  .map(([dayIndex, availabilities]) => {
+                    const dayName = dayNames[Number(dayIndex)]
+                    const times = availabilities.map(avail =>
+                      `${formatAvailabilityTime(avail.start_time)}-${formatAvailabilityTime(avail.end_time)}`
+                    ).join(', ')
+                    return `${dayName}: ${times}`
+                  }).join(' | ')
+
+                return (
+                  <div
+                    key={employee.id}
+                    className="px-6 py-4 hover:bg-white/40 transition-colors"
+                    style={{ borderColor: 'rgba(0, 0, 0, 0.04)' }}
+                  >
+                    {/* Employee Name */}
+                    <div className="font-semibold text-gray-800 mb-2">
+                      {employee.first_name} {employee.last_name || ''}
+                    </div>
+
+                    {/* Availability */}
+                    <div className="flex items-start gap-2 text-sm mb-2">
+                      <Clock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-gray-600 font-medium">Available: </span>
+                        <span className="text-gray-700">
+                          {availabilityText || 'No availability set'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Time-Offs */}
+                    {employeeTimeOffs.length > 0 ? (
+                      <div className="flex items-start gap-2 text-sm">
+                        <Calendar className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-gray-600 font-medium">Time Off: </span>
+                          {employeeTimeOffs.map((timeOff, idx) => (
+                            <div key={timeOff.id} className="inline">
+                              {idx > 0 && ', '}
+                              <span className="text-orange-700 font-medium">
+                                {format(new Date(timeOff.start_time), 'MMM d')}
+                                {format(new Date(timeOff.start_time), 'yyyy-MM-dd') !== format(new Date(timeOff.end_time), 'yyyy-MM-dd') &&
+                                  ` - ${format(new Date(timeOff.end_time), 'MMM d')}`
+                                }
+                              </span>
+                              {timeOff.reason && (
+                                <span className="text-gray-600"> ({timeOff.reason})</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2 text-sm text-gray-500">
+                        <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <span>No time-offs this week</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -554,7 +1300,7 @@ export default function ScheduleBuilderV2() {
         onClose={() => setModalState({ ...modalState, isOpen: false })}
         onSave={handleSaveShift}
         employeeName={modalState.employeeName}
-        date={modalState.date.toISOString().split('T')[0]}
+        date={modalState.date}
         hasTimeOff={modalState.hasTimeOff}
         timeOffReason={modalState.timeOffReason}
         initialStartTime={modalState.initialStartTime}
