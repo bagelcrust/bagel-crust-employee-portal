@@ -1313,6 +1313,7 @@ export default function ScheduleBuilder() {
         isOpen={editModalState.isOpen}
         onClose={() => setEditModalState({ ...editModalState, isOpen: false })}
         onSave={handleEditShift}
+        onDelete={handleDeleteShift}
         shift={editModalState.shift}
         employeeName={editModalState.employeeName}
       />

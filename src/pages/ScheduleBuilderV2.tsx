@@ -417,6 +417,7 @@ export default function ScheduleBuilderV2() {
                                     isToday={day.isToday}
                                     onCellClick={() => handleCellClick(employee.id, employee.first_name, day.date, dayIndex)}
                                     onShiftClick={handleShiftClick}
+                                    onDeleteShift={handleDeleteShift}
                                     onAvailabilityClick={(avail) => handleAvailabilityClick(employee.id, employee.first_name, day.date, dayIndex, avail)}
                                   />
                                 )

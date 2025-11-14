@@ -66,7 +66,7 @@ export function useScheduleBuilderActions({
 
   // Handle cell click (add shift)
   const handleCellClick = useCallback((
-    employeeId: string,
+    employeeId: string | null,
     employeeName: string,
     date: Date,
     dayIndex: number
@@ -81,8 +81,8 @@ export function useScheduleBuilderActions({
       })
     }
 
-    // Check if employee has ALL-DAY time-off on this day
-    const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
+    // Check if employee has ALL-DAY time-off on this day (only if employeeId exists)
+    const timeOffsForDay = employeeId ? (timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []) : []
     const hasAllDayTimeOff = timeOffsForDay.some((timeOff: any) => isAllDayTimeOff(timeOff))
     const timeOffReason = hasAllDayTimeOff ? timeOffsForDay.find((t: any) => isAllDayTimeOff(t))?.reason || 'No reason' : ''
 
