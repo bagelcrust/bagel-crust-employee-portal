@@ -38,7 +38,7 @@ export async function offlineClockAction(
   employeeName: string
 ): Promise<ClockActionResult> {
 
-  // STEP 1: Try normal API call
+  // STEP 1: Try normal API call (using table operations to bypass PostgREST cache)
   try {
     console.log('[OfflineClockAction] Attempting online clock action...', {
       employeeId,
@@ -46,16 +46,42 @@ export async function offlineClockAction(
       timestamp: new Date().toISOString()
     });
 
-    console.log('[OfflineClockAction] Calling supabase.rpc("employee_clock_toggle", { p_employee_id: employeeId })');
-    const { data, error } = await supabase.rpc('employee_clock_toggle', { p_employee_id: employeeId });
+    // Get last event to determine next action
+    console.log('[OfflineClockAction] Getting last event...');
+    const { data: lastEvent } = await supabase
+      .schema('employees')
+      .from('time_entries')
+      .select('event_type')
+      .eq('employee_id', employeeId)
+      .order('event_timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    console.log('[OfflineClockAction] RPC response:', { data, error });
+    console.log('[OfflineClockAction] Last event:', lastEvent);
+
+    // Determine new event type
+    const newEventType: 'in' | 'out' = (!lastEvent || lastEvent.event_type === 'out') ? 'in' : 'out';
+    console.log('[OfflineClockAction] New event type:', newEventType);
+
+    // Insert new event
+    const { data, error } = await supabase
+      .schema('employees')
+      .from('time_entries')
+      .insert({
+        employee_id: employeeId,
+        event_type: newEventType,
+        event_timestamp: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    console.log('[OfflineClockAction] Insert response:', { data, error });
 
     if (error) {
-      console.error('[OfflineClockAction] RPC returned error:', error);
+      console.error('[OfflineClockAction] Insert error:', error);
       throw new Error(`Failed: ${error.message}`);
     }
-    const event = Array.isArray(data) ? data[0] : data;
+    const event = data;
 
     console.log('[OfflineClockAction] ✅ Online clock action successful', event);
 

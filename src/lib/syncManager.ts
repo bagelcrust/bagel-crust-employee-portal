@@ -119,12 +119,34 @@ export async function syncOfflineQueue(): Promise<void> {
       try {
         console.log(`[SyncManager] Syncing entry ${entry.id} (${entry.employeeName})`);
 
-        // Attempt to clock in/out via Postgres RPC
+        // Use table operations to bypass PostgREST cache issues
+        // Get last event
+        const { data: lastEvent } = await supabase
+          .schema('employees')
+          .from('time_entries')
+          .select('event_type')
+          .eq('employee_id', entry.employeeId)
+          .order('event_timestamp', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Determine new event type
+        const newEventType: 'in' | 'out' = (!lastEvent || lastEvent.event_type === 'out') ? 'in' : 'out';
+
+        // Insert new event
         const { data, error } = await supabase
-          .rpc('employee_clock_toggle', { p_employee_id: entry.employeeId });
+          .schema('employees')
+          .from('time_entries')
+          .insert({
+            employee_id: entry.employeeId,
+            event_type: newEventType,
+            event_timestamp: new Date().toISOString()
+          })
+          .select()
+          .single();
 
         if (error) throw new Error(`Failed: ${error.message}`);
-        const result = Array.isArray(data) ? data[0] : data;
+        const result = data;
 
         console.log(`[SyncManager] ✅ Successfully synced ${entry.id}`, result);
 

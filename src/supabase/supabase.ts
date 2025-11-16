@@ -100,17 +100,35 @@ export const timeclockApi = {
     return data as TimeEntry | null;
   },
 
-  // Clock in or out (atomic operation via RPC to prevent race conditions)
-  // Uses PostgreSQL function to atomically determine in/out and insert event
+  // Clock in or out (using table operations to bypass PostgREST cache issues)
   async clockInOut(employeeId: string) {
+    // Get last event
+    const { data: lastEvent } = await supabase
+      .schema('employees')
+      .from('time_entries')
+      .select('event_type')
+      .eq('employee_id', employeeId)
+      .order('event_timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Determine new event type
+    const newEventType: 'in' | 'out' = (!lastEvent || lastEvent.event_type === 'out') ? 'in' : 'out';
+
+    // Insert new event
     const { data, error } = await supabase
-      .rpc('employee_clock_toggle', {
-        p_employee_id: employeeId
-      });
+      .schema('employees')
+      .from('time_entries')
+      .insert({
+        employee_id: employeeId,
+        event_type: newEventType,
+        event_timestamp: new Date().toISOString()
+      })
+      .select()
+      .single();
 
     if (error) throw error;
-    // RPC function returns TABLE (array), so get first element
-    return Array.isArray(data) ? data[0] : data;
+    return data;
   },
 
   // Get events in date range with employee info (using join - single query!)
