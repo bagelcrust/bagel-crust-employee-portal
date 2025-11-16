@@ -330,9 +330,12 @@ export default function ClockInOut() {
       console.log('[ClockInOut] Looking up PIN:', pin)
       const employeePromise = supabase
         .rpc('get_employee_by_pin', { p_pin: pin })
-      const { data: employee, error: lookupError } = await Promise.race([employeePromise, timeoutPromise]) as any
+      const { data, error: lookupError } = await Promise.race([employeePromise, timeoutPromise]) as any
 
-      console.log('[ClockInOut] PIN lookup response:', { employee, lookupError })
+      // RPC returns array, get first element
+      const employee = Array.isArray(data) ? data[0] : data
+
+      console.log('[ClockInOut] PIN lookup response:', { rawData: data, employee, lookupError })
 
       const lookupDuration = Math.round(performance.now() - lookupStartTime)
 
