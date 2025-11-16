@@ -1,5 +1,5 @@
-import { supabase } from '../supabase'
-import type { TimeOff } from '../supabase'
+import { supabase } from '../../supabase/supabase'
+import type { TimeOff } from '../../supabase/supabase'
 
 export interface ConflictCheck {
   hasConflict: boolean

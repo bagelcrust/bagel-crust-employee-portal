@@ -1,6 +1,5 @@
-import { supabase } from '../supabase'
-import { conflictService } from './conflictService'
-import type { Conflict } from './conflictService'
+import { supabase } from '../../supabase/supabase'
+import { conflictService, type Conflict } from '../shifts/detectConflicts'
 
 export interface PublishResult {
   publishedCount: number
@@ -28,7 +27,7 @@ export interface PublishResult {
 export const publishService = {
   /**
    * Publish all draft shifts for a week
-   * Uses comprehensive edge function with service_role key to bypass RLS
+   * Calls Postgres function: publish_schedule_builder_week()
    * COPIES draft_shifts → published_shifts table (immutable historical record)
    * Validates no conflicts exist before publishing
    */
@@ -42,7 +41,7 @@ export const publishService = {
   ): Promise<PublishResult> {
     const { strictMode = true } = options
 
-    // Use Postgres RPC function with service_role key
+    // Call Postgres function
     const { data, error } = await supabase
       .schema('employees')
       .rpc('publish_schedule_builder_week', {
@@ -51,7 +50,7 @@ export const publishService = {
         p_strict_mode: strictMode
       })
 
-    if (error) throw new Error(`Failed to publish week: ${error.message}`)
+    if (error) throw error
 
     return {
       success: data.success,
@@ -63,11 +62,11 @@ export const publishService = {
 
   /**
    * Clear all draft shifts for a week
-   * Uses Postgres RPC function with service_role key
+   * Calls Postgres function: clear_schedule_builder_drafts()
    * Useful after publishing to clean up experimental workspace
    */
   async clearDrafts(startDate: string, endDate: string): Promise<number> {
-    // Use Postgres RPC function with service_role key
+    // Call Postgres function
     const { data, error } = await supabase
       .schema('employees')
       .rpc('clear_schedule_builder_drafts', {
@@ -75,8 +74,8 @@ export const publishService = {
         p_end_date: endDate
       })
 
-    if (error) throw new Error(`Failed to clear drafts: ${error.message}`)
-    return data
+    if (error) throw error
+    return data.cleared_count || 0
   },
 
   /**

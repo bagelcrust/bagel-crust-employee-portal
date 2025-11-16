@@ -5,6 +5,11 @@ import { Keypad } from '../components/Keypad'
 import { offlineClockAction } from '../lib/offlineClockAction'
 import { startSyncManager, onSyncEvent, getSyncStatus, type SyncEvent } from '../lib/syncManager'
 
+// CRITICAL TEST: This should fire immediately when file loads (DEV only)
+if (import.meta.env.DEV) {
+  console.log('🔴 ClockInOut.tsx loaded at', new Date().toISOString())
+}
+
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
  *
@@ -18,7 +23,7 @@ import { startSyncManager, onSyncEvent, getSyncStatus, type SyncEvent } from '..
  * Features refined glassmorphism design with professional aesthetic:
  * - PIN-based clock in/out with unified keypad component
  * - Live clock display at the top (Eastern Time, plain text for performance)
- * - Recent activity feed in bottom-right corner (uses timezone-aware Postgres RPC)
+ * - Recent activity feed in bottom-right corner (uses timezone-aware Edge Function)
  * - Auto-submit on 4-digit PIN entry
  * - Personalized success messages (lightweight CSS bounce animation)
  * - Subtle glass effects (10px blur, 90% opacity)
@@ -34,8 +39,8 @@ import { startSyncManager, onSyncEvent, getSyncStatus, type SyncEvent } from '..
  * - CSS-only bounce animation for success messages
  *
  * Timezone Handling:
- * - Uses clock_in_out() RPC for atomic clock operations
- * - Uses get_recent_activity() Postgres RPC for timezone-aware event display
+ * - Uses clockInOut() RPC for atomic clock operations
+ * - Uses getClockTerminalData() Edge Function for timezone-aware event display
  * - All times displayed in Eastern Time (EST/EDT) from database
  *
  * BULLETPROOF FEATURES:
@@ -82,6 +87,11 @@ export default function ClockInOut() {
   // Dev/Production mode toggle - allows previewing production appearance while developing
   // In actual production (import.meta.env.PROD), this toggle won't show and devMode will be false
   const [devMode, setDevMode] = useState(import.meta.env.DEV)
+
+  // CRITICAL TEST: This should fire when component renders (DEV only)
+  if (import.meta.env.DEV) {
+    console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
+  }
 
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error' | 'clockout' | ''>('')
@@ -232,42 +242,35 @@ export default function ClockInOut() {
         setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000)
       )
 
-      const dataPromise = supabase.rpc('get_recent_activity', {
-        p_start_date: formatDate(startDate),
-        p_end_date: formatDate(endDate),
-        p_employee_id: null, // null = all employees
-        p_limit: 10
-      })
+      const dataPromise = supabase
+        .schema('employees')
+        .rpc('get_recent_activity', {
+          p_start_date: formatDate(startDate),
+          p_end_date: formatDate(endDate),
+          p_employee_id: null, // null = all employees
+          p_limit: 10
+        })
 
-      const result = await Promise.race([dataPromise, timeoutPromise]) as any
+      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any
 
-      if (result.error) throw new Error(`Failed: ${result.error.message}`)
+      if (error) {
+        throw new Error(`Database query failed: ${error.message}`)
+      }
 
       const duration = Math.round(performance.now() - startTime)
       logSuccess('API', `✅ Recent events loaded in ${duration}ms`, {
-        eventCount: result.data?.length || 0,
+        eventCount: data?.length || 0,
         duration: `${duration}ms`
       })
 
-      // Postgres does timezone math, React does pretty display
-      // Transform Postgres data to UI format
-      const formattedEvents = (result.data || []).map((event: any) => {
-        // Format timestamp as "h:mm AM/PM" in Eastern Time
-        const timestamp = new Date(event.event_timestamp_et)
-        const timeString = timestamp.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        })
-
-        return {
-          id: event.id,
-          employeeId: event.employee_id,
-          name: event.employee_name, // Postgres returns combined name
-          time: timeString,
-          action: event.event_type === 'in' ? 'Clock In' : 'Clock Out'
-        }
-      })
+      // Format events for display
+      const formattedEvents = (data || []).map((event: any) => ({
+        id: event.id,
+        employeeId: event.employee_id,
+        name: `${event.first_name} ${event.last_name}`,
+        time: event.formatted_time, // Already in Eastern Time from Postgres
+        action: event.event_type === 'in' ? 'Clock In' : 'Clock Out'
+      }))
 
       setRecentEvents(formattedEvents)
       log('State', 'Recent events state updated', { count: formattedEvents.length })
@@ -312,13 +315,25 @@ export default function ClockInOut() {
         setTimeout(() => reject(new Error('Employee lookup timeout after 15 seconds')), 15000)
       )
 
-      const employeePromise = supabase.rpc('get_employee_by_pin', { p_pin: pin })
-      const employeeResult = await Promise.race([employeePromise, timeoutPromise]) as any
-
-      if (employeeResult.error) throw new Error(`Failed: ${employeeResult.error.message}`)
-      const employee = employeeResult.data
+      const employeePromise = supabase
+        .schema('employees')
+        .rpc('get_employee_by_pin', { p_pin: pin })
+      const { data: employee, error: lookupError } = await Promise.race([employeePromise, timeoutPromise]) as any
 
       const lookupDuration = Math.round(performance.now() - lookupStartTime)
+
+      if (lookupError) {
+        logError('Clock Action', `Database error during PIN lookup (${lookupDuration}ms)`, lookupError)
+        setMessage('Database error - Please try again')
+        setMessageType('error')
+        setKeypadKey(prev => prev + 1)
+        setTimeout(() => {
+          setMessage('')
+          setMessageType('')
+        }, 3000)
+        setIsProcessing(false)
+        return
+      }
 
       if (!employee) {
         logWarning('Clock Action', `❌ Invalid PIN entered (lookup took ${lookupDuration}ms)`)

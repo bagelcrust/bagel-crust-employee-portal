@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../supabase/supabase'
-import { format, startOfWeek, endOfWeek, addWeeks } from 'date-fns'
+import { supabase } from '../../supabase/supabase'
 
 /**
  * Helper to group schedule by day of week
@@ -49,9 +48,11 @@ function groupScheduleByDay(schedules: any[]) {
 /**
  * Hook to fetch employee's personal schedule
  * Returns this week and next week, grouped by day
- * USES EDGE FUNCTION for proper Eastern Time timezone handling
+ * USES POSTGRES RPC for proper Eastern Time timezone handling
+ *
+ * Naming matches Postgres function: get_my_schedule
  */
-export function useEmployeeSchedule(employeeId: string | undefined, enabled = true) {
+export function useGetMySchedule(employeeId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: ['employee-schedule', employeeId],
     queryFn: async () => {
@@ -60,42 +61,47 @@ export function useEmployeeSchedule(employeeId: string | undefined, enabled = tr
       console.log('[SCHEDULE] Fetching employee schedule...', new Date().toISOString())
       const start = performance.now()
 
-      // Calculate this week and next week date ranges
+      // Calculate week boundaries
       const today = new Date()
-      const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 }) // Monday
-      const thisWeekEnd = endOfWeek(today, { weekStartsOn: 1 }) // Sunday
-      const nextWeekStart = startOfWeek(addWeeks(today, 1), { weekStartsOn: 1 })
-      const nextWeekEnd = endOfWeek(addWeeks(today, 1), { weekStartsOn: 1 })
+      const thisWeekStart = new Date(today)
+      thisWeekStart.setDate(today.getDate() - today.getDay()) // Sunday
+      const thisWeekEnd = new Date(thisWeekStart)
+      thisWeekEnd.setDate(thisWeekStart.getDate() + 6) // Saturday
 
-      // Fetch both weeks in parallel using Postgres RPC (handles timezone correctly)
-      const [thisWeekResult, nextWeekResult] = await Promise.all([
+      const nextWeekStart = new Date(thisWeekEnd)
+      nextWeekStart.setDate(thisWeekEnd.getDate() + 1)
+      const nextWeekEnd = new Date(nextWeekStart)
+      nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
+
+      // Format dates as YYYY-MM-DD
+      const formatDate = (date: Date) => date.toISOString().split('T')[0]
+
+      // Fetch both weeks in parallel using Postgres RPC
+      const [thisWeek, nextWeek] = await Promise.all([
         supabase
           .schema('employees')
           .rpc('get_my_schedule', {
             p_employee_id: employeeId,
-            p_start_date: format(thisWeekStart, 'yyyy-MM-dd'),
-            p_end_date: format(thisWeekEnd, 'yyyy-MM-dd')
+            p_start_date: formatDate(thisWeekStart),
+            p_end_date: formatDate(thisWeekEnd)
           }),
         supabase
           .schema('employees')
           .rpc('get_my_schedule', {
             p_employee_id: employeeId,
-            p_start_date: format(nextWeekStart, 'yyyy-MM-dd'),
-            p_end_date: format(nextWeekEnd, 'yyyy-MM-dd')
+            p_start_date: formatDate(nextWeekStart),
+            p_end_date: formatDate(nextWeekEnd)
           })
       ])
 
-      if (thisWeekResult.error) throw new Error(`Failed: ${thisWeekResult.error.message}`)
-      if (nextWeekResult.error) throw new Error(`Failed: ${nextWeekResult.error.message}`)
-
-      const thisWeekSchedules = thisWeekResult.data || []
-      const nextWeekSchedules = nextWeekResult.data || []
+      if (thisWeek.error) throw new Error(`Failed to fetch this week: ${thisWeek.error.message}`)
+      if (nextWeek.error) throw new Error(`Failed to fetch next week: ${nextWeek.error.message}`)
 
       console.log(`[SCHEDULE] Employee schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
 
       // Group by day
-      const thisWeekByDay = groupScheduleByDay(thisWeekSchedules)
-      const nextWeekByDay = groupScheduleByDay(nextWeekSchedules)
+      const thisWeekByDay = groupScheduleByDay(thisWeek.data || [])
+      const nextWeekByDay = groupScheduleByDay(nextWeek.data || [])
 
       return {
         thisWeek: thisWeekByDay,
@@ -139,34 +145,50 @@ function groupTeamScheduleByDay(schedules: any[]) {
 /**
  * Hook to fetch full team schedule
  * Returns all employees' schedules for this week and next week
- * USES EDGE FUNCTION for proper Eastern Time timezone handling
+ * USES POSTGRES RPC for proper Eastern Time timezone handling
+ *
+ * Naming matches Postgres function: get_team_schedule
  */
-export function useTeamSchedule(enabled = true) {
+export function useGetTeamSchedule(enabled = true) {
   return useQuery({
     queryKey: ['team-schedule'],
     queryFn: async () => {
       console.log('[TEAM SCHEDULE] Fetching team schedule...', new Date().toISOString())
       const start = performance.now()
 
-      // Calculate week dates
-      const now = new Date()
-      const thisWeekStart = format(startOfWeek(now, { weekStartsOn: 0 }), 'yyyy-MM-dd')
-      const thisWeekEnd = format(endOfWeek(now, { weekStartsOn: 0 }), 'yyyy-MM-dd')
-      const nextWeekStart = format(startOfWeek(addWeeks(now, 1), { weekStartsOn: 0 }), 'yyyy-MM-dd')
-      const nextWeekEnd = format(endOfWeek(addWeeks(now, 1), { weekStartsOn: 0 }), 'yyyy-MM-dd')
+      // Calculate week boundaries
+      const today = new Date()
+      const thisWeekStart = new Date(today)
+      thisWeekStart.setDate(today.getDate() - today.getDay()) // Sunday
+      const thisWeekEnd = new Date(thisWeekStart)
+      thisWeekEnd.setDate(thisWeekStart.getDate() + 6) // Saturday
+
+      const nextWeekStart = new Date(thisWeekEnd)
+      nextWeekStart.setDate(thisWeekEnd.getDate() + 1)
+      const nextWeekEnd = new Date(nextWeekStart)
+      nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
+
+      // Format dates as YYYY-MM-DD
+      const formatDate = (date: Date) => date.toISOString().split('T')[0]
 
       // Fetch both weeks in parallel using Postgres RPC
       const [thisWeek, nextWeek] = await Promise.all([
         supabase
           .schema('employees')
-          .rpc('get_team_schedule', { p_start_date: thisWeekStart, p_end_date: thisWeekEnd }),
+          .rpc('get_team_schedule', {
+            p_start_date: formatDate(thisWeekStart),
+            p_end_date: formatDate(thisWeekEnd)
+          }),
         supabase
           .schema('employees')
-          .rpc('get_team_schedule', { p_start_date: nextWeekStart, p_end_date: nextWeekEnd })
+          .rpc('get_team_schedule', {
+            p_start_date: formatDate(nextWeekStart),
+            p_end_date: formatDate(nextWeekEnd)
+          })
       ])
 
-      if (thisWeek.error) throw thisWeek.error
-      if (nextWeek.error) throw nextWeek.error
+      if (thisWeek.error) throw new Error(`Failed to fetch this week: ${thisWeek.error.message}`)
+      if (nextWeek.error) throw new Error(`Failed to fetch next week: ${nextWeek.error.message}`)
 
       console.log(`[TEAM SCHEDULE] Team schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
 

@@ -1,5 +1,5 @@
-import { supabase } from '../supabase'
-import type { Shift } from '../supabase'
+import { supabase } from '../../supabase/supabase'
+import type { Shift } from '../../supabase/supabase'
 
 export interface EmployeeHours {
   employeeId: string

@@ -12,7 +12,7 @@
  * - Prevents duplicate syncs
  */
 
-import { clockInOut } from '../supabase/edgeFunctions';
+import { supabase } from '../supabase/supabase';
 import {
   getQueuedEntries,
   removeFromQueue,
@@ -119,8 +119,13 @@ export async function syncOfflineQueue(): Promise<void> {
       try {
         console.log(`[SyncManager] Syncing entry ${entry.id} (${entry.employeeName})`);
 
-        // Attempt to clock in/out via Edge Function
-        const result = await clockInOut(entry.employeeId);
+        // Attempt to clock in/out via Postgres RPC
+        const { data, error } = await supabase
+          .schema('employees')
+          .rpc('clock_in_out', { p_employee_id: entry.employeeId });
+
+        if (error) throw new Error(`Failed: ${error.message}`);
+        const result = Array.isArray(data) ? data[0] : data;
 
         console.log(`[SyncManager] ✅ Successfully synced ${entry.id}`, result);
 

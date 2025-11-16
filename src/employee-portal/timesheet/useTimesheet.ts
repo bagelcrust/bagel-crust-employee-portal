@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { calculatePayrollRpc } from '../supabase/supabase'
+import { calculatePayrollRpc } from '../../supabase/supabase'
 import { format } from 'date-fns'
 
 /**
@@ -17,8 +17,10 @@ import { format } from 'date-fns'
 /**
  * Hook to fetch employee's timesheet using Postgres RPC for accurate timezone handling
  * Returns this week and last week's data with correct Eastern Time calculations
+ *
+ * Naming matches Postgres function: calculate_payroll
  */
-export function useTimesheet(employeeId: string | undefined, enabled = true) {
+export function useGetTimesheet(employeeId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: ['timesheet', employeeId],
     queryFn: async () => {

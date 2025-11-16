@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { scheduleBuilderRpc } from '../supabase/supabase'
+import { supabase } from '../supabase/supabase'
 import type { DraftShift, PublishedShift, TimeOff, Employee } from '../supabase/supabase'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek, addDays } from 'date-fns'
 
@@ -15,8 +15,10 @@ export type ScheduleShift = (DraftShift | PublishedShift) & {
 /**
  * Custom hook for Schedule Builder
  * Manages week navigation, employee data, and shift data
+ *
+ * Naming matches Postgres function: get_schedule_builder_data
  */
-export function useScheduleBuilder() {
+export function useGetScheduleBuilderData() {
   // Current week start date (Sunday = start of week)
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday start
@@ -52,16 +54,20 @@ export function useScheduleBuilder() {
     setCurrentWeekStart(prev => addWeeks(prev, 1))
   }
 
-  // Fetch ALL schedule builder data in a single HTTP request using Postgres RPC
-  // This aggregates: employees, draft shifts, published shifts, open shifts, time-offs, availability, weekly hours, publish status
-  // Reduces 7+ HTTP requests down to 1
-  // Uses get_schedule_builder_data Postgres RPC function
+  // Fetch ALL schedule builder data in a single call to Postgres function
+  // Calls: get_schedule_builder_data(start_date, end_date)
   const { data: scheduleData, isLoading, refetch } = useQuery({
     queryKey: ['scheduleBuilderData', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
-    queryFn: () => scheduleBuilderRpc.getData(
-      format(currentWeekStart, 'yyyy-MM-dd'),
-      format(currentWeekEnd, 'yyyy-MM-dd')
-    ),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .schema('employees')
+        .rpc('get_schedule_builder_data', {
+          start_date: format(currentWeekStart, 'yyyy-MM-dd'),
+          end_date: format(currentWeekEnd, 'yyyy-MM-dd')
+        })
+      if (error) throw error
+      return data
+    },
     staleTime: 0, // Always fetch fresh data when actively building schedules
   })
 

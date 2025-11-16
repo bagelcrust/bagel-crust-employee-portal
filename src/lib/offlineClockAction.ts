@@ -10,7 +10,7 @@
  * This makes the clock terminal work ALWAYS, even offline.
  */
 
-import { clockInOut, getLastClockEvent } from '../supabase/edgeFunctions';
+import { supabase } from '../supabase/supabase';
 import { addToQueue } from './offlineQueue';
 import { syncOfflineQueue } from './syncManager';
 
@@ -41,7 +41,10 @@ export async function offlineClockAction(
   // STEP 1: Try normal API call
   try {
     console.log('[OfflineClockAction] Attempting online clock action...');
-    const event = await clockInOut(employeeId);
+    const { data, error } = await supabase.rpc('clock_in_out', { p_employee_id: employeeId });
+
+    if (error) throw new Error(`Failed: ${error.message}`);
+    const event = Array.isArray(data) ? data[0] : data;
 
     console.log('[OfflineClockAction] ✅ Online clock action successful', event);
 
@@ -83,7 +86,15 @@ export async function offlineClockAction(
 
     try {
       // Try to get last event to determine what action should be next
-      const lastEvent = await getLastClockEvent(employeeId);
+      const { data: lastEvent } = await supabase
+        .schema('employees')
+        .from('time_entries')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .order('event_timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       if (lastEvent) {
         expectedAction = lastEvent.event_type === 'in' ? 'out' : 'in';
       }

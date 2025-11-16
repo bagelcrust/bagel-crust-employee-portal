@@ -25,7 +25,6 @@ export const supabase = createClient(
   env.VITE_SUPABASE_URL,
   env.VITE_SUPABASE_ANON_KEY,
   {
-    db: { schema: 'employees' },
     auth: {
       persistSession: false, // PIN-based auth, no session persistence needed
       autoRefreshToken: false
@@ -49,6 +48,7 @@ export async function checkSupabaseHealth(): Promise<boolean> {
 
     // Simple query to verify connection
     const { error } = await supabase
+      .schema('employees')
       .from('employees')
       .select('id')
       .limit(1);

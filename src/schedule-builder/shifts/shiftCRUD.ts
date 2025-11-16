@@ -1,6 +1,5 @@
-import { supabase } from '../supabase'
-import type { DraftShift, PublishedShift } from '../supabase'
-import { etToUTC } from '../../lib/timezone'
+import { supabase } from '../../supabase/supabase'
+import type { DraftShift, PublishedShift } from '../../supabase/supabase'
 
 export interface CreateShiftInput {
   employee_id: string | null // null = open shift
@@ -21,12 +20,6 @@ export interface UpdateShiftInput {
 /**
  * Service for managing DRAFT shifts (CRUD operations)
  *
- * TIMEZONE RULE FOR THIS FILE:
- * - Database stores UTC (always)
- * - UI works in Eastern Time
- * - Times are auto-converted to UTC using etToUTC() before database writes
- * - See: /src/lib/timezone.ts
- *
  * Business Rules:
  * - All shifts created here are drafts (experimental workspace)
  * - Drafts are NOT visible to employees
@@ -37,72 +30,49 @@ export interface UpdateShiftInput {
 export const shiftService = {
   /**
    * Create new DRAFT shift
-   * Uses edge function with service_role to bypass RLS issues
+   * Calls Postgres function: create_schedule_builder_shift()
    * Includes server-side conflict validation
    */
   async createShift(input: CreateShiftInput): Promise<DraftShift> {
-    // Convert Eastern Time to UTC if needed
-    const startTime = input.start_time.includes('T') && !input.start_time.endsWith('Z')
-      ? etToUTC(input.start_time)
-      : input.start_time
-    const endTime = input.end_time.includes('T') && !input.end_time.endsWith('Z')
-      ? etToUTC(input.end_time)
-      : input.end_time
-
-    // Call Postgres RPC function (includes conflict validation)
+    // Call Postgres function (includes conflict validation)
     const { data, error } = await supabase
       .schema('employees')
       .rpc('create_schedule_builder_shift', {
         p_employee_id: input.employee_id,
-        p_start_time: startTime,
-        p_end_time: endTime,
+        p_start_time: input.start_time,
+        p_end_time: input.end_time,
         p_location: input.location,
         p_role: input.role || null
       })
 
-    if (error) throw new Error(`Failed to create shift: ${error.message}`)
+    if (error) throw error
     return data as DraftShift
   },
 
   /**
    * Update existing shift with conflict validation
-   * Uses edge function with service_role to bypass RLS issues
-   *
-   * HYBRID ARCHITECTURE BEHAVIOR:
-   * - If shift exists in draft_shifts: Update it
-   * - If shift doesn't exist (it's published): Create new draft with updated data
-   * - This allows editing published shifts (they become drafts on edit)
-   * - Edge function handles all this logic server-side
+   * Calls Postgres function: update_schedule_builder_shift()
    */
   async updateShift(shiftId: number, updates: UpdateShiftInput): Promise<DraftShift> {
-    // Convert Eastern Time to UTC if needed
-    const updatesWithUTC = { ...updates }
-    if (updates.start_time && updates.start_time.includes('T') && !updates.start_time.endsWith('Z')) {
-      updatesWithUTC.start_time = etToUTC(updates.start_time)
-    }
-    if (updates.end_time && updates.end_time.includes('T') && !updates.end_time.endsWith('Z')) {
-      updatesWithUTC.end_time = etToUTC(updates.end_time)
-    }
-
-    // Call Postgres RPC function (includes conflict validation and hybrid logic)
+    // Call Postgres function (includes conflict validation)
     const { data, error } = await supabase
       .schema('employees')
       .rpc('update_schedule_builder_shift', {
         p_shift_id: shiftId,
-        p_employee_id: updatesWithUTC.employee_id,
-        p_start_time: updatesWithUTC.start_time,
-        p_end_time: updatesWithUTC.end_time,
-        p_location: updatesWithUTC.location,
-        p_role: updatesWithUTC.role
+        p_employee_id: updates.employee_id,
+        p_start_time: updates.start_time,
+        p_end_time: updates.end_time,
+        p_location: updates.location,
+        p_role: updates.role
       })
 
-    if (error) throw new Error(`Failed to update shift: ${error.message}`)
+    if (error) throw error
     return data as DraftShift
   },
 
   /**
    * Delete shift by ID
-   * Uses Postgres RPC function with service_role to delete from draft_shifts or published_shifts
+   * Calls Postgres function: delete_schedule_builder_shift()
    */
   async deleteShift(shiftId: number): Promise<void> {
     const { error } = await supabase
@@ -110,8 +80,7 @@ export const shiftService = {
       .rpc('delete_schedule_builder_shift', {
         p_shift_id: shiftId
       })
-
-    if (error) throw new Error(`Failed to delete shift: ${error.message}`)
+    if (error) throw error
   },
 
   /**

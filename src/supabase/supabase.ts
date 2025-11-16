@@ -8,12 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Create Supabase client with employees schema
-// NOTE: Temporarily not using Database generic type due to TypeScript inference issues
-// The types are still exported below for manual type assertions where needed
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  db: { schema: 'employees' }
-});
+// Create Supabase client
+// RPC functions are in public schema (wrappers) which call employees schema functions
+// Table queries use .from('employees.table_name') to access employees schema
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Type aliases using auto-generated types from database.types.ts
 // These provide cleaner names and match your existing code
@@ -60,6 +58,7 @@ export const employeeApi = {
   // Get all active employees
   async getAll() {
     const { data, error } = await supabase
+      .schema('employees')
       .from('employees')
       .select('*')
       .eq('active', true)
@@ -72,6 +71,7 @@ export const employeeApi = {
   // Get employee by PIN
   async getByPin(pin: string) {
     const { data, error } = await supabase
+      .schema('employees')
       .from('employees')
       .select('*')
       .eq('pin', pin)
@@ -87,7 +87,8 @@ export const employeeApi = {
 export const timeclockApi = {
   // Get last clock event for employee
   async getLastEvent(employeeId: string) {
-    const { data, error } = await supabase
+    const { data, error} = await supabase
+      .schema('employees')
       .from('time_entries')
       .select('*')
       .eq('employee_id', employeeId)
@@ -102,9 +103,11 @@ export const timeclockApi = {
   // Clock in or out (atomic operation via RPC to prevent race conditions)
   // Uses PostgreSQL function to atomically determine in/out and insert event
   async clockInOut(employeeId: string) {
-    const { data, error } = await supabase.rpc('clock_in_out', {
-      p_employee_id: employeeId
-    });
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('clock_in_out', {
+        p_employee_id: employeeId
+      });
 
     if (error) throw error;
     // RPC function returns TABLE (array), so get first element
@@ -114,6 +117,7 @@ export const timeclockApi = {
   // Get events in date range with employee info (using join - single query!)
   async getEventsInRange(startDate: string, endDate: string) {
     const { data, error } = await supabase
+      .schema('employees')
       .from('time_entries')
       .select(`
         *,
@@ -130,11 +134,13 @@ export const timeclockApi = {
   // Get events in Eastern Time date range (timezone-aware!)
   // Pass simple date strings like "2025-11-04" and it handles all timezone conversion
   async getEventsInRangeET(startDate: string, endDate: string) {
-    const { data, error } = await supabase.rpc('get_time_entries_et', {
-      p_start_date: startDate,
-      p_end_date: endDate,
-      p_employee_id: undefined
-    });
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('get_time_entries_et', {
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_employee_id: undefined
+      });
 
     if (error) throw error;
 
@@ -154,7 +160,9 @@ export const timeclockApi = {
   // Get currently working employees (optimized RPC - returns only clocked-in employees)
   // Replaces client-side logic that fetched ALL today's events and filtered in JavaScript
   async getCurrentlyWorking() {
-    const { data, error } = await supabase.rpc('get_currently_working');
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('get_currently_working');
 
     if (error) throw error;
 
@@ -165,6 +173,7 @@ export const timeclockApi = {
   // Get recent events (with employee info using join - single query!)
   async getRecentEvents(limit = 10) {
     const { data, error } = await supabase
+      .schema('employees')
       .from('time_entries')
       .select(`
         *,
@@ -196,11 +205,13 @@ export const timeclockApi = {
     const startDate = formatDate(threeDaysAgo)
     const endDate = formatDate(today)
 
-    const { data, error } = await supabase.rpc('get_time_entries_et', {
-      p_start_date: startDate,
-      p_end_date: endDate,
-      p_employee_id: undefined
-    })
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('get_time_entries_et', {
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_employee_id: undefined
+      })
 
     if (error) throw error
 
@@ -222,20 +233,169 @@ export const timeclockApi = {
   }
 };
 
-// DELETED: scheduleApi
-// All schedule operations now use Edge Functions (getSchedule, scheduleBuilder)
-// scheduleApi had timezone bugs and was completely unused
+// Schedule Builder RPC functions (replaces Edge Function)
+export const scheduleBuilderRpc = {
+  async getData(startDate: string, endDate: string) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('get_schedule_builder_data', {
+        p_start_date: startDate,
+        p_end_date: endDate
+      });
 
-// DELETED: timeOffApi, conflictApi
-// All time-off and conflict operations now use Edge Functions
-// (getTimeOffsForRange, resolveScheduleConflicts from edgeFunctions.ts)
-// These APIs had timezone bugs and were completely unused
+    if (error) throw error;
+    return data;
+  },
+
+  async createShift(shiftData: any) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('create_shift', {
+        p_employee_id: shiftData.employee_id,
+        p_start_time: shiftData.start_time,
+        p_end_time: shiftData.end_time,
+        p_location: shiftData.location,
+        p_role: shiftData.role || null
+      });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateShift(shiftId: number, updates: any) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('update_shift', {
+        p_shift_id: shiftId,
+        p_employee_id: updates.employee_id,
+        p_start_time: updates.start_time,
+        p_end_time: updates.end_time,
+        p_location: updates.location,
+        p_role: updates.role || null
+      });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteShift(shiftId: number) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('delete_shift', {
+        p_shift_id: shiftId
+      });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async publishWeek(startDate: string, endDate: string, strictMode = true) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('publish_week', {
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_strict_mode: strictMode
+      });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async clearDrafts(startDate: string, endDate: string) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('clear_drafts', {
+        p_start_date: startDate,
+        p_end_date: endDate
+      });
+
+    if (error) throw error;
+    return data;
+  }
+};
+
+// Payroll RPC function (replaces calculatePayroll Edge Function)
+export async function calculatePayrollRpc(
+  employeeId: string,
+  startDate: string,
+  endDate: string
+) {
+  const { data, error } = await supabase
+    .schema('employees')
+    .rpc('calculate_payroll', {
+      p_employee_id: employeeId,
+      p_start_date: startDate,
+      p_end_date: endDate
+    });
+
+  if (error) throw error;
+  return data;
+}
+
+// Employee RPC functions (replaces Edge Function employees operations)
+export const employeeRpc = {
+  async getAll(activeOnly = true) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('get_all_employees', {
+        p_active_only: activeOnly
+      });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getByPin(pin: string) {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('get_employee_by_pin', {
+        p_pin: pin
+      });
+
+    if (error) throw error;
+    return data;
+  }
+};
+
+// Timeclock RPC function for events in range (replaces Edge Function)
+export async function getClockEventsInRangeRpc(
+  startDate: string,
+  endDate: string,
+  employeeId?: string,
+  inET = true
+) {
+  const { data, error } = await supabase
+    .schema('employees')
+    .rpc('get_clock_events_in_range', {
+      p_start_date: startDate,
+      p_end_date: endDate,
+      p_employee_id: employeeId,
+      p_in_et: inET
+    });
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Pay rates RPC function (replaces Edge Function)
+export async function getPayRatesRpc(includeEmployees = false) {
+  const { data, error } = await supabase
+    .schema('employees')
+    .rpc('get_all_pay_rates', {
+      p_include_employees: includeEmployees
+    });
+
+  if (error) throw error;
+  return data || [];
+}
 
 // Pay Rates API functions
 export const payRatesApi = {
   // Get all pay rates
   async getAll() {
     const { data, error } = await supabase
+      .schema('employees')
       .from('pay_rates')
       .select('*')
       .order('employee_id');
@@ -247,6 +407,7 @@ export const payRatesApi = {
   // Get pay rate for specific employee (most recent)
   async getByEmployeeId(employeeId: string) {
     const { data, error } = await supabase
+      .schema('employees')
       .from('pay_rates')
       .select('*')
       .eq('employee_id', employeeId)
@@ -261,6 +422,7 @@ export const payRatesApi = {
   // Get pay rates with employee info (using join)
   async getAllWithEmployees() {
     const { data, error } = await supabase
+      .schema('employees')
       .from('pay_rates')
       .select(`
         *,
