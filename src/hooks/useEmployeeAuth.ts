@@ -18,7 +18,6 @@ export function useEmployeeAuth() {
       console.log('[AUTH] Starting PIN verification...', new Date().toISOString())
       const start = performance.now()
       const { data, error } = await supabase
-        .schema('employees')
         .rpc('get_employee_by_pin', { p_pin: pin })
       console.log(`[AUTH] PIN verification took ${(performance.now() - start).toFixed(0)}ms`)
 

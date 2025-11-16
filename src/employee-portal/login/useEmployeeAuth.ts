@@ -22,7 +22,6 @@ export function useGetEmployeeByPin() {
       const start = performance.now()
 
       const { data: employee, error } = await supabase
-        .schema('employees')
         .rpc('get_employee_by_pin', {
           p_pin: pin
         })

@@ -328,7 +328,6 @@ export default function ClockInOut() {
       )
 
       const employeePromise = supabase
-        .schema('employees')
         .rpc('get_employee_by_pin', { p_pin: pin })
       const { data: employee, error: lookupError } = await Promise.race([employeePromise, timeoutPromise]) as any
 

@@ -347,7 +347,6 @@ export const employeeRpc = {
 
   async getByPin(pin: string) {
     const { data, error } = await supabase
-      .schema('employees')
       .rpc('get_employee_by_pin', {
         p_pin: pin
       });
