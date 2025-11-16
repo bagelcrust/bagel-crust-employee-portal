@@ -243,7 +243,6 @@ export default function ClockInOut() {
       )
 
       const dataPromise = supabase
-        .schema('employees')
         .rpc('get_recent_activity', {
           p_start_date: formatDate(startDate),
           p_end_date: formatDate(endDate),
