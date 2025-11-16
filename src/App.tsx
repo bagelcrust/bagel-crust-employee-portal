@@ -45,9 +45,9 @@ const queryClient = new QueryClient({
 });
 
 // Lazy load page components
-const ClockInOut = lazy(() => import('./pages/ClockInOut'));
-const EmployeePortal = lazy(() => import('./pages/EmployeePortal'));
-const ScheduleBuilder = lazy(() => import('./pages/ScheduleBuilderV2'));
+const ClockInOut = lazy(() => import('./clock-in-out/ClockInOutPage'));
+const EmployeePortal = lazy(() => import('./employee-portal/EmployeePortalPage'));
+const ScheduleBuilder = lazy(() => import('./schedule-builder/ScheduleBuilderPage'));
 
 // Loading spinner component
 function LoadingFallback() {
