@@ -1,10 +1,10 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useDynamicManifest } from './hooks';
+import { useDynamicManifest } from './shared';
 import * as Sentry from '@sentry/react';
-import { initSentry } from './lib/sentry';
-import { Toaster } from '@/components/ui/toaster';
+import { initSentry } from './shared/sentry';
+import { Toaster } from '@/shared/ui/toaster';
 
 /**
  * ROUTE-BASED CODE SPLITTING
@@ -45,9 +45,9 @@ const queryClient = new QueryClient({
 });
 
 // Lazy load page components
-const ClockInOut = lazy(() => import('./clock-in-out/ClockInOutPage'));
-const EmployeePortal = lazy(() => import('./employee-portal/EmployeePortalPage'));
-const ScheduleBuilder = lazy(() => import('./schedule-builder/ScheduleBuilderPage'));
+const ClockInOut = lazy(() => import('./clock-in-out/clock-in-out-page'));
+const EmployeePortal = lazy(() => import('./employee-portal/employee-portal-page'));
+const ScheduleBuilder = lazy(() => import('./schedule-builder/schedule-builder-page'));
 
 // Loading spinner component
 function LoadingFallback() {
