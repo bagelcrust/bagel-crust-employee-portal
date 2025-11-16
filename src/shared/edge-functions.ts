@@ -5,7 +5,7 @@
  * These handle all the complex timezone logic server-side.
  */
 
-import { supabase } from './supabase';
+import { supabase } from './supabase-client';
 
 /**
  * Convert UTC timestamps to Eastern Time with automatic DST handling
