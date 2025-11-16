@@ -105,7 +105,7 @@ export const timeclockApi = {
   async clockInOut(employeeId: string) {
     const { data, error } = await supabase
       .schema('employees')
-      .rpc('clock_in_out', {
+      .rpc('employee_clock_toggle', {
         p_employee_id: employeeId
       });
 
