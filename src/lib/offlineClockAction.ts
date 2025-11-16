@@ -41,7 +41,7 @@ export async function offlineClockAction(
   // STEP 1: Try normal API call
   try {
     console.log('[OfflineClockAction] Attempting online clock action...');
-    const { data, error } = await supabase.rpc('clock_in_out', { p_employee_id: employeeId });
+    const { data, error } = await supabase.rpc('employee_clock_toggle', { p_employee_id: employeeId });
 
     if (error) throw new Error(`Failed: ${error.message}`);
     const event = Array.isArray(data) ? data[0] : data;
