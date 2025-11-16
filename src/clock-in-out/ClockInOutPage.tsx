@@ -266,8 +266,8 @@ export default function ClockInOut() {
       const formattedEvents = (data || []).map((event: any) => ({
         id: event.id,
         employeeId: event.employee_id,
-        name: `${event.first_name} ${event.last_name}`,
-        time: event.formatted_time, // Already in Eastern Time from Postgres
+        name: event.employee_name,
+        time: event.event_timestamp_et, // Already in Eastern Time from Postgres
         action: event.event_type === 'in' ? 'Clock In' : 'Clock Out'
       }))
 
