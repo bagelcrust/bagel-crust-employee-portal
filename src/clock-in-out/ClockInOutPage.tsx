@@ -263,13 +263,26 @@ export default function ClockInOut() {
       })
 
       // Format events for display
-      const formattedEvents = (data || []).map((event: any) => ({
-        id: event.id,
-        employeeId: event.employee_id,
-        name: event.employee_name,
-        time: event.event_timestamp_et, // Already in Eastern Time from Postgres
-        action: event.event_type === 'in' ? 'Clock In' : 'Clock Out'
-      }))
+      const formattedEvents = (data || []).map((event: any) => {
+        // Extract first name only
+        const firstName = event.employee_name.split(' ')[0]
+
+        // Format timestamp to 12-hour time
+        const timestamp = new Date(event.event_timestamp_et)
+        const hours = timestamp.getHours()
+        const minutes = timestamp.getMinutes()
+        const ampm = hours >= 12 ? 'PM' : 'AM'
+        const hour12 = hours % 12 || 12
+        const formattedTime = `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`
+
+        return {
+          id: event.id,
+          employeeId: event.employee_id,
+          name: firstName,
+          time: formattedTime,
+          action: event.event_type === 'in' ? 'Clock In' : 'Clock Out'
+        }
+      })
 
       setRecentEvents(formattedEvents)
       log('State', 'Recent events state updated', { count: formattedEvents.length })
