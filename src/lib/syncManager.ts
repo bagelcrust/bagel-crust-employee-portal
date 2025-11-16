@@ -121,7 +121,6 @@ export async function syncOfflineQueue(): Promise<void> {
 
         // Attempt to clock in/out via Postgres RPC
         const { data, error } = await supabase
-          .schema('employees')
           .rpc('employee_clock_toggle', { p_employee_id: entry.employeeId });
 
         if (error) throw new Error(`Failed: ${error.message}`);

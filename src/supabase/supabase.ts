@@ -104,7 +104,6 @@ export const timeclockApi = {
   // Uses PostgreSQL function to atomically determine in/out and insert event
   async clockInOut(employeeId: string) {
     const { data, error } = await supabase
-      .schema('employees')
       .rpc('employee_clock_toggle', {
         p_employee_id: employeeId
       });
