@@ -327,9 +327,12 @@ export default function ClockInOut() {
         setTimeout(() => reject(new Error('Employee lookup timeout after 15 seconds')), 15000)
       )
 
+      console.log('[ClockInOut] Looking up PIN:', pin)
       const employeePromise = supabase
         .rpc('get_employee_by_pin', { p_pin: pin })
       const { data: employee, error: lookupError } = await Promise.race([employeePromise, timeoutPromise]) as any
+
+      console.log('[ClockInOut] PIN lookup response:', { employee, lookupError })
 
       const lookupDuration = Math.round(performance.now() - lookupStartTime)
 
@@ -382,9 +385,17 @@ export default function ClockInOut() {
 
       // Step 2: Perform clock action (with offline fallback)
       log('Clock Action', '📍 Step 2/3: Performing clock in/out operation (offline-aware)...')
+
+      console.log('[ClockInOut] Employee lookup result:', employee)
+      console.log('[ClockInOut] Employee ID:', employee?.id)
+      console.log('[ClockInOut] Employee object keys:', employee ? Object.keys(employee) : 'no employee')
+
       const displayName = getDisplayName(employee)
+      console.log('[ClockInOut] Display name:', displayName)
+
       const clockStartTime = performance.now()
 
+      console.log('[ClockInOut] Calling offlineClockAction with:', { employeeId: employee.id, displayName })
       const result = await offlineClockAction(employee.id, displayName)
 
       const clockDuration = Math.round(performance.now() - clockStartTime)
