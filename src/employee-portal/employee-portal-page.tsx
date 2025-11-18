@@ -13,6 +13,7 @@ import { getEmployeeTranslations } from '../shared/languageUtils'
 import { validateTimeOffRequest } from '../shared/validationUtils'
 import { createTimeOffResetHandler } from '../shared/stateUtils'
 import { PAGE_TITLES, ALERTS } from '../shared/constants'
+import { assertShape, logCondition, logData, logError, logStateChange } from '../shared/debug-utils'
 import { LoginScreen } from './login-screen'
 import { BottomNav } from './bottom-navigation'
 import { ScheduleTab } from './tab-schedule'
@@ -94,6 +95,13 @@ export default function EmployeePortal() {
   const hasTimesheetTab = employee?.role ? getTabsForRole(employee.role).some(tab => tab.key === 'timesheet') : false
   const hasTimeOffTab = employee?.role ? getTabsForRole(employee.role).some(tab => tab.key === 'timeOff') : false
 
+  // Validate employee data when logged in
+  if (isLoggedIn && employee) {
+    assertShape('PORTAL', employee, ['id', 'first_name', 'role'], 'employee')
+  }
+
+  logCondition('PORTAL', 'Has timesheet tab', hasTimesheetTab, { role: employee?.role, isLoggedIn })
+
   const {
     data: scheduleData,
     isLoading: isScheduleLoading
@@ -157,6 +165,7 @@ export default function EmployeePortal() {
     if (isLoggedIn && employee && employee.role) {
       // Always set to default tab when logged in
       const defaultTabForRole = getDefaultTabForRole(employee.role)
+      logStateChange('PORTAL', 'activeTab (on login)', activeTab, defaultTabForRole)
       setActiveTab(defaultTabForRole)
     }
   }, [isLoggedIn, employee?.role]) // Trigger on login state change
@@ -165,7 +174,9 @@ export default function EmployeePortal() {
   useEffect(() => {
     if (employee && employee.role) {
       const validTab = validateTabForRole(employee.role, activeTab)
+      logCondition('PORTAL', 'Tab validation', validTab === activeTab, { currentTab: activeTab, validTab, role: employee.role })
       if (validTab !== activeTab) {
+        logStateChange('PORTAL', 'activeTab (validation)', activeTab, validTab)
         setActiveTab(validTab)
       }
     }
@@ -180,16 +191,21 @@ export default function EmployeePortal() {
   // EVENT HANDLERS - Using utilities for clean, maintainable code
   // ============================================================================
   const handlePinLogin = useCallback(async (pin: string) => {
+    logData('PORTAL', 'Login attempt', { pinLength: pin.length })
     try {
       await login(pin)
+      logData('PORTAL', 'Login success', { employeeId: employee?.id })
     } catch (error) {
-      // Error is handled by useEmployeeAuth hook
+      logError('PORTAL', 'Login failed', error)
     }
-  }, [login])
+  }, [login, employee?.id])
 
   const handleTimeOffSubmit = useCallback(async () => {
+    logData('PORTAL', 'Time-off submit', { startDate: timeOffStartDate, endDate: timeOffEndDate, hasReason: !!timeOffReason })
+
     // Ensure employee exists and has an ID before proceeding
     if (!employee || !employee.id) {
+      logError('PORTAL', 'Time-off submit failed - no employee', { employee })
       alert('Error: Employee information not available')
       return
     }
@@ -201,6 +217,7 @@ export default function EmployeePortal() {
       employee.id
     )
 
+    logCondition('PORTAL', 'Time-off validation', validation.isValid, validation)
     if (!validation.isValid) {
       alert(validation.errorMessage)
       return
@@ -216,9 +233,11 @@ export default function EmployeePortal() {
 
       // Clear form using state utility
       resetTimeOffForm()
+      logData('PORTAL', 'Time-off submit success', { employee_id: employee.id })
 
       alert(ALERTS.TIME_OFF.SUCCESS)
     } catch (error) {
+      logError('PORTAL', 'Time-off submit failed', error)
       alert(ALERTS.TIME_OFF.FAILED)
     }
   }, [timeOffStartDate, timeOffEndDate, timeOffReason, employee, submitTimeOffRequest, resetTimeOffForm])
@@ -286,43 +305,60 @@ export default function EmployeePortal() {
 
         {/* WEEKLY SCHEDULE TAB */}
         {activeTab === 'weeklySchedule' && (
-          <ScheduleTab
-            employee={employee}
-            scheduleData={scheduleData}
-            fullTeamSchedule={fullTeamSchedule}
-            t={t}
-          />
+          <>
+            {logCondition('PORTAL', 'Rendering ScheduleTab', true, { employeeId: employee?.id, hasScheduleData: !!scheduleData })}
+            {assertShape('PORTAL', employee, ['id', 'first_name', 'role'], 'employee prop to ScheduleTab')}
+            <ScheduleTab
+              employee={employee}
+              scheduleData={scheduleData}
+              fullTeamSchedule={fullTeamSchedule}
+              t={t}
+            />
+          </>
         )}
 
 
           {/* TIME OFF TAB */}
           {activeTab === 'timeOff' && (
-            <TimeOffTab
-              timeOffStartDate={timeOffStartDate}
-              timeOffEndDate={timeOffEndDate}
-              timeOffReason={timeOffReason}
-              onStartDateChange={setTimeOffStartDate}
-              onEndDateChange={setTimeOffEndDate}
-              onReasonChange={setTimeOffReason}
-              onSubmit={handleTimeOffSubmit}
-              isSubmitting={isTimeOffSubmitting}
-              requests={timeOffRequests}
-            />
+            <>
+              {logCondition('PORTAL', 'Rendering TimeOffTab', true, { requestsCount: timeOffRequests?.length, isSubmitting: isTimeOffSubmitting })}
+              <TimeOffTab
+                timeOffStartDate={timeOffStartDate}
+                timeOffEndDate={timeOffEndDate}
+                timeOffReason={timeOffReason}
+                onStartDateChange={setTimeOffStartDate}
+                onEndDateChange={setTimeOffEndDate}
+                onReasonChange={setTimeOffReason}
+                onSubmit={handleTimeOffSubmit}
+                isSubmitting={isTimeOffSubmitting}
+                requests={timeOffRequests}
+              />
+            </>
           )}
 
           {/* TIMESHEET TAB */}
-          {activeTab === 'timesheet' && timesheetData && (
-            <TimesheetTab timesheetData={timesheetData} t={t} />
+          {activeTab === 'timesheet' && (
+            <>
+              {logCondition('PORTAL', 'Rendering TimesheetTab', true, { hasTimesheetData: !!timesheetData })}
+              <TimesheetTab timesheetData={timesheetData} t={t} />
+            </>
           )}
 
           {/* PAYROLL TAB (Owner Only) */}
           {activeTab === 'payroll' && (
-            <PayrollTab />
+            <>
+              {logCondition('PORTAL', 'Rendering PayrollTab', true, { role: employee?.role })}
+              <PayrollTab />
+            </>
           )}
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (
-            <ProfileTab employee={employee} onLogout={logout} t={t} />
+            <>
+              {logCondition('PORTAL', 'Rendering ProfileTab', true, { employeeId: employee?.id })}
+              {assertShape('PORTAL', employee, ['id', 'first_name', 'last_name'], 'employee prop to ProfileTab')}
+              <ProfileTab employee={employee} onLogout={logout} t={t} />
+            </>
           )}
         </div>
       </div>

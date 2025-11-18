@@ -13,6 +13,7 @@
 import { supabase } from './supabase-client';
 import { addToQueue } from './offlineQueue';
 import { syncOfflineQueue } from './syncManager';
+import { logData, assertShape, logError, logCondition } from './debug-utils';
 
 export interface ClockActionResult {
   success: boolean;
@@ -45,6 +46,7 @@ export async function offlineClockAction(
       employeeName,
       timestamp: new Date().toISOString()
     });
+    logData('OfflineClockAction', 'Attempting online clock', { employeeId, employeeName });
 
     // Get last event to determine next action
     console.log('[OfflineClockAction] Getting last event...');
@@ -58,10 +60,13 @@ export async function offlineClockAction(
       .maybeSingle();
 
     console.log('[OfflineClockAction] Last event:', lastEvent);
+    logData('OfflineClockAction', 'Last event', lastEvent);
 
     // Determine new event type
     const newEventType: 'in' | 'out' = (!lastEvent || lastEvent.event_type === 'out') ? 'in' : 'out';
     console.log('[OfflineClockAction] New event type:', newEventType);
+    logCondition('OfflineClockAction', 'Clocking IN', newEventType === 'in', { lastEventType: lastEvent?.event_type });
+    logCondition('OfflineClockAction', 'Clocking OUT', newEventType === 'out', { lastEventType: lastEvent?.event_type });
 
     // Insert new event
     const { data, error } = await supabase
@@ -79,11 +84,14 @@ export async function offlineClockAction(
 
     if (error) {
       console.error('[OfflineClockAction] Insert error:', error);
+      logError('OfflineClockAction', 'Insert failed', error, { employeeId, newEventType });
       throw new Error(`Failed: ${error.message}`);
     }
     const event = data;
 
     console.log('[OfflineClockAction] ✅ Online clock action successful', event);
+    assertShape('OfflineClockAction', event, ['id', 'employee_id', 'event_type', 'event_timestamp'], 'event');
+    logData('OfflineClockAction', 'Online success', event);
 
     // Success! Trigger sync in case there are queued entries
     // (This ensures queue gets cleared when connection is good)
@@ -100,6 +108,7 @@ export async function offlineClockAction(
 
   } catch (error: any) {
     console.warn('[OfflineClockAction] Online clock action failed:', error);
+    logError('OfflineClockAction', 'Online clock action failed', error, { employeeId, employeeName });
 
     // STEP 2: Online call failed - check if we're offline or if there's a real error
     const isNetworkError =
@@ -108,14 +117,19 @@ export async function offlineClockAction(
       error?.message?.includes('timeout') ||
       error?.message?.includes('NetworkError');
 
+    logCondition('OfflineClockAction', 'Navigator says online', navigator.onLine);
+    logCondition('OfflineClockAction', 'Is network error', isNetworkError, { errorMessage: error?.message });
+
     if (!isNetworkError) {
       // Real error (not network) - throw it
       console.error('[OfflineClockAction] ❌ Non-network error, re-throwing:', error);
+      logError('OfflineClockAction', 'Non-network error - re-throwing', error);
       throw error;
     }
 
     // STEP 3: Network error - fall back to offline queue
     console.log('[OfflineClockAction] 📵 Network error detected, using offline fallback...');
+    logData('OfflineClockAction', 'Entering offline fallback mode', { isNetworkError, navigatorOnline: navigator.onLine });
 
     // Determine expected action (in or out)
     // Default to 'in' if we can't determine
@@ -134,13 +148,18 @@ export async function offlineClockAction(
 
       if (lastEvent) {
         expectedAction = lastEvent.event_type === 'in' ? 'out' : 'in';
+        logData('OfflineClockAction', 'Got last event from DB', { lastEvent, expectedAction });
+      } else {
+        logData('OfflineClockAction', 'No last event - defaulting to IN', { expectedAction });
       }
-    } catch {
+    } catch (lastEventError) {
       // If we can't get last event (offline), check localStorage
+      logError('OfflineClockAction', 'Could not get last event', lastEventError);
       const cachedAction = localStorage.getItem(`lastAction_${employeeId}`);
       if (cachedAction === 'in') {
         expectedAction = 'out';
       }
+      logData('OfflineClockAction', 'Using localStorage fallback', { cachedAction, expectedAction });
     }
 
     // STEP 4: Add to offline queue
@@ -156,6 +175,7 @@ export async function offlineClockAction(
       });
 
       console.log('[OfflineClockAction] ✅ Added to offline queue:', queueId);
+      logData('OfflineClockAction', 'Added to offline queue', { queueId, expectedAction, employeeName });
 
       // Cache the action in localStorage for next time
       localStorage.setItem(`lastAction_${employeeId}`, expectedAction);
@@ -168,6 +188,9 @@ export async function offlineClockAction(
         event_timestamp: timestamp
       };
 
+      assertShape('OfflineClockAction', optimisticEvent, ['id', 'employee_id', 'event_type', 'event_timestamp'], 'optimistic_event');
+      logData('OfflineClockAction', 'Offline success - returning optimistic event', optimisticEvent);
+
       return {
         success: true,
         event: optimisticEvent,
@@ -178,6 +201,7 @@ export async function offlineClockAction(
     } catch (queueError) {
       // Queue failed too - this is bad
       console.error('[OfflineClockAction] ❌ Failed to add to offline queue:', queueError);
+      logError('OfflineClockAction', 'Failed to add to offline queue', queueError);
       throw new Error('Failed to save clock action offline. Please try again.');
     }
   }

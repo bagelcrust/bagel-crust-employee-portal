@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../shared/supabase-client'
+import { logData, logError, logApiCall } from '../shared/debug-utils'
 
 /**
  * Helper to group schedule by day of week
@@ -60,6 +61,7 @@ export function useGetMySchedule(employeeId: string | undefined, enabled = true)
 
       console.log('[SCHEDULE] Fetching employee schedule...', new Date().toISOString())
       const start = performance.now()
+      const finishLog = logApiCall('SCHEDULE', 'fetch_my_schedule', { employeeId: employeeId.substring(0, 8) + '...' })
 
       // Calculate week boundaries
       const today = new Date()
@@ -94,14 +96,27 @@ export function useGetMySchedule(employeeId: string | undefined, enabled = true)
           })
       ])
 
-      if (thisWeek.error) throw new Error(`Failed to fetch this week: ${thisWeek.error.message}`)
-      if (nextWeek.error) throw new Error(`Failed to fetch next week: ${nextWeek.error.message}`)
+      if (thisWeek.error) {
+        logError('SCHEDULE', 'Failed to fetch this week', thisWeek.error)
+        throw new Error(`Failed to fetch this week: ${thisWeek.error.message}`)
+      }
+      if (nextWeek.error) {
+        logError('SCHEDULE', 'Failed to fetch next week', nextWeek.error)
+        throw new Error(`Failed to fetch next week: ${nextWeek.error.message}`)
+      }
 
+      finishLog?.()
       console.log(`[SCHEDULE] Employee schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
+
+      logData('SCHEDULE', 'This week raw data', thisWeek.data, ['start_time', 'end_time', 'location'])
+      logData('SCHEDULE', 'Next week raw data', nextWeek.data, ['start_time', 'end_time', 'location'])
 
       // Group by day
       const thisWeekByDay = groupScheduleByDay(thisWeek.data || [])
       const nextWeekByDay = groupScheduleByDay(nextWeek.data || [])
+
+      logData('SCHEDULE', 'This week grouped', thisWeekByDay)
+      logData('SCHEDULE', 'Next week grouped', nextWeekByDay)
 
       return {
         thisWeek: thisWeekByDay,
@@ -155,6 +170,7 @@ export function useGetTeamSchedule(enabled = true) {
     queryFn: async () => {
       console.log('[TEAM SCHEDULE] Fetching team schedule...', new Date().toISOString())
       const start = performance.now()
+      const finishLog = logApiCall('TEAM_SCHEDULE', 'fetch_team_schedule', {})
 
       // Calculate week boundaries
       const today = new Date()
@@ -187,14 +203,27 @@ export function useGetTeamSchedule(enabled = true) {
           })
       ])
 
-      if (thisWeek.error) throw new Error(`Failed to fetch this week: ${thisWeek.error.message}`)
-      if (nextWeek.error) throw new Error(`Failed to fetch next week: ${nextWeek.error.message}`)
+      if (thisWeek.error) {
+        logError('TEAM_SCHEDULE', 'Failed to fetch this week', thisWeek.error)
+        throw new Error(`Failed to fetch this week: ${thisWeek.error.message}`)
+      }
+      if (nextWeek.error) {
+        logError('TEAM_SCHEDULE', 'Failed to fetch next week', nextWeek.error)
+        throw new Error(`Failed to fetch next week: ${nextWeek.error.message}`)
+      }
 
+      finishLog?.()
       console.log(`[TEAM SCHEDULE] Team schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
+
+      logData('TEAM_SCHEDULE', 'This week team data', thisWeek.data, ['start_time', 'end_time', 'employee_id'])
+      logData('TEAM_SCHEDULE', 'Next week team data', nextWeek.data, ['start_time', 'end_time', 'employee_id'])
 
       // Group by day (includes all employees)
       const fullThisWeekByDay = groupTeamScheduleByDay(thisWeek.data || [])
       const fullNextWeekByDay = groupTeamScheduleByDay(nextWeek.data || [])
+
+      logData('TEAM_SCHEDULE', 'This week grouped by day', fullThisWeekByDay)
+      logData('TEAM_SCHEDULE', 'Next week grouped by day', fullNextWeekByDay)
 
       return {
         thisWeek: fullThisWeekByDay,

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '../shared/supabase-client'
 import type { Employee } from '../shared/supabase-client'
+import { logData, assertShape, logError } from '../shared/debug-utils'
 
 /**
  * Hook for employee PIN-based authentication
@@ -29,19 +30,26 @@ export function useGetEmployeeByPin() {
       console.log(`[AUTH] PIN verification took ${(performance.now() - start).toFixed(0)}ms`)
 
       if (error) {
-        console.error('[AUTH] Database error:', error)
+        logError('AUTH', 'PIN verification failed', error)
         throw new Error(`Failed to verify PIN: ${error.message}`)
       }
 
-      if (!employee) {
+      // RPC returns an array, extract first element
+      const employeeData = Array.isArray(employee) ? employee[0] : employee
+
+      if (!employeeData) {
         throw new Error('Invalid PIN')
       }
 
-      return employee
+      // Validate employee data shape
+      logData('AUTH', 'RPC returned employee', employeeData, ['id', 'first_name', 'last_name', 'role', 'pin'])
+      assertShape('AUTH', employeeData, ['id', 'first_name', 'role'], 'employee')
+
+      return employeeData
     },
-    onSuccess: (employee) => {
+    onSuccess: (employeeData) => {
       console.log('[AUTH] Login successful, setting employee state')
-      setEmployee(employee)
+      setEmployee(employeeData)
       setIsLoggedIn(true)
     }
   })

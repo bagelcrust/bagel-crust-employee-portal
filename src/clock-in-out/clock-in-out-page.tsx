@@ -4,6 +4,7 @@ import { getDisplayName, supabase } from '../shared/supabase-client'
 import { Keypad } from '../shared/keypad'
 import { offlineClockAction } from '../shared/offlineClockAction'
 import { startSyncManager, onSyncEvent, getSyncStatus, type SyncEvent } from '../shared/syncManager'
+import { assertShape, logCondition, logData, logError as debugLogError } from '../shared/debug-utils'
 
 // CRITICAL TEST: This should fire immediately when file loads (DEV only)
 if (import.meta.env.DEV) {
@@ -112,6 +113,7 @@ export default function ClockInOut() {
     log('Environment', 'User agent', { userAgent: navigator.userAgent })
     log('Environment', 'Network status', { online: navigator.onLine })
     log('Environment', 'Timezone', { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
+    logData('CLOCK', 'Component mount', { devMode, isProcessing })
 
     // Set page title for clock terminal
     document.title = 'Bagel Crust - Clock In/Out'
@@ -336,11 +338,13 @@ export default function ClockInOut() {
       const employee = Array.isArray(data) ? data[0] : data
 
       console.log('[ClockInOut] PIN lookup response:', { rawData: data, employee, lookupError })
+      logData('CLOCK', 'Employee lookup result', { found: !!employee, isArray: Array.isArray(data) })
 
       const lookupDuration = Math.round(performance.now() - lookupStartTime)
 
       if (lookupError) {
         logError('Clock Action', `Database error during PIN lookup (${lookupDuration}ms)`, lookupError)
+        debugLogError('CLOCK', 'PIN lookup DB error', lookupError, { duration: lookupDuration })
         setMessage('Database error - Please try again')
         setMessageType('error')
         setKeypadKey(prev => prev + 1)
@@ -352,6 +356,7 @@ export default function ClockInOut() {
         return
       }
 
+      logCondition('CLOCK', 'Employee found by PIN', !!employee, { lookupDuration })
       if (!employee) {
         logWarning('Clock Action', `❌ Invalid PIN entered (lookup took ${lookupDuration}ms)`)
         setMessage('Invalid PIN - Please try again')
@@ -365,8 +370,11 @@ export default function ClockInOut() {
         return
       }
 
+      assertShape('CLOCK', employee, ['id', 'first_name', 'last_name'], 'employee from PIN lookup')
+
       // TEST USER VALIDATION: Block test user (PIN 9999) in production mode
       // Test user can only clock in/out when devMode is enabled
+      logCondition('CLOCK', 'Test user check', pin === '9999' && !devMode, { pin: '****', devMode })
       if (pin === '9999' && !devMode) {
         logWarning('Clock Action', `🚫 Test user blocked in production mode (PIN: 9999)`)
         setMessage('Invalid PIN - Please try again')
@@ -399,6 +407,7 @@ export default function ClockInOut() {
       const clockStartTime = performance.now()
 
       console.log('[ClockInOut] Calling offlineClockAction with:', { employeeId: employee.id, displayName })
+      logData('CLOCK', 'Starting clock action', { employeeId: employee.id, displayName, isOnline: navigator.onLine })
       const result = await offlineClockAction(employee.id, displayName)
 
       const clockDuration = Math.round(performance.now() - clockStartTime)
@@ -407,12 +416,14 @@ export default function ClockInOut() {
         isOffline: result.isOffline,
         duration: `${clockDuration}ms`
       })
+      logData('CLOCK', 'Clock action result', { eventType: result.event.event_type, isOffline: result.isOffline })
 
       const action = result.event.event_type === 'in' ? 'clocked in' : 'clocked out'
 
       log('Clock Action', '📍 Step 3/3: Updating UI and refreshing events...')
 
       // Show different message based on online/offline
+      logCondition('CLOCK', 'Offline mode active', result.isOffline, { action })
       if (result.isOffline) {
         setMessage(`${displayName} ${action} (saved offline)`)
         setMessageType('success') // Still show as success (optimistic UI)
@@ -487,8 +498,8 @@ export default function ClockInOut() {
 
       {/* Static Decorative Blobs - No animation, pure CSS (visible in both modes) */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-45">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-blue-300/50 to-pink-300/50 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-300/45 to-pink-300/45 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-blue-300/50 to-purple-200/40 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-300/40 to-blue-200/35 rounded-full blur-3xl"></div>
       </div>
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">

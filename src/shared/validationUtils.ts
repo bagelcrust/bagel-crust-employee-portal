@@ -5,6 +5,8 @@
  * with consistent error messages
  */
 
+import { logCondition, logData } from './debug-utils';
+
 /**
  * Validation result type
  */
@@ -24,8 +26,14 @@ export function validateTimeOffDates(
   startDate: string,
   endDate: string
 ): ValidationResult {
+  logData('validateTimeOffDates', 'Input', { startDate, endDate });
+
   // Check if both dates are provided
-  if (!startDate || !endDate) {
+  const hasBothDates = !!startDate && !!endDate;
+  logCondition('validateTimeOffDates', 'Has both dates', hasBothDates, { startDate, endDate });
+
+  if (!hasBothDates) {
+    logData('validateTimeOffDates', 'Validation failed - missing dates', { isValid: false });
     return {
       isValid: false,
       errorMessage: 'Please select both start and end dates'
@@ -35,14 +43,19 @@ export function validateTimeOffDates(
   // Check if end date is after start date
   const start = new Date(startDate)
   const end = new Date(endDate)
+  const validRange = end >= start;
 
-  if (end < start) {
+  logCondition('validateTimeOffDates', 'Valid date range (end >= start)', validRange, { start, end });
+
+  if (!validRange) {
+    logData('validateTimeOffDates', 'Validation failed - invalid range', { isValid: false, start, end });
     return {
       isValid: false,
       errorMessage: 'End date must be after start date'
     }
   }
 
+  logData('validateTimeOffDates', 'Validation passed', { isValid: true });
   return { isValid: true }
 }
 
@@ -53,13 +66,18 @@ export function validateTimeOffDates(
  * @returns Validation result with error message if invalid
  */
 export function validateEmployeeId(employeeId: string | undefined | null): ValidationResult {
-  if (!employeeId) {
+  const hasEmployeeId = !!employeeId;
+  logCondition('validateEmployeeId', 'Has employee ID', hasEmployeeId, { employeeId });
+
+  if (!hasEmployeeId) {
+    logData('validateEmployeeId', 'Validation failed - no employee ID', { isValid: false });
     return {
       isValid: false,
       errorMessage: 'Employee ID is required'
     }
   }
 
+  logData('validateEmployeeId', 'Validation passed', { isValid: true, employeeId });
   return { isValid: true }
 }
 
@@ -76,14 +94,21 @@ export function validateTimeOffRequest(
   endDate: string,
   employeeId: string | undefined | null
 ): ValidationResult {
+  logData('validateTimeOffRequest', 'Input', { startDate, endDate, employeeId });
+
   // Validate employee ID first
   const employeeIdValidation = validateEmployeeId(employeeId)
+  logCondition('validateTimeOffRequest', 'Employee ID valid', employeeIdValidation.isValid);
+
   if (!employeeIdValidation.isValid) {
+    logData('validateTimeOffRequest', 'Failed at employee ID check', employeeIdValidation);
     return employeeIdValidation
   }
 
   // Then validate dates
-  return validateTimeOffDates(startDate, endDate)
+  const dateValidation = validateTimeOffDates(startDate, endDate);
+  logData('validateTimeOffRequest', 'Final result', dateValidation);
+  return dateValidation;
 }
 
 /**
@@ -93,27 +118,42 @@ export function validateTimeOffRequest(
  * @returns Validation result with error message if invalid
  */
 export function validatePinFormat(pin: string): ValidationResult {
-  if (!pin) {
+  logData('validatePinFormat', 'Input', { pin, length: pin?.length });
+
+  const hasPin = !!pin;
+  logCondition('validatePinFormat', 'Has PIN', hasPin);
+
+  if (!hasPin) {
+    logData('validatePinFormat', 'Validation failed - no PIN', { isValid: false });
     return {
       isValid: false,
       errorMessage: 'PIN is required'
     }
   }
 
-  if (pin.length < 4) {
+  const hasMinLength = pin.length >= 4;
+  logCondition('validatePinFormat', 'PIN length >= 4', hasMinLength, { length: pin.length });
+
+  if (!hasMinLength) {
+    logData('validatePinFormat', 'Validation failed - too short', { isValid: false, length: pin.length });
     return {
       isValid: false,
       errorMessage: 'PIN must be at least 4 digits'
     }
   }
 
-  if (!/^\d+$/.test(pin)) {
+  const isNumeric = /^\d+$/.test(pin);
+  logCondition('validatePinFormat', 'PIN is numeric', isNumeric, { pin });
+
+  if (!isNumeric) {
+    logData('validatePinFormat', 'Validation failed - not numeric', { isValid: false, pin });
     return {
       isValid: false,
       errorMessage: 'PIN must contain only numbers'
     }
   }
 
+  logData('validatePinFormat', 'Validation passed', { isValid: true });
   return { isValid: true }
 }
 
@@ -125,7 +165,9 @@ export function validatePinFormat(pin: string): ValidationResult {
  * @returns true if valid range
  */
 export function isValidDateRange(startDate: Date, endDate: Date): boolean {
-  return endDate >= startDate
+  const isValid = endDate >= startDate;
+  logCondition('isValidDateRange', 'Valid range', isValid, { startDate, endDate });
+  return isValid;
 }
 
 /**
@@ -137,7 +179,9 @@ export function isValidDateRange(startDate: Date, endDate: Date): boolean {
 export function isFutureDate(date: Date): boolean {
   const now = new Date()
   now.setHours(0, 0, 0, 0) // Reset to start of day for comparison
-  return date > now
+  const isFuture = date > now;
+  logCondition('isFutureDate', 'Is future date', isFuture, { date, now });
+  return isFuture;
 }
 
 /**
@@ -149,5 +193,7 @@ export function isFutureDate(date: Date): boolean {
 export function isPastDate(date: Date): boolean {
   const now = new Date()
   now.setHours(0, 0, 0, 0) // Reset to start of day for comparison
-  return date < now
+  const isPast = date < now;
+  logCondition('isPastDate', 'Is past date', isPast, { date, now });
+  return isPast;
 }

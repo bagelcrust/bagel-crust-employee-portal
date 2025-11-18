@@ -9,6 +9,7 @@ import { EditShiftModal } from './edit-shift-modal'
 import { Button } from './button'
 import { formatShiftHours } from '../shared/scheduleUtils'
 import { PAGE_TITLES, SCHEDULE_MESSAGES } from '../shared/constants'
+import { logData } from '../shared/debug-utils'
 
 export default function ScheduleBuilder() {
   const {
@@ -96,17 +97,7 @@ export default function ScheduleBuilder() {
     setEditModalState
   })
 
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('🔍 SCHEDULE BUILDER - RENDER')
-      console.log('📊 Loading:', isLoading)
-      console.log('👥 Staff Employees:', staffEmployees.length)
-      console.log('📅 Week:', dateRangeString)
-      console.log('🔓 Open Shifts:', openShifts.length)
-      console.log('📢 Published:', isWeekPublished)
-      console.log('📝 Draft Count:', draftCount)
-    }
-  }, [isLoading, staffEmployees.length, dateRangeString, openShifts.length, isWeekPublished, draftCount])
+  // Render logging removed - was causing thousands of console lines on every state change
 
   useEffect(() => {
     document.title = PAGE_TITLES.SCHEDULE_BUILDER
@@ -143,7 +134,10 @@ export default function ScheduleBuilder() {
               </div>
 
               <Button
-                onClick={goToToday}
+                onClick={() => {
+                  logData('SCHEDULE', 'Go to today clicked', { currentWeek: dateRangeString })
+                  goToToday()
+                }}
                 disabled={isThisWeek}
                 variant="ghost"
                 size="sm"
@@ -153,7 +147,10 @@ export default function ScheduleBuilder() {
               </Button>
 
               <Button
-                onClick={handleRepeatLastWeek}
+                onClick={() => {
+                  logData('SCHEDULE', 'Repeat last week clicked', { currentWeek: dateRangeString, isPublished: isWeekPublished })
+                  handleRepeatLastWeek()
+                }}
                 disabled={isWeekPublished}
                 variant="ghost"
                 size="sm"
@@ -173,7 +170,10 @@ export default function ScheduleBuilder() {
                 )}
 
                 <button
-                  onClick={handlePublish}
+                  onClick={() => {
+                    logData('SCHEDULE', 'Publish clicked', { draftCount, isPublished: isWeekPublished })
+                    handlePublish()
+                  }}
                   disabled={draftCount === 0}
                   className="h-7 rounded px-2.5 text-sm font-medium bg-white hover:bg-zinc-100 text-black disabled:opacity-30 disabled:pointer-events-none inline-flex items-center gap-1.5"
                 >
@@ -182,7 +182,10 @@ export default function ScheduleBuilder() {
                 </button>
 
                 <Button
-                  onClick={handleClearDrafts}
+                  onClick={() => {
+                    logData('SCHEDULE', 'Clear drafts clicked', { draftCount })
+                    handleClearDrafts()
+                  }}
                   disabled={draftCount === 0}
                   variant="ghost"
                   size="sm"
@@ -382,8 +385,14 @@ export default function ScheduleBuilder() {
 
       <CreateShiftModal
         isOpen={modalState.isOpen}
-        onClose={() => setModalState({ ...modalState, isOpen: false })}
-        onSave={handleSaveShift}
+        onClose={() => {
+          logData('SCHEDULE', 'Create shift modal closed', { wasOpen: modalState.isOpen })
+          setModalState({ ...modalState, isOpen: false })
+        }}
+        onSave={async (startTime, endTime, location, isOpenShift) => {
+          logData('SCHEDULE', 'Save shift from modal', { employeeId: modalState.employeeId, date: modalState.date })
+          await handleSaveShift(startTime, endTime, location, isOpenShift)
+        }}
         employeeName={modalState.employeeName}
         date={modalState.date}
         hasTimeOff={modalState.hasTimeOff}
@@ -397,9 +406,18 @@ export default function ScheduleBuilder() {
 
       <EditShiftModal
         isOpen={editModalState.isOpen}
-        onClose={() => setEditModalState({ ...editModalState, isOpen: false })}
-        onSave={handleEditShift}
-        onDelete={handleDeleteShift}
+        onClose={() => {
+          logData('SCHEDULE', 'Edit shift modal closed', { wasOpen: editModalState.isOpen })
+          setEditModalState({ ...editModalState, isOpen: false })
+        }}
+        onSave={async (shiftId, startTime, endTime, location) => {
+          logData('SCHEDULE', 'Update shift from modal', { shiftId: editModalState.shift?.id })
+          await handleEditShift(shiftId, startTime, endTime, location)
+        }}
+        onDelete={(shiftId) => {
+          logData('SCHEDULE', 'Delete shift from modal', { shiftId })
+          handleDeleteShift(shiftId)
+        }}
         shift={editModalState.shift}
         employeeName={editModalState.employeeName}
       />

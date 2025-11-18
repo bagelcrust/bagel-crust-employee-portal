@@ -61,22 +61,13 @@ export function CreateShiftModal({
 
   useEffect(() => {
     if (isOpen) {
-      if (import.meta.env.DEV) {
-        console.log('📋 AddShiftDialog opened:', {
-          employeeName,
-          pastShifts: pastShifts?.length || 0,
-          suggestedPatterns: suggestedPatterns.length,
-          availabilityWindow
-        })
-      }
       setStartTime(initialStartTime || '09:00')
       setEndTime(initialEndTime || '17:00')
       setLocation(initialLocation || 'Calder')
       setIsOpenShift(employeeName === 'Open Shift')
-      // Always show manual entry
       setShowManualEntry(true)
     }
-  }, [isOpen, initialStartTime, initialEndTime, initialLocation, employeeName, suggestedPatterns.length, pastShifts, availabilityWindow])
+  }, [isOpen, initialStartTime, initialEndTime, initialLocation, employeeName])
 
   const handlePatternClick = (pattern: { startTime: string; endTime: string; location: string }) => {
     // Normalize time format (remove seconds if present: "11:30:00" -> "11:30")
@@ -94,8 +85,9 @@ export function CreateShiftModal({
   const adjustTime = (currentTime: string, minutes: number): string => {
     const [hours, mins] = currentTime.split(':').map(Number)
     const totalMinutes = hours * 60 + mins + minutes
-    const newHours = Math.floor((totalMinutes + 1440) % 1440 / 60) // Handle wrap-around
-    const newMins = (totalMinutes + 1440) % 60
+    const adjustedMinutes = ((totalMinutes % 1440) + 1440) % 1440 // Handle wrap-around
+    const newHours = Math.floor(adjustedMinutes / 60)
+    const newMins = adjustedMinutes % 60
     return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`
   }
 

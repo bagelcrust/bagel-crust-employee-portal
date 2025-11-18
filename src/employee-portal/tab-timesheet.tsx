@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { formatTime, formatHoursMinutes } from '../shared/employeeUtils'
 import type { Translations } from '../shared/translations'
+import { assertShape, logCondition } from '../shared/debug-utils'
 
 interface TimesheetTabProps {
   timesheetData: any
@@ -16,8 +17,26 @@ interface TimesheetTabProps {
 export function TimesheetTab({ timesheetData, t }: TimesheetTabProps) {
   const [timesheetWeek, setTimesheetWeek] = useState<'this' | 'last'>('this')
 
+  // Validate props
+  logCondition('TimesheetTab', 'Timesheet data loaded', !!timesheetData, timesheetData)
+
+  // Loading state - data not yet loaded
+  if (!timesheetData) {
+    return (
+      <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
+        <div className="text-center text-gray-500 text-base font-semibold py-8">
+          Loading timesheet...
+        </div>
+      </div>
+    )
+  }
+
   const currentWeekData = timesheetWeek === 'this' ? timesheetData.thisWeek : timesheetData.lastWeek
   const hasHours = currentWeekData.days && currentWeekData.days.length > 0
+
+  // Debug current week data
+  assertShape('TimesheetTab', currentWeekData, ['days', 'totalHours'], 'currentWeekData')
+  logCondition('TimesheetTab', `Has hours for ${timesheetWeek} week`, hasHours, { dayCount: currentWeekData.days?.length, totalHours: currentWeekData.totalHours })
 
   // Translate day names from English (Edge Function) to current language
   const translateDayName = (englishDayName: string): string => {

@@ -19,6 +19,7 @@ import {
   updateQueueEntry,
   getQueueCount
 } from './offlineQueue';
+import { logData, assertShape, logError, logCondition } from './debug-utils';
 
 // Sync event types
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
@@ -72,6 +73,7 @@ export async function syncOfflineQueue(): Promise<void> {
   // Prevent concurrent syncs
   if (isSyncing) {
     console.log('[SyncManager] Already syncing, skipping...');
+    logCondition('SyncManager', 'Already syncing - skipping', isSyncing);
     return;
   }
 
@@ -79,6 +81,8 @@ export async function syncOfflineQueue(): Promise<void> {
   if (!navigator.onLine) {
     console.log('[SyncManager] Offline, cannot sync');
     const queueCount = await getQueueCount();
+    logCondition('SyncManager', 'Navigator says online', navigator.onLine);
+    logData('SyncManager', 'Offline - cannot sync', { queueCount });
     emitSyncEvent({
       status: 'idle',
       queueCount,
@@ -89,12 +93,15 @@ export async function syncOfflineQueue(): Promise<void> {
 
   isSyncing = true;
   console.log('[SyncManager] Starting sync...');
+  logData('SyncManager', 'Starting sync', { navigatorOnline: navigator.onLine });
 
   try {
     const entries = await getQueuedEntries();
+    logData('SyncManager', 'Queue entries', { count: entries.length, entries });
 
     if (entries.length === 0) {
       console.log('[SyncManager] Queue is empty');
+      logCondition('SyncManager', 'Queue is empty', entries.length === 0);
       emitSyncEvent({
         status: 'idle',
         queueCount: 0,
@@ -118,6 +125,7 @@ export async function syncOfflineQueue(): Promise<void> {
     for (const entry of entries) {
       try {
         console.log(`[SyncManager] Syncing entry ${entry.id} (${entry.employeeName})`);
+        logData('SyncManager', 'Syncing entry', { entry });
 
         // Use table operations to bypass PostgREST cache issues
         // Get last event
@@ -130,8 +138,12 @@ export async function syncOfflineQueue(): Promise<void> {
           .limit(1)
           .maybeSingle();
 
+        logData('SyncManager', 'Last event for sync', { lastEvent, employeeId: entry.employeeId });
+
         // Determine new event type
         const newEventType: 'in' | 'out' = (!lastEvent || lastEvent.event_type === 'out') ? 'in' : 'out';
+        logCondition('SyncManager', 'Syncing as IN', newEventType === 'in', { lastEventType: lastEvent?.event_type });
+        logCondition('SyncManager', 'Syncing as OUT', newEventType === 'out', { lastEventType: lastEvent?.event_type });
 
         // Insert new event
         const { data, error } = await supabase
@@ -145,10 +157,15 @@ export async function syncOfflineQueue(): Promise<void> {
           .select()
           .single();
 
-        if (error) throw new Error(`Failed: ${error.message}`);
+        if (error) {
+          logError('SyncManager', 'Insert failed during sync', error, { entry, newEventType });
+          throw new Error(`Failed: ${error.message}`);
+        }
         const result = data;
 
         console.log(`[SyncManager] ✅ Successfully synced ${entry.id}`, result);
+        assertShape('SyncManager', result, ['id', 'employee_id', 'event_type', 'event_timestamp'], 'synced_entry');
+        logData('SyncManager', 'Sync success', { entryId: entry.id, result });
 
         // Remove from queue on success
         await removeFromQueue(entry.id);
@@ -156,6 +173,7 @@ export async function syncOfflineQueue(): Promise<void> {
 
       } catch (error: any) {
         console.error(`[SyncManager] ❌ Failed to sync ${entry.id}:`, error);
+        logError('SyncManager', `Failed to sync entry ${entry.id}`, error, { entry });
 
         // Update attempt count and error
         await updateQueueEntry(entry.id, {
@@ -167,8 +185,11 @@ export async function syncOfflineQueue(): Promise<void> {
         failureCount++;
 
         // If max attempts reached (10), give up and notify user
-        if (entry.attempts >= 10) {
+        const maxAttemptsReached = entry.attempts >= 10;
+        logCondition('SyncManager', 'Max attempts reached', maxAttemptsReached, { attempts: entry.attempts, entryId: entry.id });
+        if (maxAttemptsReached) {
           console.error(`[SyncManager] Max attempts reached for ${entry.id}, giving up`);
+          logError('SyncManager', 'Max attempts exceeded - giving up', { entryId: entry.id, attempts: entry.attempts });
           // Could notify user here or mark for manual review
         }
       }
@@ -178,9 +199,11 @@ export async function syncOfflineQueue(): Promise<void> {
     }
 
     const remainingCount = await getQueueCount();
+    logData('SyncManager', 'Sync complete', { successCount, failureCount, remainingCount });
 
     if (remainingCount === 0) {
       console.log('[SyncManager] ✅ All entries synced successfully');
+      logCondition('SyncManager', 'All entries synced', remainingCount === 0);
       emitSyncEvent({
         status: 'success',
         queueCount: 0,
@@ -188,6 +211,7 @@ export async function syncOfflineQueue(): Promise<void> {
       });
     } else {
       console.log(`[SyncManager] ⚠️ ${remainingCount} entries remaining in queue`);
+      logCondition('SyncManager', 'Some entries failed to sync', remainingCount > 0, { remainingCount });
       emitSyncEvent({
         status: 'error',
         queueCount: remainingCount,
@@ -200,6 +224,7 @@ export async function syncOfflineQueue(): Promise<void> {
 
   } catch (error: any) {
     console.error('[SyncManager] Sync failed:', error);
+    logError('SyncManager', 'Sync process failed', error);
     const queueCount = await getQueueCount();
     emitSyncEvent({
       status: 'error',

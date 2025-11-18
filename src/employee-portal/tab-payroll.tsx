@@ -8,10 +8,11 @@
  */
 
 import { useState, useEffect } from 'react'
-import { format, startOfWeek, endOfWeek, subWeeks } from 'date-fns'
+import { format, startOfWeek, endOfWeek, subWeeks, addDays } from 'date-fns'
 import { DollarSign, CheckCircle } from 'lucide-react'
-import { getDisplayName, supabase, employeeRpc, getClockEventsInRangeRpc, getPayRatesRpc } from '../shared/supabase-client'
+import { getDisplayName, supabase, fetchPayrollDataRpc } from '../shared/supabase-client'
 import { formatHoursMinutes } from '../shared/employeeUtils'
+import { logCondition, logData } from '../shared/debug-utils'
 
 interface WorkedShift {
   date: string
@@ -75,6 +76,7 @@ export function PayrollTab() {
 
   const loadPayrollData = async () => {
     setLoading(true)
+    logCondition('PayrollTab', `Loading payroll for ${weekSelection} week`, true)
     try {
       // Determine date range in Eastern Time
       const nowET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
@@ -92,28 +94,25 @@ export function PayrollTab() {
         const mondayET = startOfWeek(twoWeeksAgo, { weekStartsOn: 1 })
         const sundayET = endOfWeek(oneWeekAgo, { weekStartsOn: 1 })
         startDateET = format(mondayET, 'yyyy-MM-dd')
-        endDateET = format(sundayET, 'yyyy-MM-dd')
+        endDateET = format(addDays(sundayET, 1), 'yyyy-MM-dd') // Add 1 day to include Sunday
       } else {
         // This Week or Last Week = Single week
         const referenceDate = weekSelection === 'this' ? todayET : subWeeks(todayET, 1)
         const mondayET = startOfWeek(referenceDate, { weekStartsOn: 1 })
         const sundayET = endOfWeek(referenceDate, { weekStartsOn: 1 })
         startDateET = format(mondayET, 'yyyy-MM-dd')
-        endDateET = format(sundayET, 'yyyy-MM-dd')
+        endDateET = format(addDays(sundayET, 1), 'yyyy-MM-dd') // Add 1 day to include Sunday
       }
 
-      // Fetch data in parallel using RPC functions
-      const [employeesData, eventsInRange, payRatesData, existingPayrollRecords] = await Promise.all([
-        employeeRpc.getAll(true),
-        getClockEventsInRangeRpc(startDateET, endDateET, undefined, true),
-        getPayRatesRpc(),
-        // Check if payroll records exist for this week
-        supabase
-          .from('payroll_records')
-          .select('*')
-          .gte('pay_period_start', startDateET)
-          .lte('pay_period_end', endDateET)
-      ])
+      logData('PayrollTab', 'Date range', { startDateET, endDateET, weekSelection })
+
+      // Fetch all payroll data in one RPC call
+      const rpcResult = await fetchPayrollDataRpc(startDateET, endDateET)
+
+      const employeesData = rpcResult.employees || []
+      const timeEntriesData = rpcResult.time_entries || []
+      const payRatesData = rpcResult.pay_rates || []
+      const existingPayrollRecords = rpcResult.payroll_records || []
 
       // Create pay rates map - employees can have MULTIPLE active pay arrangements
       // (e.g., Carlos has both 1099/Weekly and W-2/Bi-weekly)
@@ -135,8 +134,8 @@ export function PayrollTab() {
       // Create payroll records map (employee_id -> array of records)
       // Multiple records possible for employees like Carlos/Mere with split arrangements
       const payrollRecordsMap = new Map<string, any[]>()
-      if (existingPayrollRecords.data && existingPayrollRecords.data.length > 0) {
-        existingPayrollRecords.data.forEach((record: any) => {
+      if (existingPayrollRecords && existingPayrollRecords.length > 0) {
+        existingPayrollRecords.forEach((record: any) => {
           const existing = payrollRecordsMap.get(record.employee_id) || []
           existing.push(record)
           payrollRecordsMap.set(record.employee_id, existing)
@@ -146,7 +145,7 @@ export function PayrollTab() {
       // Process each employee
       const payrollData: EmployeePayroll[] = employeesData
         .map((employee: any) => {
-          const employeeEvents = eventsInRange.filter((e: any) => e.employee_id === employee.id)
+          const employeeEvents = timeEntriesData.filter((e: any) => e.employee_id === employee.id)
           const sortedEvents = employeeEvents.sort((a: any, b: any) =>
             new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
           )
@@ -280,6 +279,9 @@ export function PayrollTab() {
         })
         .sort((a: EmployeePayroll, b: EmployeePayroll) => a.name.localeCompare(b.name))
 
+      logCondition('PayrollTab', 'Employees with hours', payrollData.length > 0, { count: payrollData.length })
+      logData('PayrollTab', 'First employee (sample)', payrollData[0], ['id', 'name', 'totalHours', 'isPaid'])
+
       // Collect all flagged activities (suspicious shifts < 5 minutes)
       const flagged: FlaggedActivity[] = []
       payrollData.forEach((emp: EmployeePayroll) => {
@@ -299,6 +301,8 @@ export function PayrollTab() {
         })
       })
 
+      logCondition('PayrollTab', 'Flagged activities found', flagged.length > 0, { count: flagged.length })
+
       setFlaggedActivities(flagged)
       setEmployees(payrollData)
       setLoading(false)
@@ -314,6 +318,8 @@ export function PayrollTab() {
 
     const arrangement = employee.payRateArrangements.find(arr => arr.id === arrangementId)
     if (!arrangement) return
+
+    logData('PayrollTab', 'Finalizing employee', { employeeId, employeeName: employee.name, arrangementId, manualHours, totalHours: employee.totalHours })
 
     if (employee.hasIncompleteShifts) {
       const confirm = window.confirm(
@@ -340,14 +346,14 @@ export function PayrollTab() {
         const mondayET = startOfWeek(twoWeeksAgo, { weekStartsOn: 1 })
         const sundayET = endOfWeek(oneWeekAgo, { weekStartsOn: 1 })
         startDateET = format(mondayET, 'yyyy-MM-dd')
-        endDateET = format(sundayET, 'yyyy-MM-dd')
+        endDateET = format(addDays(sundayET, 1), 'yyyy-MM-dd') // Add 1 day to include Sunday
       } else {
         // This Week or Last Week = Single week
         const referenceDate = weekSelection === 'this' ? todayET : subWeeks(todayET, 1)
         const mondayET = startOfWeek(referenceDate, { weekStartsOn: 1 })
         const sundayET = endOfWeek(referenceDate, { weekStartsOn: 1 })
         startDateET = format(mondayET, 'yyyy-MM-dd')
-        endDateET = format(sundayET, 'yyyy-MM-dd')
+        endDateET = format(addDays(sundayET, 1), 'yyyy-MM-dd') // Add 1 day to include Sunday
       }
 
       // Calculate pay based on selected arrangement and manual hours

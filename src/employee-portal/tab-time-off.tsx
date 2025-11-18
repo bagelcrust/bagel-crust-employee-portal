@@ -3,6 +3,8 @@
  * Submit new requests and view previous requests
  */
 
+import { logCondition, logData } from '../shared/debug-utils'
+
 interface TimeOffTabProps {
   timeOffStartDate: string
   timeOffEndDate: string
@@ -26,6 +28,11 @@ export function TimeOffTab({
   isSubmitting,
   requests
 }: TimeOffTabProps) {
+  // Validate props
+  logData('TimeOffTab', 'Form state', { timeOffStartDate, timeOffEndDate, timeOffReason, isSubmitting })
+  logData('TimeOffTab', 'Requests', requests)
+  logCondition('TimeOffTab', 'Has previous requests', requests.length > 0, { count: requests.length })
+
   return (
     <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
       {/* Request Form */}
@@ -100,9 +107,12 @@ export function TimeOffTab({
                 today.setHours(0, 0, 0, 0)
                 const [year, month, day] = request.end_date.split('-').map(Number)
                 const endDate = new Date(year, month - 1, day)
-                return endDate >= today
+                const isFuture = endDate >= today
+                logCondition('TimeOffTab', `Request ${request.id} is future`, isFuture, { end_date: request.end_date })
+                return isFuture
               })
               .map((request, index, filteredRequests) => {
+                logData('TimeOffTab', `Rendering request ${index}`, request, ['id', 'start_date', 'end_date', 'reason'])
                 // Parse date string components directly to avoid timezone bugs
                 // Input: "2025-11-20" -> Output: Nov 20
                 const parseDate = (dateStr: string) => {

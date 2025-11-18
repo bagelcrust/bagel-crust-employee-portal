@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database-types';
+import { logData, assertShape, logError, logApiCall } from './debug-utils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -57,6 +58,7 @@ export function getDisplayName(employee: Employee): string {
 export const employeeApi = {
   // Get all active employees
   async getAll() {
+    const endLog = logApiCall('employeeApi', 'getAll');
     const { data, error } = await supabase
       .schema('employees')
       .from('employees')
@@ -64,12 +66,19 @@ export const employeeApi = {
       .eq('active', true)
       .order('first_name');
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('employeeApi', 'Failed to get all employees', error);
+      throw error;
+    }
+    assertShape('employeeApi', data?.[0], ['id', 'first_name', 'pin', 'active'], 'employee');
+    logData('employeeApi', 'getAll result', { count: data?.length, firstEmployee: data?.[0] });
     return data as Employee[];
   },
 
   // Get employee by PIN
   async getByPin(pin: string) {
+    const endLog = logApiCall('employeeApi', 'getByPin', { pin });
     const { data, error } = await supabase
       .schema('employees')
       .from('employees')
@@ -78,7 +87,15 @@ export const employeeApi = {
       .eq('active', true)
       .maybeSingle();
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('employeeApi', 'Failed to get employee by PIN', error, { pin });
+      throw error;
+    }
+    if (data) {
+      assertShape('employeeApi', data, ['id', 'first_name', 'pin', 'active'], 'employee');
+    }
+    logData('employeeApi', 'getByPin result', { found: !!data, employee: data });
     return data as Employee | null;
   }
 };
@@ -87,6 +104,7 @@ export const employeeApi = {
 export const timeclockApi = {
   // Get last clock event for employee
   async getLastEvent(employeeId: string) {
+    const endLog = logApiCall('timeclockApi', 'getLastEvent', { employeeId });
     const { data, error} = await supabase
       .schema('employees')
       .from('time_entries')
@@ -96,12 +114,22 @@ export const timeclockApi = {
       .limit(1)
       .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // Ignore "no rows" error
+    endLog?.();
+    if (error && error.code !== 'PGRST116') {
+      logError('timeclockApi', 'Failed to get last event', error, { employeeId });
+      throw error;
+    }
+    if (data) {
+      assertShape('timeclockApi', data, ['id', 'employee_id', 'event_type', 'event_timestamp'], 'time_entry');
+    }
+    logData('timeclockApi', 'getLastEvent result', { found: !!data, event: data });
     return data as TimeEntry | null;
   },
 
   // Clock in or out (using table operations to bypass PostgREST cache issues)
   async clockInOut(employeeId: string) {
+    const endLog = logApiCall('timeclockApi', 'clockInOut', { employeeId });
+
     // Get last event
     const { data: lastEvent } = await supabase
       .schema('employees')
@@ -112,8 +140,11 @@ export const timeclockApi = {
       .limit(1)
       .maybeSingle();
 
+    logData('timeclockApi', 'Last event', { lastEvent });
+
     // Determine new event type
     const newEventType: 'in' | 'out' = (!lastEvent || lastEvent.event_type === 'out') ? 'in' : 'out';
+    logData('timeclockApi', 'New event type', { newEventType, lastEventType: lastEvent?.event_type });
 
     // Insert new event
     const { data, error } = await supabase
@@ -127,7 +158,13 @@ export const timeclockApi = {
       .select()
       .single();
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('timeclockApi', 'Failed to clock in/out', error, { employeeId, newEventType });
+      throw error;
+    }
+    assertShape('timeclockApi', data, ['id', 'employee_id', 'event_type', 'event_timestamp'], 'time_entry');
+    logData('timeclockApi', 'clockInOut result', data);
     return data;
   },
 
@@ -177,12 +214,18 @@ export const timeclockApi = {
   // Get currently working employees (optimized RPC - returns only clocked-in employees)
   // Replaces client-side logic that fetched ALL today's events and filtered in JavaScript
   async getCurrentlyWorking() {
+    const endLog = logApiCall('timeclockApi', 'getCurrentlyWorking (RPC)');
     const { data, error } = await supabase
       .schema('employees')
       .rpc('get_currently_working');
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('timeclockApi', 'RPC get_currently_working failed', error);
+      throw error;
+    }
 
+    logData('timeclockApi', 'getCurrentlyWorking result', { count: data?.length, employees: data });
     // RPC returns employees with clock_in_time already calculated
     return data || [];
   },
@@ -253,6 +296,7 @@ export const timeclockApi = {
 // Schedule Builder RPC functions (replaces Edge Function)
 export const scheduleBuilderRpc = {
   async getData(startDate: string, endDate: string) {
+    const endLog = logApiCall('scheduleBuilderRpc', 'getData (RPC)', { startDate, endDate });
     const { data, error } = await supabase
       .schema('employees')
       .rpc('fetch_schedule_builder_data', {
@@ -260,11 +304,17 @@ export const scheduleBuilderRpc = {
         p_end_date: endDate
       });
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('scheduleBuilderRpc', 'RPC fetch_schedule_builder_data failed', error, { startDate, endDate });
+      throw error;
+    }
+    logData('scheduleBuilderRpc', 'getData result', { dataKeys: Object.keys(data || {}) });
     return data;
   },
 
   async createShift(shiftData: any) {
+    const endLog = logApiCall('scheduleBuilderRpc', 'createShift (RPC)', shiftData);
     const { data, error } = await supabase
       .schema('employees')
       .rpc('create_shift', {
@@ -275,7 +325,12 @@ export const scheduleBuilderRpc = {
         p_role: shiftData.role || null
       });
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('scheduleBuilderRpc', 'RPC create_shift failed', error, shiftData);
+      throw error;
+    }
+    logData('scheduleBuilderRpc', 'createShift result', data);
     return data;
   },
 
@@ -307,6 +362,7 @@ export const scheduleBuilderRpc = {
   },
 
   async publishWeek(startDate: string, endDate: string, strictMode = true) {
+    const endLog = logApiCall('scheduleBuilderRpc', 'publishWeek (RPC)', { startDate, endDate, strictMode });
     const { data, error } = await supabase
       .schema('employees')
       .rpc('publish_week', {
@@ -315,7 +371,12 @@ export const scheduleBuilderRpc = {
         p_strict_mode: strictMode
       });
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('scheduleBuilderRpc', 'RPC publish_week failed', error, { startDate, endDate, strictMode });
+      throw error;
+    }
+    logData('scheduleBuilderRpc', 'publishWeek result', data);
     return data;
   },
 
@@ -338,6 +399,7 @@ export async function calculatePayrollRpc(
   startDate: string,
   endDate: string
 ) {
+  const endLog = logApiCall('calculatePayrollRpc', 'fetch_timesheet_data (RPC)', { employeeId, startDate, endDate });
   const { data, error } = await supabase
     .schema('employees')
     .rpc('fetch_timesheet_data', {
@@ -346,64 +408,71 @@ export async function calculatePayrollRpc(
       p_end_date: endDate
     });
 
-  if (error) throw error;
+  endLog?.();
+  if (error) {
+    logError('calculatePayrollRpc', 'RPC fetch_timesheet_data failed', error, { employeeId, startDate, endDate });
+    throw error;
+  }
+  logData('calculatePayrollRpc', 'Result', { dataKeys: Object.keys(data || {}) });
   return data;
 }
 
 // Employee RPC functions (replaces Edge Function employees operations)
 export const employeeRpc = {
   async getAll(activeOnly = true) {
+    const endLog = logApiCall('employeeRpc', 'getAll (RPC)', { activeOnly });
     const { data, error } = await supabase
       .schema('employees')
-      .rpc('get_all_employees', {
-        p_active_only: activeOnly
-      });
+      .rpc('fetch_employees');
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('employeeRpc', 'RPC fetch_employees failed', error, { activeOnly });
+      throw error;
+    }
+    logData('employeeRpc', 'getAll result', { count: data?.length });
     return data || [];
   },
 
   async getByPin(pin: string) {
+    const endLog = logApiCall('employeeRpc', 'getByPin (RPC)', { pin });
     const { data, error } = await supabase
       .rpc('get_employee_by_pin', {
         p_pin: pin
       });
 
-    if (error) throw error;
+    endLog?.();
+    if (error) {
+      logError('employeeRpc', 'RPC get_employee_by_pin failed', error, { pin });
+      throw error;
+    }
+    logData('employeeRpc', 'getByPin result', { found: !!data, employee: data });
     return data;
   }
 };
 
-// Timeclock RPC function for events in range (replaces Edge Function)
-export async function getClockEventsInRangeRpc(
-  startDate: string,
-  endDate: string,
-  employeeId?: string,
-  inET = true
-) {
+// Payroll RPC function - fetches all data needed for payroll tab
+export async function fetchPayrollDataRpc(startDate: string, endDate: string) {
+  const endLog = logApiCall('payrollRpc', 'fetchPayrollData', { startDate, endDate });
   const { data, error } = await supabase
     .schema('employees')
-    .rpc('get_clock_events_in_range', {
+    .rpc('fetch_payroll_data', {
       p_start_date: startDate,
-      p_end_date: endDate,
-      p_employee_id: employeeId,
-      p_in_et: inET
+      p_end_date: endDate
     });
 
-  if (error) throw error;
-  return data || [];
-}
-
-// Pay rates RPC function (replaces Edge Function)
-export async function getPayRatesRpc(includeEmployees = false) {
-  const { data, error } = await supabase
-    .schema('employees')
-    .rpc('get_all_pay_rates', {
-      p_include_employees: includeEmployees
-    });
-
-  if (error) throw error;
-  return data || [];
+  endLog?.();
+  if (error) {
+    logError('payrollRpc', 'RPC fetch_payroll_data failed', error, { startDate, endDate });
+    throw error;
+  }
+  logData('payrollRpc', 'Result', {
+    employees: data?.employees?.length,
+    timeEntries: data?.time_entries?.length,
+    payRates: data?.pay_rates?.length,
+    payrollRecords: data?.payroll_records?.length
+  });
+  return data;
 }
 
 // Pay Rates API functions

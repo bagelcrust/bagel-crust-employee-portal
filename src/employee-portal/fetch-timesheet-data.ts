@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { calculatePayrollRpc } from '../shared/supabase-client'
 import { format } from 'date-fns'
+import { logData, assertShape, logError, logApiCall } from '../shared/debug-utils'
 
 /**
  * TIMESHEET HOOK - NOW USING POSTGRES RPC FOR CORRECT TIMEZONE HANDLING
@@ -26,8 +27,11 @@ export function useGetTimesheet(employeeId: string | undefined, enabled = true) 
     queryFn: async () => {
       if (!employeeId) throw new Error('Employee ID required')
 
-      // Calculate date ranges in Eastern Time (YYYY-MM-DD format)
-      const today = new Date()
+      const finishLog = logApiCall('TIMESHEET', 'calculate_payroll', { employeeId: employeeId.substring(0, 8) + '...' })
+
+      try {
+        // Calculate date ranges in Eastern Time (YYYY-MM-DD format)
+        const today = new Date()
 
       // This week (Monday - Sunday)
       const dayOfWeek = today.getDay()
@@ -44,58 +48,81 @@ export function useGetTimesheet(employeeId: string | undefined, enabled = true) 
       const lastWeekEnd = new Date(lastWeekStart)
       lastWeekEnd.setDate(lastWeekStart.getDate() + 6)
 
-      // Format dates as YYYY-MM-DD for RPC function
-      const formatDate = (date: Date) => {
-        return date.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }) // en-CA gives YYYY-MM-DD format
-      }
+        // Format dates as YYYY-MM-DD for RPC function
+        const formatDate = (date: Date) => {
+          return date.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }) // en-CA gives YYYY-MM-DD format
+        }
 
-      // Call Postgres RPC to calculate payroll with correct timezone handling
-      const [thisWeekData, lastWeekData] = await Promise.all([
-        calculatePayrollRpc(
-          employeeId,
-          formatDate(thisWeekStart),
-          formatDate(thisWeekEnd)
-        ),
-        calculatePayrollRpc(
-          employeeId,
-          formatDate(lastWeekStart),
-          formatDate(lastWeekEnd)
-        )
-      ])
-
-      // Transform RPC response to match expected format
-      const transformPayrollToTimesheet = (payrollData: any) => {
-        const dailyHours = payrollData.shifts.map((shift: any) => {
-          // Parse Eastern Time strings (already converted server-side!)
-          const clockInDate = new Date(shift.clockIn)
-
-          // Use clockInTime and clockOutTime from RPC function (24-hour format like "08:00" or "14:30")
-          // These will be formatted by formatTime() in TimesheetTab to "8:00 AM" or "2:30 PM"
-          const clockInTime = shift.clockInTime // "08:00" or "14:30"
-          const clockOutTime = shift.clockOutTime // "08:00" or "14:30"
-
-          return {
-            date: shift.clockIn.split('T')[0], // YYYY-MM-DD
-            day_name: format(clockInDate, 'EEEE'),
-            clock_in: clockInTime,
-            clock_out: clockOutTime,
-            hours_worked: shift.hoursWorked.toFixed(2)
-          }
+        logData('TIMESHEET', 'Date ranges', {
+          thisWeek: { start: formatDate(thisWeekStart), end: formatDate(thisWeekEnd) },
+          lastWeek: { start: formatDate(lastWeekStart), end: formatDate(lastWeekEnd) }
         })
 
-        return {
-          days: dailyHours,
-          totalHours: payrollData.totalHours.toFixed(2),
-          // Include additional data from RPC function
-          hourlyRate: payrollData.hourlyRate,
-          totalPay: payrollData.totalPay,
-          unpaired: payrollData.unpaired || []
-        }
-      }
+        // Call Postgres RPC to calculate payroll with correct timezone handling
+        const [thisWeekData, lastWeekData] = await Promise.all([
+          calculatePayrollRpc(
+            employeeId,
+            formatDate(thisWeekStart),
+            formatDate(thisWeekEnd)
+          ),
+          calculatePayrollRpc(
+            employeeId,
+            formatDate(lastWeekStart),
+            formatDate(lastWeekEnd)
+          )
+        ])
 
-      return {
-        thisWeek: transformPayrollToTimesheet(thisWeekData),
-        lastWeek: transformPayrollToTimesheet(lastWeekData)
+        finishLog?.()
+
+        logData('TIMESHEET', 'This week RPC response', thisWeekData, ['totalHours', 'totalPay', 'shifts'])
+        logData('TIMESHEET', 'Last week RPC response', lastWeekData, ['totalHours', 'totalPay', 'shifts'])
+        assertShape('TIMESHEET', thisWeekData, ['totalHours', 'hourlyRate', 'shifts'], 'payroll data')
+        assertShape('TIMESHEET', lastWeekData, ['totalHours', 'hourlyRate', 'shifts'], 'payroll data')
+
+        // Transform RPC response to match expected format
+        const transformPayrollToTimesheet = (payrollData: any) => {
+          const dailyHours = payrollData.shifts.map((shift: any) => {
+            // Parse Eastern Time strings (already converted server-side!)
+            const clockInDate = new Date(shift.clockIn)
+
+            // Use clockInTime and clockOutTime from RPC function (24-hour format like "08:00" or "14:30")
+            // These will be formatted by formatTime() in TimesheetTab to "8:00 AM" or "2:30 PM"
+            const clockInTime = shift.clockInTime // "08:00" or "14:30"
+            const clockOutTime = shift.clockOutTime // "08:00" or "14:30"
+
+            return {
+              date: shift.clockIn.split('T')[0], // YYYY-MM-DD
+              day_name: format(clockInDate, 'EEEE'),
+              clock_in: clockInTime,
+              clock_out: clockOutTime,
+              hours_worked: shift.hoursWorked.toFixed(2)
+            }
+          })
+
+          return {
+            days: dailyHours,
+            totalHours: payrollData.totalHours.toFixed(2),
+            // Include additional data from RPC function
+            hourlyRate: payrollData.hourlyRate,
+            totalPay: payrollData.totalPay,
+            unpaired: payrollData.unpaired || []
+          }
+        }
+
+        const result = {
+          thisWeek: transformPayrollToTimesheet(thisWeekData),
+          lastWeek: transformPayrollToTimesheet(lastWeekData)
+        }
+
+        logData('TIMESHEET', 'Transformed timesheet data', result)
+        if (result.thisWeek.days.length > 0) {
+          assertShape('TIMESHEET', result.thisWeek.days[0], ['date', 'day_name', 'clock_in', 'clock_out', 'hours_worked'], 'daily hours')
+        }
+
+        return result
+      } catch (error) {
+        logError('TIMESHEET', 'Failed to fetch timesheet', error, { employeeId })
+        throw error
       }
     },
     enabled: !!employeeId && enabled,

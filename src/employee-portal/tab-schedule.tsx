@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { formatTime } from '../shared/employeeUtils'
 import type { Translations } from '../shared/translations'
+import { assertShape, logCondition, logData } from '../shared/debug-utils'
 
 interface ScheduleTabProps {
   employee: any
@@ -80,6 +81,11 @@ function getNextShift(scheduleData: any) {
 }
 
 export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: ScheduleTabProps) {
+  // Validate props
+  assertShape('ScheduleTab', employee, ['id', 'first_name'], 'employee')
+  assertShape('ScheduleTab', scheduleData, ['thisWeek', 'nextWeek'], 'scheduleData')
+  logData('ScheduleTab', 'fullTeamSchedule', fullTeamSchedule, ['thisWeek', 'nextWeek'])
+
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
   const [teamScheduleWeek, setTeamScheduleWeek] = useState<'this' | 'next'>('this')
   const [selectedTeamDay, setSelectedTeamDay] = useState<typeof dayOrder[number]>(() => {
@@ -89,6 +95,7 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
   })
 
   const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
+  logCondition('ScheduleTab', `Using ${showWeek} week schedule`, !!currentSchedule, { showWeek, hasData: !!currentSchedule })
 
   return (
     <>
@@ -102,6 +109,7 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
         {/* Orange Gradient Next Shift Card - Connected to Supabase */}
         {(() => {
           const nextShift = getNextShift(scheduleData)
+          logCondition('ScheduleTab', 'Has next shift', !!nextShift, nextShift)
 
           if (!nextShift) {
             return (
@@ -318,6 +326,7 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
             {(() => {
               const currentWeekSchedule = teamScheduleWeek === 'this' ? fullTeamSchedule.thisWeek : fullTeamSchedule.nextWeek
               const daySchedules = currentWeekSchedule?.[selectedTeamDay] || []
+              logCondition('ScheduleTab', `Team schedule for ${selectedTeamDay} (${teamScheduleWeek} week)`, daySchedules.length > 0, { count: daySchedules.length })
 
               return daySchedules.length === 0 ? (
                 <div className="text-center pt-12 pb-12 text-gray-400 text-sm font-medium">

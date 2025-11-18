@@ -4,6 +4,7 @@
  */
 
 import type { Translations } from '../shared/translations'
+import { assertShape } from '../shared/debug-utils'
 
 interface ProfileTabProps {
   employee: any
@@ -12,6 +13,9 @@ interface ProfileTabProps {
 }
 
 export function ProfileTab({ employee, onLogout, t }: ProfileTabProps) {
+  // Validate props
+  assertShape('ProfileTab', employee, ['id', 'first_name', 'role', 'pin'], 'employee')
+
   return (
     <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
       <h3 className="text-[28px] font-bold text-gray-800 mb-6 tracking-tight">

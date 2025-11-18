@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../shared/supabase-client'
 import type { DraftShift, PublishedShift, TimeOff, Employee } from '../shared/supabase-client'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek, addDays } from 'date-fns'
+import { logError, logApiCall } from '../shared/debug-utils'
 
 /**
  * Combined shift type for Schedule Builder UI
@@ -59,35 +60,50 @@ export function useGetScheduleBuilderData() {
   const { data: scheduleData, isLoading, refetch } = useQuery({
     queryKey: ['scheduleBuilderData', currentWeekStart.toISOString(), currentWeekEnd.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .schema('employees')
-        .rpc('fetch_schedule_builder_data', {
-          p_start_date: format(currentWeekStart, 'yyyy-MM-dd'),
-          p_end_date: format(currentWeekEnd, 'yyyy-MM-dd')
+      const finishLog = logApiCall('SCHEDULE_BUILDER', 'fetch_schedule_builder_data', {
+        startDate: format(currentWeekStart, 'yyyy-MM-dd'),
+        endDate: format(currentWeekEnd, 'yyyy-MM-dd')
+      })
+
+      try {
+        const { data, error } = await supabase
+          .schema('employees')
+          .rpc('fetch_schedule_builder_data', {
+            p_start_date: format(currentWeekStart, 'yyyy-MM-dd'),
+            p_end_date: format(currentWeekEnd, 'yyyy-MM-dd')
+          })
+
+        if (error) {
+          logError('SCHEDULE_BUILDER', 'RPC call failed', error)
+          throw error
+        }
+
+        finishLog?.()
+        return data
+      } catch (error) {
+        logError('SCHEDULE_BUILDER', 'Failed to fetch schedule builder data', error, {
+          startDate: format(currentWeekStart, 'yyyy-MM-dd'),
+          endDate: format(currentWeekEnd, 'yyyy-MM-dd')
         })
-      if (error) throw error
-      return data
+        throw error
+      }
     },
     staleTime: 0, // Always fetch fresh data when actively building schedules
   })
 
-  // DEBUG: Log raw edge function response
-  console.log('🔌 EDGE FUNCTION RESPONSE:', {
-    isLoading,
-    hasData: !!scheduleData,
-    scheduleData: scheduleData
-  })
 
   // Extract and sort employees (owners at bottom)
   const employees = useMemo(() => {
     const rawEmployees = (scheduleData?.employees || []) as Employee[]
-    return [...rawEmployees].sort((a, b) => {
+    const sorted = [...rawEmployees].sort((a, b) => {
       // Put owners at the bottom
       if (a.role === 'owner' && b.role !== 'owner') return 1
       if (a.role !== 'owner' && b.role === 'owner') return -1
       // Otherwise sort alphabetically by first name
       return a.first_name.localeCompare(b.first_name)
     })
+
+    return sorted
   }, [scheduleData?.employees])
 
   const shifts = (scheduleData?.shifts || []) as ScheduleShift[]
@@ -95,14 +111,6 @@ export function useGetScheduleBuilderData() {
   const timeOffs = (scheduleData?.timeOffs || []) as TimeOff[]
   const weeklyHours = scheduleData?.weeklyHours || {}
   const isWeekPublished = scheduleData?.isPublished || false
-
-  console.log('🔌 EXTRACTED DATA:', {
-    employeesCount: employees.length,
-    shiftsCount: shifts.length,
-    openShiftsCount: openShifts.length,
-    timeOffsCount: timeOffs.length,
-    isWeekPublished
-  })
 
   // Use pre-computed organization from edge function (avoid duplicate work)
   const shiftsByEmployeeAndDayFromServer = (scheduleData?.shiftsByEmployeeAndDay || {}) as Record<string, Record<number, ScheduleShift[]>>
