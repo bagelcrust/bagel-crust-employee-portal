@@ -21,6 +21,7 @@ import { TimeOffTab } from './tab-time-off'
 import { TimesheetTab } from './tab-timesheet'
 import { PayrollTab } from './tab-payroll'
 import { ProfileTab } from './tab-profile'
+import { CalendarTab } from './tab-calendar'
 
 /**
  * EMPLOYEE PORTAL - Mobile-First Design with Refined Glassmorphism
@@ -108,7 +109,8 @@ export default function EmployeePortal() {
   } = useGetMySchedule(employee?.id, isLoggedIn)
 
   const {
-    data: fullTeamSchedule
+    data: fullTeamSchedule,
+    isLoading: isTeamScheduleLoading
   } = useGetTeamSchedule(isLoggedIn)
 
   // Only load timesheet data if user has access to Hours tab (saves 2 Edge Function calls for owners!)
@@ -258,9 +260,8 @@ export default function EmployeePortal() {
     )
   }
 
-  // Show loading after login - only wait for employee schedule (skip team schedule for faster UX)
-  // Team schedule loads in background while user views their personal schedule
-  const isLoadingData = isScheduleLoading
+  // Show loading after login - wait for both personal and team schedules to load
+  const isLoadingData = isScheduleLoading || isTeamScheduleLoading
   if (isLoadingData) {
     return (
       <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
@@ -349,6 +350,14 @@ export default function EmployeePortal() {
             <>
               {logCondition('PORTAL', 'Rendering PayrollTab', true, { role: employee?.role })}
               <PayrollTab />
+            </>
+          )}
+
+          {/* CALENDAR TAB (Staff One) */}
+          {activeTab === 'calendar' && (
+            <>
+              {logCondition('PORTAL', 'Rendering CalendarTab', true, { role: employee?.role })}
+              <CalendarTab language={(employee?.preferred_language === 'en' ? 'en' : 'es') as 'en' | 'es'} t={t} />
             </>
           )}
 
