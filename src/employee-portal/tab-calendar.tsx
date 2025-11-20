@@ -113,40 +113,45 @@ export function CalendarTab({ language, t }: CalendarTabProps) {
       </h2>
 
       {/* Week Toggle */}
-      <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
-        <button
-          onClick={() => setShowWeek('this')}
-          className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
-            showWeek === 'this'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-          type="button"
-        >
-          {t.thisWeek}
-        </button>
-        <button
-          onClick={() => setShowWeek('next')}
-          className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
-            showWeek === 'next'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-          type="button"
-        >
-          {t.nextWeek}
-        </button>
-        <button
-          onClick={() => setShowWeek('two')}
-          className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
-            showWeek === 'two'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-          type="button"
-        >
-          {t.inTwoWeeks}
-        </button>
+      <div className="mb-4">
+        <div className="text-center text-sm font-medium text-gray-500 mb-2">
+          {t.weekLabel}
+        </div>
+        <div className="flex bg-gray-100 rounded-lg p-1 w-full">
+          <button
+            onClick={() => setShowWeek('this')}
+            className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+              showWeek === 'this'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            type="button"
+          >
+            {t.thisShort}
+          </button>
+          <button
+            onClick={() => setShowWeek('next')}
+            className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+              showWeek === 'next'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            type="button"
+          >
+            {t.nextShort}
+          </button>
+          <button
+            onClick={() => setShowWeek('two')}
+            className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+              showWeek === 'two'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            type="button"
+          >
+            {t.inTwoShort}
+          </button>
+        </div>
       </div>
 
       {/* Day Cards */}
