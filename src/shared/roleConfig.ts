@@ -10,17 +10,18 @@
  * - owner: Management tabs (Schedule, Payroll, Profile) - No Time Off or Hours
  */
 
-export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile'
+export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile' | 'calendar'
 
 export interface TabConfig {
   key: TabKey
   label: string
-  iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user'
+  iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user' | 'calendar-days'
 }
 
 // Test role sees ALL tabs (for development/testing)
 const TEST_TABS: TabConfig[] = [
   { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
+  { key: 'calendar', label: 'Calendar', iconName: 'calendar-days' },
   { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
   { key: 'timesheet', label: 'Hours', iconName: 'clock' },
   { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
@@ -42,8 +43,9 @@ const OWNER_TABS: TabConfig[] = [
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 
-// Staff 1 sees Hours and Profile tabs
+// Staff 1 sees Calendar, Hours, and Profile tabs
 const STAFF_ONE_TABS: TabConfig[] = [
+  { key: 'calendar', label: 'Calendar', iconName: 'calendar-days' },
   { key: 'timesheet', label: 'Hours', iconName: 'clock' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
