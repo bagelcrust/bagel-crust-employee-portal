@@ -195,43 +195,39 @@ function DayCard({
 
   return (
     <div
-      className={`p-3.5 px-4 rounded-[10px] flex items-center shadow-[0_2px_4px_rgba(0,0,0,0.04)] ${
+      className={`p-3.5 px-4 rounded-[10px] shadow-[0_2px_4px_rgba(0,0,0,0.04)] ${
         day.isToday
           ? 'border-2 border-blue-600 bg-blue-600/5'
           : 'border border-gray-200 bg-white'
       }`}
     >
-      {/* Left: Day & Date */}
-      <div className="text-left min-w-[90px]">
-        <div className="font-semibold text-gray-800 text-base mb-0.5 capitalize">
-          {day.dayName}
-          {day.isBusy && <span className="ml-1">🔥</span>}
+      {/* Row 1: Day/Date + Status Badge */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-baseline gap-2">
+          <span className="font-semibold text-gray-800 text-base capitalize">
+            {day.dayName}
+          </span>
+          <span className="text-[13px] text-gray-500">
+            {day.dateLabel}
+          </span>
+          {day.isBusy && <span>🔥</span>}
           {day.isToday && (
-            <span className="text-[10px] text-blue-600 font-bold ml-2 bg-blue-600/15 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] text-blue-600 font-bold bg-blue-600/15 px-1.5 py-0.5 rounded">
               {language === 'es' ? 'HOY' : 'TODAY'}
             </span>
           )}
         </div>
-        <div className="text-[13px] text-gray-500">
-          {day.dateLabel}
-        </div>
-      </div>
-
-      {/* Middle: Event Notes (prominent) */}
-      <div className="flex-1 text-center px-3">
-        {day.events.length > 0 && (
-          <div className="font-semibold text-gray-700 text-sm">
-            {day.events[0]}
-          </div>
-        )}
-      </div>
-
-      {/* Right: Status Badge */}
-      <div className="text-right">
-        <span className={`px-2.5 py-1 rounded-full text-xs font-bold text-white ${status.badge}`}>
+        <span className={`px-2.5 py-1 rounded-full text-xs font-bold text-white whitespace-nowrap ${status.badge}`}>
           {status.label}
         </span>
       </div>
+
+      {/* Row 2: Event Notes (only if exists) */}
+      {day.events.length > 0 && (
+        <div className="mt-1.5 text-sm text-gray-600">
+          {day.events[0]}
+        </div>
+      )}
     </div>
   )
 }
