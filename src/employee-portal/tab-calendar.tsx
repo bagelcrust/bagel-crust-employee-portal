@@ -227,12 +227,10 @@ function DayCard({
         </span>
       </div>
 
-      {/* Row 2: Event Notes (only if exists) */}
-      {day.events.length > 0 && (
-        <div className="mt-1.5 text-sm text-gray-600">
-          {day.events[0]}
-        </div>
-      )}
+      {/* Row 2: Event Notes (always render for consistent height) */}
+      <div className="mt-1.5 text-sm text-gray-600 min-h-[20px]">
+        {day.events.length > 0 ? day.events[0] : ''}
+      </div>
     </div>
   )
 }
