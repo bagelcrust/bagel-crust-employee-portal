@@ -1,0 +1,65 @@
+date,event_type,hours,shifts,notes
+2024-01-01,closure,0.00,0,New Year's Day - business closed
+2024-01-08,semester_start,70.91,9,Spring 2024 classes begin
+2024-01-13,peak_day,125.69,17,First big weekend of semester
+2024-01-14,peak_day,131.16,18,Weekend peak
+2024-02-17,peak_day,120.59,15,THON Day 2
+2024-02-18,peak_day,118.28,16,THON Day 3
+2024-02-24,peak_day,139.12,19,Weekend peak
+2024-02-25,peak_day,139.70,20,Highest Feb day
+2024-03-03,reduced_hours,67.95,12,Spring Break starts
+2024-03-04,spring_break,55.60,8,Spring Break Day 1 - first day below 60 hours
+2024-03-05,spring_break,55.89,8,Spring Break continues
+2024-03-07,spring_break,54.39,8,Spring Break low
+2024-03-11,recovery,75.61,9,Spring Break ends - students return
+2024-03-23,peak_day,145.91,21,Highest March day
+2024-04-13,peak_day,131.64,18,Blue-White Spring Game
+2024-04-14,peak_day,129.26,19,Blue-White Weekend
+2024-04-26,semester_end,92.64,11,Spring classes end
+2024-05-04,graduation,105.95,13,Spring Graduation
+2024-05-10,summer_start,74.21,9,First sustained drop below 80
+2024-05-11,summer_transition,76.02,9,Summer pattern begins
+2024-05-12,summer_start,60.51,8,First day below 60 - summer confirmed
+2024-05-13,summer_hours,59.21,8,Summer low pattern established
+2024-05-19,summer_low,41.71,6,Very low Sunday
+2024-05-27,holiday_reduced,55.48,9,Memorial Day
+2024-06-19,holiday_reduced,44.52,6,Juneteenth
+2024-06-24,summer_low,30.32,4,Summer low - 30 hours
+2024-07-04,holiday_reduced,24.09,5,Independence Day - lowest non-Christmas
+2024-07-10,local_event,57.69,8,Arts Fest Day 1
+2024-07-12,local_event,69.11,8,Arts Fest weekend bump
+2024-07-13,local_event,72.58,8,Arts Fest peak
+2024-07-14,local_event,79.12,10,Arts Fest Sunday
+2024-07-21,summer_low,22.93,3,Lowest summer day
+2024-07-22,summer_low,29.08,4,Summer deep low
+2024-08-22,fall_ramp,83.35,10,Move-In Day 1 - first day back above 80
+2024-08-23,fall_ramp,93.78,11,Move-In continues
+2024-08-24,fall_ramp,115.43,15,Move-In weekend
+2024-08-26,semester_start,64.61,7,Fall 2024 classes begin
+2024-08-31,game_day,123.31,16,Home Game vs West Virginia
+2024-09-02,holiday,92.40,12,Labor Day
+2024-09-07,game_day,131.38,16,Home Game vs Bowling Green
+2024-09-14,peak_day,135.24,18,Away Game @ USC
+2024-09-21,game_day,135.68,19,Home Game vs Kent State
+2024-09-28,game_day,131.02,18,Home Game vs Illinois
+2024-09-29,peak_day,147.65,21,Highest September day
+2024-10-05,peak_day,139.52,18,Away Game @ UCLA weekend
+2024-10-06,peak_day,133.35,20,Weekend peak
+2024-10-12,game_day,145.58,20,Homecoming vs USC - highest Oct
+2024-10-19,game_day,136.15,19,Home weekend
+2024-10-26,game_day,132.62,18,Home Game vs Wisconsin
+2024-11-02,game_day,139.05,17,Away Game @ Ohio State
+2024-11-03,peak_day,142.40,18,Big weekend
+2024-11-09,game_day,140.44,17,Home Game vs Washington
+2024-11-10,peak_day,142.05,19,Weekend peak
+2024-11-23,game_day,89.32,11,Home Game vs Minnesota - pre-break reduced
+2024-11-25,thanksgiving_break,45.37,6,Thanksgiving Break starts
+2024-11-26,thanksgiving_break,40.28,6,Students leaving
+2024-11-28,holiday_reduced,40.08,7,Thanksgiving Day
+2024-12-06,semester_end,100.32,15,Fall classes end
+2024-12-07,peak_day,132.54,18,Weekend peak
+2024-12-14,graduation,137.55,18,Fall Graduation
+2024-12-23,winter_break,51.08,8,Winter Break begins
+2024-12-24,holiday_reduced,45.12,6,Christmas Eve
+2024-12-25,holiday_reduced,10.80,2,Christmas Day - lowest day of year
+2024-12-31,holiday_reduced,47.76,7,New Year's Eve

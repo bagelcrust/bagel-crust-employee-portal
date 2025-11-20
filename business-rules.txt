@@ -1,0 +1,61 @@
+BAGEL CRUST BUSINESS RULES
+==========================
+
+COLOR SYSTEM
+------------
+RED    = Closed (0 hours)
+YELLOW = Limited hours (under 60 hours/day)
+GREEN  = Full hours (60+ hours/day)
+
+
+RED - CLOSED
+------------
+- New Year's Day (Jan 1)
+- Christmas Day (Dec 25)
+
+
+YELLOW - LIMITED HOURS
+----------------------
+Holidays:
+- Thanksgiving Day
+- Christmas Eve (Dec 24)
+- New Year's Eve (Dec 31)
+- Memorial Day
+- Independence Day (Jul 4)
+- Juneteenth (Jun 19)
+- Labor Day
+
+Seasonal:
+- Summer (mid-May to mid-August)
+  Start: Around May 12 (after graduation)
+  End: Around Aug 22 (move-in week)
+
+- Spring Break (early March, ~1 week)
+- Thanksgiving Break (Nov 25-27)
+- Winter Break (Dec 23 onward)
+
+
+GREEN - FULL HOURS
+------------------
+Regular Operations:
+- Spring semester (Jan 8 - Apr 26)
+- Fall semester (Aug 26 - Dec 6)
+
+Peak Days (extra busy):
+- Football home games (Sept-Nov Saturdays)
+- Homecoming weekend
+- THON weekend (February)
+- Move-in week (late August)
+- Graduation days
+- Arts Fest (mid-July spike during summer)
+
+
+WEEKLY PATTERN
+--------------
+Busiest: Saturday, Sunday
+Slowest: Monday, Tuesday
+
+
+SHIFT PATTERN
+-------------
+Most shifts start 5-8 AM (morning operation)
