@@ -13,6 +13,7 @@ import { DollarSign, CheckCircle } from 'lucide-react'
 import { getDisplayName, supabase, fetchPayrollDataRpc } from '../shared/supabase-client'
 import { formatHoursMinutes } from '../shared/employeeUtils'
 import { logCondition, logData } from '../shared/debug-utils'
+import { LogPaymentModal } from './log-payment-modal'
 
 interface WorkedShift {
   date: string
@@ -69,6 +70,11 @@ export function PayrollTab() {
   const [employees, setEmployees] = useState<EmployeePayroll[]>([])
   const [flaggedActivities, setFlaggedActivities] = useState<FlaggedActivity[]>([])
   const [finalizingEmployee, setFinalizingEmployee] = useState<string | null>(null)
+  const [logPaymentModal, setLogPaymentModal] = useState<{
+    isOpen: boolean
+    employee: EmployeePayroll | null
+    arrangement: PayRateArrangement | null
+  }>({ isOpen: false, employee: null, arrangement: null })
 
   useEffect(() => {
     loadPayrollData()
@@ -216,7 +222,7 @@ export function PayrollTab() {
           // Build map of paid arrangements: arrangement_id -> { hours, pay }
           const paidArrangements = new Map<number, { hours: number; pay: number }>()
           payrollRecords.forEach((record: any) => {
-            if (record.status === 'paid') {
+            if (record.status === 'paid' && record.payment_type === 'regular') {
               // If pay_rate_id exists, use it to track specific arrangement
               if (record.pay_rate_id) {
                 paidArrangements.set(record.pay_rate_id, {
@@ -400,6 +406,54 @@ export function PayrollTab() {
     }
   }
 
+  const handleLogPayment = async (data: {
+    employeeId: string
+    arrangementId: number
+    totalHours: number
+    hourlyRate: number
+    grossPay: number
+    paymentMethod: 'cash' | 'check'
+    checkNumber: string
+    notes: string
+    payPeriodStart: string
+    payPeriodEnd: string
+  }) => {
+    logData('PayrollTab', 'Logging manual payment', data)
+
+    const { error } = await supabase
+      .schema('employees')
+      .from('payroll_records')
+      .insert({
+        employee_id: data.employeeId,
+        pay_rate_id: data.arrangementId,
+        pay_period_start: data.payPeriodStart,
+        pay_period_end: data.payPeriodEnd,
+        total_hours: data.totalHours,
+        hourly_rate: data.hourlyRate,
+        gross_pay: data.grossPay,
+        deductions: 0,
+        net_pay: data.grossPay,
+        payment_date: format(new Date(), 'yyyy-MM-dd'),
+        payment_method: data.paymentMethod,
+        check_number: data.checkNumber || null,
+        notes: data.notes || null,
+        status: 'paid'
+      })
+
+    if (error) throw error
+
+    // Reload data
+    await loadPayrollData()
+
+    // Scroll to the employee card
+    requestAnimationFrame(() => {
+      const employeeCard = document.getElementById(`employee-card-${data.employeeId}`)
+      if (employeeCard) {
+        employeeCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
+  }
+
   const totalPayroll = employees.reduce((sum, emp) => sum + (emp.totalPay || 0), 0)
   const totalHoursAll = employees.reduce((sum, emp) => sum + emp.totalHours, 0)
   const paidCount = employees.filter(e => e.isPaid).length
@@ -512,6 +566,11 @@ export function PayrollTab() {
                 employee={employee}
                 weekSelection={weekSelection}
                 onFinalize={handleFinalizeEmployee}
+                onLogPayment={(arrangement) => setLogPaymentModal({
+                  isOpen: true,
+                  employee,
+                  arrangement
+                })}
                 isFinalizing={finalizingEmployee === employee.id}
               />
             ))}
@@ -538,6 +597,20 @@ export function PayrollTab() {
           </div>
         </div>
       )}
+
+      {/* Log Payment Modal */}
+      {logPaymentModal.employee && logPaymentModal.arrangement && (
+        <LogPaymentModal
+          isOpen={logPaymentModal.isOpen}
+          onClose={() => setLogPaymentModal({ isOpen: false, employee: null, arrangement: null })}
+          onSave={handleLogPayment}
+          employeeName={logPaymentModal.employee.name}
+          employeeId={logPaymentModal.employee.id}
+          arrangement={logPaymentModal.arrangement}
+          defaultHours={logPaymentModal.employee.totalHours}
+          weekSelection={weekSelection}
+        />
+      )}
     </div>
   )
 }
@@ -549,10 +622,11 @@ interface EmployeePayrollCardProps {
   employee: EmployeePayroll
   weekSelection: 'this' | 'last' | 'lastPayPeriod'
   onFinalize: (employeeId: string, arrangementId: number, manualHours: number) => void
+  onLogPayment: (arrangement: PayRateArrangement) => void
   isFinalizing: boolean
 }
 
-function EmployeePayrollCard({ employee, weekSelection, onFinalize, isFinalizing }: EmployeePayrollCardProps) {
+function EmployeePayrollCard({ employee, weekSelection, onFinalize, onLogPayment, isFinalizing }: EmployeePayrollCardProps) {
   // Select arrangement: if paid, use the one from record; otherwise use selectedArrangement
   const selectedArrangementId = employee.selectedArrangement?.id || employee.payRateArrangements[0]?.id
 
@@ -715,16 +789,26 @@ function EmployeePayrollCard({ employee, weekSelection, onFinalize, isFinalizing
           </div>
         </div>
 
-        {/* Finalize Button - Hide for current week */}
+        {/* Action Buttons - Hide for current week */}
         {weekSelection !== 'this' && (
-          <button
-            onClick={() => onFinalize(employee.id, selectedArrangementId, parseFloat(manualHours) || 0)}
-            disabled={isFinalizing}
-            className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-md transition-all"
-            type="button"
-          >
-            {isFinalizing ? 'Finalizing...' : '✓ Finalize Payment'}
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => currentArrangement && onLogPayment(currentArrangement)}
+              disabled={isFinalizing || !currentArrangement}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-md transition-all"
+              type="button"
+            >
+              Log Payment
+            </button>
+            <button
+              onClick={() => onFinalize(employee.id, selectedArrangementId, parseFloat(manualHours) || 0)}
+              disabled={isFinalizing}
+              className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-md transition-all"
+              type="button"
+            >
+              {isFinalizing ? 'Finalizing...' : '✓ Finalize Payment'}
+            </button>
+          </div>
         )}
       </div>
     </div>
