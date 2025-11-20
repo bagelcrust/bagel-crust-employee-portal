@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'path'
 
 // https://vite.dev/config/
@@ -84,27 +83,6 @@ export default defineConfig({
       devOptions: {
         enabled: true // Enable PWA in development for testing
       }
-    }),
-
-    // Sentry plugin for source maps upload (production only)
-    sentryVitePlugin({
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-
-      // Only upload source maps in production builds
-      disable: process.env.NODE_ENV !== 'production',
-
-      // Upload source maps to Sentry for better error stack traces
-      sourcemaps: {
-        assets: './dist/**',
-        ignore: ['node_modules'],
-      },
-
-      // Release name (uses Vercel git commit SHA)
-      release: {
-        name: process.env.VITE_VERCEL_GIT_COMMIT_SHA || 'development',
-      },
     })
   ],
   server: {

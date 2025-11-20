@@ -1,5 +1,5 @@
 import { Plus, Copy } from 'lucide-react'
-import { Button } from './button'
+import { Button } from '@/shared/ui/button'
 import { formatShiftTime } from '../shared/scheduleUtils'
 import type { DraftShift } from '@/shared/supabase-client'
 

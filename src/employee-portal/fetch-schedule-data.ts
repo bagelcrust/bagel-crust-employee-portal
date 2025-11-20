@@ -108,12 +108,19 @@ export function useGetMySchedule(employeeId: string | undefined, enabled = true)
       finishLog?.()
       console.log(`[SCHEDULE] Employee schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
 
-      logData('SCHEDULE', 'This week raw data', thisWeek.data, ['start_time', 'end_time', 'location'])
-      logData('SCHEDULE', 'Next week raw data', nextWeek.data, ['start_time', 'end_time', 'location'])
+      logData('SCHEDULE', 'This week raw data', thisWeek.data, ['start_time_et', 'end_time_et', 'location'])
+      logData('SCHEDULE', 'Next week raw data', nextWeek.data, ['start_time_et', 'end_time_et', 'location'])
+
+      // Map RPC field names to expected format
+      const mapScheduleFields = (schedule: any) => ({
+        ...schedule,
+        start_time: schedule.start_time_et,
+        end_time: schedule.end_time_et
+      })
 
       // Group by day
-      const thisWeekByDay = groupScheduleByDay(thisWeek.data || [])
-      const nextWeekByDay = groupScheduleByDay(nextWeek.data || [])
+      const thisWeekByDay = groupScheduleByDay((thisWeek.data || []).map(mapScheduleFields))
+      const nextWeekByDay = groupScheduleByDay((nextWeek.data || []).map(mapScheduleFields))
 
       logData('SCHEDULE', 'This week grouped', thisWeekByDay)
       logData('SCHEDULE', 'Next week grouped', nextWeekByDay)
@@ -215,12 +222,23 @@ export function useGetTeamSchedule(enabled = true) {
       finishLog?.()
       console.log(`[TEAM SCHEDULE] Team schedule fetched in ${(performance.now() - start).toFixed(0)}ms`)
 
-      logData('TEAM_SCHEDULE', 'This week team data', thisWeek.data, ['start_time', 'end_time', 'employee_id'])
-      logData('TEAM_SCHEDULE', 'Next week team data', nextWeek.data, ['start_time', 'end_time', 'employee_id'])
+      logData('TEAM_SCHEDULE', 'This week team data', thisWeek.data, ['start_time_et', 'end_time_et', 'employee_id'])
+      logData('TEAM_SCHEDULE', 'Next week team data', nextWeek.data, ['start_time_et', 'end_time_et', 'employee_id'])
+
+      // Map RPC field names to expected format (including nested employee object)
+      const mapTeamScheduleFields = (schedule: any) => ({
+        ...schedule,
+        start_time: schedule.start_time_et,
+        end_time: schedule.end_time_et,
+        employee: {
+          first_name: schedule.employee_first_name,
+          last_name: schedule.employee_last_name
+        }
+      })
 
       // Group by day (includes all employees)
-      const fullThisWeekByDay = groupTeamScheduleByDay(thisWeek.data || [])
-      const fullNextWeekByDay = groupTeamScheduleByDay(nextWeek.data || [])
+      const fullThisWeekByDay = groupTeamScheduleByDay((thisWeek.data || []).map(mapTeamScheduleFields))
+      const fullNextWeekByDay = groupTeamScheduleByDay((nextWeek.data || []).map(mapTeamScheduleFields))
 
       logData('TEAM_SCHEDULE', 'This week grouped by day', fullThisWeekByDay)
       logData('TEAM_SCHEDULE', 'Next week grouped by day', fullNextWeekByDay)

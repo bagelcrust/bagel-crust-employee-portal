@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { formatTime, formatHoursMinutes } from '../shared/employeeUtils'
 import type { Translations } from '../shared/translations'
 import { assertShape, logCondition } from '../shared/debug-utils'
@@ -98,7 +99,7 @@ export function TimesheetTab({ timesheetData, t }: TimesheetTabProps) {
                     {translateDayName(day.day_name)}
                   </div>
                   <div className="text-[13px] text-gray-400 mt-0.5">
-                    {format(new Date(day.date), 'MMMM do')}
+                    {format(new Date(day.date), "d 'de' MMMM", { locale: es })}
                   </div>
                 </div>
                 <div className="text-right">

@@ -91,38 +91,12 @@ export const conflictService = {
   },
 
   /**
-   * Find all existing conflicts in database (using optimized RPC function)
+   * Find all existing conflicts in database
    * Returns only conflicts (not all shifts + time-offs)
-   * Performance: ~95% reduction in data transfer vs manual method
+   * NOTE: Using manual method since find_shift_conflicts RPC function doesn't exist yet
    */
   async findConflicts(startDate: string, endDate: string): Promise<Conflict[]> {
-    const start = new Date(startDate)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(endDate)
-    end.setHours(23, 59, 59, 999)
-
-    // Format dates as YYYY-MM-DD for RPC function
-    const formatDate = (date: Date) => date.toISOString().split('T')[0]
-
-    const { data, error } = await supabase
-      .schema('employees')
-      .rpc('find_shift_conflicts', {
-        p_start_date: formatDate(start),
-        p_end_date: formatDate(end)
-      })
-
-    if (error) throw error
-
-    // Transform RPC result to match Conflict interface
-    return (data || []).map((row: any) => ({
-      shiftId: row.shift_id,
-      employeeId: row.employee_id,
-      employeeName: row.employee_name,
-      shiftDate: row.shift_date,
-      shiftStart: row.shift_start,
-      shiftEnd: row.shift_end,
-      timeOffReason: row.time_off_reason
-    }))
+    return this.findConflictsManual(startDate, endDate)
   },
 
   /**
@@ -134,9 +108,9 @@ export const conflictService = {
     const end = new Date(endDate)
     end.setHours(23, 59, 59, 999)
 
-    // Get all shifts in range
+    // Get all draft shifts in range (Schedule Builder uses draft_shifts table)
     const { data: shifts, error: shiftsError } = await supabase
-      .from('shifts')
+      .from('draft_shifts')
       .select('*, employees(first_name, last_name)')
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString())

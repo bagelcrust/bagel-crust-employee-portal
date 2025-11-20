@@ -159,7 +159,7 @@ await submitRequest({
 })
 ```
 
-**Note:** Currently uses local state. Replace with actual API when backend endpoint exists (see TODOs in `useTimeOff.ts`).
+**Note:** Uses time-off API for data fetching and submissions.
 
 ---
 

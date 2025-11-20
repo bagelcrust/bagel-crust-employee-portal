@@ -6,11 +6,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from './dialog'
-import { Button } from './button'
-import { Input } from './input'
-import { Label } from './label'
-import { Badge } from './badge'
+} from '@/shared/ui/dialog'
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
+import { Label } from '@/shared/ui/label'
+import { Badge } from '@/shared/ui/badge'
 import { Loader2, Trash2, Plus, Minus } from 'lucide-react'
 import type { ScheduleShift } from './fetch-schedule-data'
 

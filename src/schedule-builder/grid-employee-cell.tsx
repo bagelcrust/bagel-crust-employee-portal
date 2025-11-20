@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import { Button } from './button'
+import { Button } from '@/shared/ui/button'
 import { formatShiftTime, formatAvailabilityTime } from '../shared/scheduleUtils'
 import type { ScheduleShift } from './fetch-schedule-data'
 import type { TimeOff } from '@/shared/supabase-client'

@@ -136,8 +136,8 @@ export function useScheduleActions({
 
     try {
       const result = await publishService.publishWeek(
-        currentWeekStart.toISOString(),
-        currentWeekEnd.toISOString(),
+        currentWeekStart.toISOString().split('T')[0],
+        currentWeekEnd.toISOString().split('T')[0],
         { strictMode: true }
       )
 
@@ -170,7 +170,6 @@ export function useScheduleActions({
         currentWeekEnd.toISOString().split('T')[0]
       )
 
-      // toast removed
       refetchShifts()
       refetchPublishStatus()
     } catch (error: any) {
@@ -229,7 +228,6 @@ export function useScheduleActions({
       )
 
       if (lastWeekShifts.length === 0) {
-        // toast removed
         return
       }
 
@@ -250,10 +248,9 @@ export function useScheduleActions({
         createdCount++
       }
 
-      // toast removed
       refetchShifts()
     } catch (error: any) {
-      // toast removed
+      // Error already logged
     }
   }, [currentWeekStart, currentWeekEnd, refetchShifts])
 
@@ -300,7 +297,6 @@ export function useScheduleActions({
     const timeOffsForDay = timeOffsByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
     const hasAllDayTimeOff = timeOffsForDay.some((timeOff: any) => isAllDayTimeOff(timeOff))
     if (hasAllDayTimeOff) {
-      // toast removed
       return
     }
 
@@ -309,7 +305,6 @@ export function useScheduleActions({
     const partialTimeOffsForDay = timeOffsForDay.filter((timeOff: any) => !isAllDayTimeOff(timeOff))
     const hasNoAvailability = availabilityForTargetDay.length === 0 && partialTimeOffsForDay.length === 0
     if (hasNoAvailability) {
-      // toast removed
       return
     }
 
@@ -332,11 +327,9 @@ export function useScheduleActions({
         end_time: newEndDate.toISOString()
       })
 
-      // toast removed
       refetchShifts()
     } catch (error: any) {
       console.error('❌ MOVE SHIFT FAILED:', error)
-      // toast removed
     }
   }, [activeShift, daysOfWeek, timeOffsByEmployeeAndDay, availabilityByEmployeeAndDay, refetchShifts])
 

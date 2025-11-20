@@ -44,7 +44,7 @@ export const publishService = {
     // Call Postgres function
     const { data, error } = await supabase
       .schema('employees')
-      .rpc('publish_schedule_builder_week', {
+      .rpc('publish_week', {
         p_start_date: startDate,
         p_end_date: endDate,
         p_strict_mode: strictMode
@@ -55,7 +55,7 @@ export const publishService = {
     return {
       success: data.success,
       message: data.message,
-      publishedCount: data.published_count,
+      publishedCount: data.publishedCount,
       conflicts: data.conflicts || []
     }
   },
@@ -69,13 +69,13 @@ export const publishService = {
     // Call Postgres function
     const { data, error } = await supabase
       .schema('employees')
-      .rpc('clear_schedule_builder_drafts', {
+      .rpc('clear_draft_shifts', {
         p_start_date: startDate,
         p_end_date: endDate
       })
 
     if (error) throw error
-    return data.cleared_count || 0
+    return data || 0
   },
 
   /**

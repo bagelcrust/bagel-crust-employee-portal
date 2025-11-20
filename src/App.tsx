@@ -2,9 +2,8 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDynamicManifest } from './shared';
-import * as Sentry from '@sentry/react';
-import { initSentry } from './shared/sentry';
 import { Toaster } from '@/shared/ui/toaster';
+import { ErrorBoundary } from './shared/error-boundary';
 
 /**
  * ROUTE-BASED CODE SPLITTING
@@ -25,14 +24,7 @@ import { Toaster } from '@/shared/ui/toaster';
  * - Directly navigate to a URL (inline script handles it)
  * - Navigate within the SPA (React hook handles it)
  *
- * ERROR TRACKING:
- * - Sentry automatically catches all errors in production
- * - Reports errors with user context and breadcrumbs
- * - See errors at https://sentry.io dashboard
  */
-
-// Initialize Sentry error tracking
-initSentry();
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -71,48 +63,20 @@ function ManifestUpdater() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Sentry.ErrorBoundary
-        fallback={({ error, resetError }) => {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-
-        return (
-          <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
-            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="text-6xl mb-4">⚠️</div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
-              <p className="text-gray-600 mb-6">
-                We've been notified about this error and will fix it soon.
-              </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
-                <p className="text-sm font-mono text-red-800 break-all">
-                  {errorMessage || 'Unknown error'}
-                </p>
-              </div>
-              <button
-                onClick={resetError}
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        );
-      }}
-      showDialog={false}
-    >
-      <Router>
-        <ManifestUpdater />
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/clockinout" replace />} />
-            <Route path="/clockinout" element={<ClockInOut />} />
-            <Route path="/employee-portal" element={<EmployeePortal />} />
-            <Route path="/schedule-builder" element={<ScheduleBuilder />} />
-          </Routes>
-        </Suspense>
-        <Toaster />
-      </Router>
-    </Sentry.ErrorBoundary>
+      <ErrorBoundary>
+        <Router>
+          <ManifestUpdater />
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/clockinout" replace />} />
+              <Route path="/clockinout" element={<ClockInOut />} />
+              <Route path="/employee-portal" element={<EmployeePortal />} />
+              <Route path="/schedule-builder" element={<ScheduleBuilder />} />
+            </Routes>
+          </Suspense>
+          <Toaster />
+        </Router>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

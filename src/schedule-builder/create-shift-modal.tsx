@@ -6,10 +6,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from './dialog'
-import { Button } from './button'
-import { Input } from './input'
-import { Label } from './label'
+} from '@/shared/ui/dialog'
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
+import { Label } from '@/shared/ui/label'
 import { Loader2, Clock, Plus, Minus } from 'lucide-react'
 import { analyzeShiftPatterns, formatShiftPattern } from './analyze-shift-patterns'
 import { formatAvailabilityTime } from '../shared/scheduleUtils'

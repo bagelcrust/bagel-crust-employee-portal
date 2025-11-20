@@ -217,7 +217,7 @@ export const timeclockApi = {
     const endLog = logApiCall('timeclockApi', 'getCurrentlyWorking (RPC)');
     const { data, error } = await supabase
       .schema('employees')
-      .rpc('get_currently_working');
+      .rpc('fetch_currently_working');
 
     endLog?.();
     if (error) {

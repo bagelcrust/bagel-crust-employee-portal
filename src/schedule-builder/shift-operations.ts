@@ -37,7 +37,7 @@ export const shiftService = {
     // Call Postgres function (includes conflict validation)
     const { data, error } = await supabase
       .schema('employees')
-      .rpc('create_schedule_builder_shift', {
+      .rpc('create_shift', {
         p_employee_id: input.employee_id,
         p_start_time: input.start_time,
         p_end_time: input.end_time,
@@ -57,7 +57,7 @@ export const shiftService = {
     // Call Postgres function (includes conflict validation)
     const { data, error } = await supabase
       .schema('employees')
-      .rpc('update_schedule_builder_shift', {
+      .rpc('update_shift', {
         p_shift_id: shiftId,
         p_employee_id: updates.employee_id,
         p_start_time: updates.start_time,
@@ -77,7 +77,7 @@ export const shiftService = {
   async deleteShift(shiftId: number): Promise<void> {
     const { error } = await supabase
       .schema('employees')
-      .rpc('delete_schedule_builder_shift', {
+      .rpc('delete_shift', {
         p_shift_id: shiftId
       })
     if (error) throw error
