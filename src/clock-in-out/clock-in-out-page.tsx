@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import { useAutoAnimate } from '@formkit/auto-animate/react'
+import { useState } from 'react'
 import { getDisplayName, supabase } from '../shared/supabase-client'
-import { Keypad } from '../shared/keypad'
-import { offlineClockAction } from '../shared/offlineClockAction'
-import { startSyncManager, onSyncEvent, getSyncStatus, type SyncEvent } from '../shared/syncManager'
+import { Keypad } from './Keypad'
+import { offlineClockAction } from './offlineClockAction'
+import { useClockTerminal, log, logError, logSuccess, logWarning } from './useClockTerminal'
+import { RecentActivityPanel } from './RecentActivityPanel'
 import { assertShape, logCondition, logData, logError as debugLogError } from '../shared/debug-utils'
 
 // CRITICAL TEST: This should fire immediately when file loads (DEV only)
@@ -53,37 +53,6 @@ if (import.meta.env.DEV) {
  * - Detailed error messages for debugging (DEV mode)
  */
 
-// Comprehensive logging utility with timestamp and context (DEV mode only)
-const log = (context: string, message: string, data?: any) => {
-  if (!import.meta.env.DEV) return
-  const timestamp = new Date().toISOString()
-  console.log(`[ClockInOut] ${timestamp} - ${context}: ${message}`, data || '')
-}
-
-const logError = (context: string, error: any, details?: any) => {
-  if (!import.meta.env.DEV) return
-  const timestamp = new Date().toISOString()
-  console.error(`[ClockInOut Error] ${timestamp} - ${context}:`, {
-    error: error?.message || error,
-    stack: error?.stack,
-    details,
-    userAgent: navigator.userAgent,
-    online: navigator.onLine
-  })
-}
-
-const logSuccess = (context: string, message: string, data?: any) => {
-  if (!import.meta.env.DEV) return
-  const timestamp = new Date().toISOString()
-  console.log(`%c[ClockInOut Success] ${timestamp} - ${context}: ${message}`, 'color: green; font-weight: bold', data || '')
-}
-
-const logWarning = (context: string, message: string, data?: any) => {
-  if (!import.meta.env.DEV) return
-  const timestamp = new Date().toISOString()
-  console.warn(`[ClockInOut Warning] ${timestamp} - ${context}: ${message}`, data || '')
-}
-
 export default function ClockInOut() {
   // Dev/Production mode toggle - allows previewing production appearance while developing
   // In actual production (import.meta.env.PROD), this toggle won't show and devMode will be false
@@ -94,218 +63,22 @@ export default function ClockInOut() {
     console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
   }
 
+  // Use the extracted hook for terminal-level concerns
+  const {
+    currentTime,
+    currentDate,
+    recentEvents,
+    realtimeStatus,
+    syncStatus,
+    criticalError,
+    activityListRef,
+    loadRecentEvents
+  } = useClockTerminal()
+
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error' | 'clockout' | ''>('')
-  const [currentTime, setCurrentTime] = useState('')
-  const [currentDate, setCurrentDate] = useState('')
-  const [recentEvents, setRecentEvents] = useState<any[]>([])
   const [keypadKey, setKeypadKey] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected')
-  const [criticalError, setCriticalError] = useState<string | null>(null)
-  const [syncStatus, setSyncStatus] = useState<SyncEvent>({ status: 'idle', queueCount: 0 })
-
-  // AutoAnimate ref for smooth Recent Activity transitions
-  const [activityListRef] = useAutoAnimate()
-
-  useEffect(() => {
-    log('Lifecycle', '🚀 Component mounted - Clock Terminal initializing')
-    log('Environment', 'User agent', { userAgent: navigator.userAgent })
-    log('Environment', 'Network status', { online: navigator.onLine })
-    log('Environment', 'Timezone', { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
-    logData('CLOCK', 'Component mount', { devMode, isProcessing })
-
-    // Set page title for clock terminal
-    document.title = 'Bagel Crust - Clock In/Out'
-
-    // OFFLINE QUEUE: Initialize sync manager
-    log('Offline Queue', '🔄 Starting sync manager...')
-    startSyncManager()
-
-    // Subscribe to sync events
-    const unsubscribe = onSyncEvent((event) => {
-      logSuccess('Sync Event', `Sync status: ${event.status}`, event)
-      setSyncStatus(event)
-    })
-
-    // Get initial sync status
-    getSyncStatus().then(status => {
-      log('Offline Queue', 'Initial sync status', status)
-      setSyncStatus(status)
-    }).catch(error => {
-      logError('Offline Queue', 'Failed to get initial sync status', error)
-    })
-
-    const updateTime = () => {
-      const now = new Date()
-      setCurrentTime(now.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'America/New_York'
-      }))
-      setCurrentDate(now.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone: 'America/New_York'
-      }))
-    }
-
-    updateTime()
-    log('Clock', 'Clock display initialized', { time: currentTime, date: currentDate })
-    const timer = setInterval(updateTime, 1000)
-
-    // Initial load with error handling
-    log('Data', 'Loading initial recent events...')
-    loadRecentEvents()
-
-    // REAL-TIME SUBSCRIPTION: Listen for new clock in/out events
-    // When someone clocks in or out, instantly update the recent activity feed
-    log('Realtime', '📡 Setting up Realtime subscription for time_entries')
-    const subscription = supabase
-      .channel('time_entries_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'employees',
-          table: 'time_entries'
-        },
-        (payload) => {
-          logSuccess('Realtime', '🔔 New time entry received via Realtime', payload)
-          // Reload recent events when new entry is inserted
-          loadRecentEvents()
-        }
-      )
-      .subscribe((status) => {
-        log('Realtime', `Subscription status changed: ${status}`)
-        if (status === 'SUBSCRIBED') {
-          logSuccess('Realtime', '✅ Realtime connected successfully')
-          setRealtimeStatus('connected')
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          logError('Realtime', 'Subscription failed', { status })
-          setRealtimeStatus('error')
-        } else {
-          log('Realtime', `Status: ${status}`)
-          setRealtimeStatus('disconnected')
-        }
-      })
-
-    // Health check: Verify realtime connection every 30 seconds
-    log('Health Check', '🏥 Starting health monitoring (30s interval)')
-    const healthCheck = setInterval(() => {
-      log('Health Check', '💓 Checking system health', {
-        realtimeStatus,
-        online: navigator.onLine,
-        recentEventsCount: recentEvents.length
-      })
-      if (realtimeStatus === 'error') {
-        logError('Health Check', 'Realtime connection is in error state')
-      }
-    }, 30000)
-
-    // Network status monitoring
-    const handleOnline = () => logSuccess('Network', '🌐 Network back online')
-    const handleOffline = () => logWarning('Network', '📵 Network went offline')
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      log('Lifecycle', '🛑 Component unmounting - cleaning up')
-      clearInterval(timer)
-      clearInterval(healthCheck)
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-      log('Realtime', 'Unsubscribing from Realtime channel')
-      subscription.unsubscribe()
-      log('Offline Queue', 'Unsubscribing from sync events')
-      unsubscribe()
-    }
-  }, []) // Empty dependency array - only run once on mount
-
-  const loadRecentEvents = async () => {
-    const startTime = performance.now()
-    log('API', '📥 Loading recent events from Postgres...')
-
-    try {
-      // Calculate date range (last 14 days)
-      const endDate = new Date()
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - 14)
-
-      // Format dates as YYYY-MM-DD
-      const formatDate = (date: Date) => date.toISOString().split('T')[0]
-
-      // Timeout protection: 15 seconds
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000)
-      )
-
-      const dataPromise = supabase
-        .rpc('get_recent_activity', {
-          p_start_date: formatDate(startDate),
-          p_end_date: formatDate(endDate),
-          p_employee_id: null, // null = all employees
-          p_limit: 10
-        })
-
-      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any
-
-      if (error) {
-        throw new Error(`Database query failed: ${error.message}`)
-      }
-
-      const duration = Math.round(performance.now() - startTime)
-      logSuccess('API', `✅ Recent events loaded in ${duration}ms`, {
-        eventCount: data?.length || 0,
-        duration: `${duration}ms`
-      })
-
-      // Format events for display
-      const formattedEvents = (data || []).map((event: any) => {
-        // Extract first name only
-        const firstName = event.employee_name.split(' ')[0]
-
-        // Format timestamp to 12-hour time
-        const timestamp = new Date(event.event_timestamp_et)
-        const hours = timestamp.getHours()
-        const minutes = timestamp.getMinutes()
-        const ampm = hours >= 12 ? 'PM' : 'AM'
-        const hour12 = hours % 12 || 12
-        const formattedTime = `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`
-
-        return {
-          id: event.id,
-          employeeId: event.employee_id,
-          name: firstName,
-          time: formattedTime,
-          action: event.event_type === 'in' ? 'Clock In' : 'Clock Out'
-        }
-      })
-
-      setRecentEvents(formattedEvents)
-      log('State', 'Recent events state updated', { count: formattedEvents.length })
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime)
-      logError('API', `Failed to load recent events after ${duration}ms`, error)
-
-      // CRITICAL: Show error to user for debugging
-      console.error('🚨🚨🚨 CRITICAL ERROR - Recent events failed to load:', {
-        errorMessage: error?.message || String(error),
-        errorStack: error?.stack,
-        duration: `${duration}ms`,
-        timestamp: new Date().toISOString()
-      })
-
-      // Show visible error on page
-      setCriticalError(`API Error: ${error?.message || String(error)}`)
-
-      // Graceful degradation: Keep showing old events, don't crash
-    }
-  }
 
   const handleClockAction = async (pin: string) => {
     const operationStartTime = performance.now()
@@ -494,7 +267,9 @@ export default function ClockInOut() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-screen overflow-hidden flex items-start justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-5 pt-6 pb-[env(safe-area-inset-bottom,0px)] relative">
+    <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden flex items-start justify-center px-5 pt-10 pb-[env(safe-area-inset-bottom,0px)] relative">
+      {/* Background Layer - Decoupled to prevent white gap from safe-area */}
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 -z-50" />
 
       {/* Static Decorative Blobs - No animation, pure CSS (visible in both modes) */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-45">
@@ -523,7 +298,7 @@ export default function ClockInOut() {
         <div className="mb-6 text-center">
           <div className="flex items-baseline justify-center mb-2 gap-1">
             {/* Hours and Minutes - Large */}
-            <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px]">
+            <div className="text-[80px] font-semibold text-slate-800 tracking-[-0.5px]">
               {(currentTime || '--:--:--').split(':').slice(0, 2).join(':')}
             </div>
             {/* Seconds - Tiny (dev only) */}
@@ -533,11 +308,11 @@ export default function ClockInOut() {
               </div>
             )}
             {/* AM/PM - Same size and color as main clock */}
-            <div className="text-[57px] font-semibold text-slate-800 tracking-[-0.5px] ml-1">
+            <div className="text-[80px] font-semibold text-slate-800 tracking-[-0.5px] ml-1">
               {(currentTime || '').match(/AM|PM/)?.[0] || ''}
             </div>
           </div>
-          <div className="text-[15px] text-slate-500 font-medium">
+          <div className="text-[18px] text-slate-500 font-medium">
             {currentDate || 'Loading...'}
           </div>
         </div>
@@ -558,76 +333,14 @@ export default function ClockInOut() {
         )}
       </div>
 
-      {/* Recent Activity - Glass Effect with Mobile Safe Area + AutoAnimate */}
-      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] right-4 w-[280px] bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 max-h-[400px] overflow-y-auto">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-            Recent Activity
-          </h3>
-          <div className="flex items-center gap-2">
-            {/* Sync status indicator */}
-            {syncStatus.queueCount > 0 && (
-              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                syncStatus.status === 'syncing'
-                  ? 'bg-blue-400/20 text-blue-600 animate-pulse'
-                  : 'bg-yellow-400/20 text-yellow-600'
-              }`} title={syncStatus.message}>
-                {syncStatus.status === 'syncing' ? '⟳' : '●'}
-                <span>{syncStatus.queueCount}</span>
-              </div>
-            )}
-            {/* Realtime connection indicator (DEV mode only) */}
-            {devMode && (
-              <div className={`w-2 h-2 rounded-full ${
-                realtimeStatus === 'connected' ? 'bg-green-500' :
-                realtimeStatus === 'error' ? 'bg-red-500' :
-                'bg-gray-400'
-              }`} title={`Realtime: ${realtimeStatus}`} />
-            )}
-          </div>
-        </div>
-
-        {recentEvents.length > 0 ? (
-          <div ref={activityListRef} className="flex flex-col gap-2">
-            {recentEvents
-              .filter(event => {
-                // FILTER TEST USER: Hide test user (employeeId: bbb42de4-61b0-45cc-ae92-2e6dec6b53ee) in production mode
-                // Test user entries only show when devMode is enabled
-                if (!devMode && event.employeeId === 'bbb42de4-61b0-45cc-ae92-2e6dec6b53ee') {
-                  return false;
-                }
-                return true;
-              })
-              .slice(0, 5)
-              .map((event) => (
-              <div
-                key={event.id}
-                className="flex items-center justify-between py-2 border-b border-black/5"
-              >
-                <div className="flex-1 min-w-0 mr-2">
-                  <div className="text-[13px] font-medium text-slate-800 overflow-hidden text-ellipsis whitespace-nowrap">
-                    {event.name}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    {event.time}
-                  </div>
-                </div>
-                <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
-                  event.action === 'Clock In'
-                    ? 'bg-green-400/15 text-green-500'
-                    : 'bg-orange-400/15 text-orange-500'
-                }`}>
-                  {event.action === 'Clock In' ? 'IN' : 'OUT'}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-xs text-slate-400 text-center p-4 italic">
-            No recent activity
-          </div>
-        )}
-      </div>
+      {/* Recent Activity Panel - Extracted Component */}
+      <RecentActivityPanel
+        recentEvents={recentEvents}
+        syncStatus={syncStatus}
+        realtimeStatus={realtimeStatus}
+        devMode={devMode}
+        activityListRef={activityListRef}
+      />
 
       {/* Success/Error Message Display with Mobile Safe Area - Bounce Animation */}
       {message && (

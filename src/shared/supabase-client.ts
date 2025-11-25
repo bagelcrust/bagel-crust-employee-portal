@@ -46,12 +46,15 @@ export type TimeOffUpdate = Database['employees']['Tables']['time_off_notices'][
 export type PayRateUpdate = Database['employees']['Tables']['pay_rates']['Update'];
 export type PayrollRecordUpdate = Database['employees']['Tables']['payroll_records']['Update'];
 
-// Helper to get display name
+// Helper to get display name (handles null/undefined last_name)
 export function getDisplayName(employee: Employee): string {
-  if (employee.last_name) {
-    return `${employee.first_name} ${employee.last_name}`;
+  const firstName = employee.first_name || '';
+  const lastName = employee.last_name;
+  // Check for actual string value, not null/undefined/empty
+  if (lastName && typeof lastName === 'string' && lastName.trim()) {
+    return `${firstName} ${lastName}`.trim();
   }
-  return employee.first_name;
+  return firstName;
 }
 
 // Employee API functions

@@ -10,8 +10,8 @@ import {
   type TabKey
 } from '../shared/roleConfig'
 import { getEmployeeTranslations } from '../shared/languageUtils'
-import { validateTimeOffRequest } from '../shared/validationUtils'
-import { createTimeOffResetHandler } from '../shared/stateUtils'
+import { validateTimeOffRequest } from './validationUtils'
+import { createTimeOffResetHandler } from './stateUtils'
 import { PAGE_TITLES, ALERTS } from '../shared/constants'
 import { assertShape, logCondition, logData, logError, logStateChange } from '../shared/debug-utils'
 import { LoginScreen } from './login-screen'
@@ -20,8 +20,10 @@ import { ScheduleTab } from './tab-schedule'
 import { TimeOffTab } from './tab-time-off'
 import { TimesheetTab } from './tab-timesheet'
 import { PayrollTab } from './tab-payroll'
+import { TimeLogsTab } from './tab-time-logs'
 import { ProfileTab } from './tab-profile'
 import { CalendarTab } from './tab-calendar'
+import { InventoryTab } from './tab-inventory'
 
 /**
  * EMPLOYEE PORTAL - Mobile-First Design with Refined Glassmorphism
@@ -350,6 +352,22 @@ export default function EmployeePortal() {
             <>
               {logCondition('PORTAL', 'Rendering PayrollTab', true, { role: employee?.role })}
               <PayrollTab />
+            </>
+          )}
+
+          {/* TIME LOGS TAB (Owner Only) */}
+          {activeTab === 'timeLogs' && (
+            <>
+              {logCondition('PORTAL', 'Rendering TimeLogsTab', true, { role: employee?.role })}
+              <TimeLogsTab />
+            </>
+          )}
+
+          {/* INVENTORY TAB (Owner Only) */}
+          {activeTab === 'inventory' && employee && (
+            <>
+              {logCondition('PORTAL', 'Rendering InventoryTab', true, { role: employee?.role })}
+              <InventoryTab employee={employee} />
             </>
           )}
 

@@ -10,12 +10,12 @@
  * - owner: Management tabs (Schedule, Payroll, Profile) - No Time Off or Hours
  */
 
-export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile' | 'calendar'
+export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile' | 'calendar' | 'timeLogs' | 'inventory'
 
 export interface TabConfig {
   key: TabKey
   label: string
-  iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user' | 'calendar-days'
+  iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user' | 'calendar-days' | 'file-clock' | 'clipboard-list'
 }
 
 // Test role sees ALL tabs (for development/testing)
@@ -24,7 +24,9 @@ const TEST_TABS: TabConfig[] = [
   { key: 'calendar', label: 'Calendar', iconName: 'calendar-days' },
   { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
   { key: 'timesheet', label: 'Hours', iconName: 'clock' },
+  { key: 'timeLogs', label: 'Time Logs', iconName: 'file-clock' },
   { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
+  { key: 'inventory', label: 'Inventory', iconName: 'clipboard-list' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 
@@ -36,10 +38,12 @@ const STANDARD_TABS: TabConfig[] = [
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 
-// Owner gets Schedule, Payroll, and Profile (no Time Off or Hours for manager view)
+// Owner gets Time Logs first, then Schedule, Payroll, Inventory, and Profile
 const OWNER_TABS: TabConfig[] = [
+  { key: 'timeLogs', label: 'Time Logs', iconName: 'file-clock' },
   { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
   { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
+  { key: 'inventory', label: 'Inventory', iconName: 'clipboard-list' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 

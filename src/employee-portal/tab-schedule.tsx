@@ -98,9 +98,9 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
   logCondition('ScheduleTab', `Using ${showWeek} week schedule`, !!currentSchedule, { showWeek, hasData: !!currentSchedule })
 
   return (
-    <>
-      {/* Card 1: Greeting + Next Shift */}
-      <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 mb-6">
+    <div className="space-y-6">
+      {/* Greeting + Next Shift */}
+      <div>
         {/* Clean Greeting */}
         <h1 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">
           Hi {employee?.first_name || 'there'}! 👋
@@ -162,9 +162,9 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
         })()}
       </div>
 
-      {/* Card 2: My Schedule */}
-      <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 mb-6">
-        <h2 className="text-[28px] font-bold text-gray-800 mb-6 tracking-tight">
+      {/* My Schedule */}
+      <div>
+        <h2 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">
           My Schedule
         </h2>
 
@@ -260,19 +260,19 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
         </div>
       </div>
 
-      {/* Card 3: Open Shifts (Placeholder) */}
-      <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50 mb-6">
-        <h2 className="text-[28px] font-bold text-gray-800 mb-8 tracking-tight">
+      {/* Open Shifts (Placeholder) */}
+      <div>
+        <h2 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">
           Open Shifts
         </h2>
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-8">
           <p className="text-gray-500 text-lg">Coming soon</p>
         </div>
       </div>
 
-      {/* Card 4: Team Schedule */}
-      <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
-        <h2 className="text-[28px] font-bold text-gray-800 mb-6 tracking-tight">
+      {/* Team Schedule */}
+      <div>
+        <h2 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">
           Team Schedule
         </h2>
 
@@ -353,6 +353,6 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }

@@ -112,7 +112,8 @@ export function LogPaymentModal({
   const hourlyRate = arrangement.rate
   // In direct mode: use actual hours worked (defaultHours), not back-calculated
   const finalHours = entryMode === 'calculate' ? (parseFloat(hours) || 0) : defaultHours
-  const finalAmount = entryMode === 'calculate' ? finalHours * hourlyRate : (parseFloat(amount) || 0)
+  // Fix $0 bug: if amount field is empty/invalid in direct mode, fall back to calculated amount
+  const finalAmount = entryMode === 'calculate' ? finalHours * hourlyRate : (parseFloat(amount) || (defaultHours * hourlyRate))
   // For warning: what the pay SHOULD be based on hours
   const expectedAmount = defaultHours * hourlyRate
   const amountDiffers = entryMode === 'direct' && Math.abs(finalAmount - expectedAmount) > 0.01
@@ -129,10 +130,7 @@ export function LogPaymentModal({
       alert('Please enter valid amount')
       return
     }
-    if (paymentMethod === 'check' && !checkNumber.trim()) {
-      alert('Please enter check number')
-      return
-    }
+    // Check number is optional - database accepts null
 
     setIsLoading(true)
 
@@ -291,7 +289,7 @@ export function LogPaymentModal({
                 type="text"
                 value={checkNumber}
                 onChange={(e) => setCheckNumber(e.target.value)}
-                placeholder="1234"
+                placeholder="Check # (optional)"
               />
             </div>
           )}

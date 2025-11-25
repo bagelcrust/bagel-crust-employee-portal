@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDynamicManifest } from './shared';
 import { Toaster } from '@/shared/ui/toaster';
 import { ErrorBoundary } from './shared/error-boundary';
@@ -25,16 +24,6 @@ import { ErrorBoundary } from './shared/error-boundary';
  * - Navigate within the SPA (React hook handles it)
  *
  */
-
-// Create React Query client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
 
 // Lazy load page components
 const ClockInOut = lazy(() => import('./clock-in-out/clock-in-out-page'));
@@ -62,22 +51,20 @@ function ManifestUpdater() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <Router>
-          <ManifestUpdater />
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/clockinout" replace />} />
-              <Route path="/clockinout" element={<ClockInOut />} />
-              <Route path="/employee-portal" element={<EmployeePortal />} />
-              <Route path="/schedule-builder" element={<ScheduleBuilder />} />
-            </Routes>
-          </Suspense>
-          <Toaster />
-        </Router>
-      </ErrorBoundary>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <Router>
+        <ManifestUpdater />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/clockinout" replace />} />
+            <Route path="/clockinout" element={<ClockInOut />} />
+            <Route path="/employee-portal" element={<EmployeePortal />} />
+            <Route path="/schedule-builder" element={<ScheduleBuilder />} />
+          </Routes>
+        </Suspense>
+        <Toaster />
+      </Router>
+    </ErrorBoundary>
   );
 }
 
