@@ -4,6 +4,7 @@ import { Keypad } from './Keypad'
 import { offlineClockAction } from './offlineClockAction'
 import { useClockTerminal, log, logError, logSuccess, logWarning } from './useClockTerminal'
 import { RecentActivityPanel } from './RecentActivityPanel'
+import { PortalQRCode } from './components/PortalQRCode'
 import { assertShape, logCondition, logData, logError as debugLogError } from '../shared/debug-utils'
 
 // CRITICAL TEST: This should fire immediately when file loads (DEV only)
@@ -276,6 +277,9 @@ export default function ClockInOut() {
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-blue-300/50 to-purple-200/40 rounded-full blur-3xl"></div>
         <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-300/40 to-blue-200/35 rounded-full blur-3xl"></div>
       </div>
+
+      {/* QR Code to Employee Portal - Top Left Corner */}
+      <PortalQRCode />
 
       <div className="flex flex-col items-center w-full max-w-md relative z-10">
         {/* CRITICAL ERROR BANNER */}
