@@ -1,4 +1,5 @@
 import { QRCodeSVG } from 'qrcode.react'
+import { Camera } from 'lucide-react'
 
 /**
  * QR Code linking to Employee Portal
@@ -20,8 +21,11 @@ export function PortalQRCode() {
         />
       </div>
       <div className="text-center">
-        <div className="text-sm font-medium text-slate-700">View Hours</div>
-        <div className="text-sm font-medium text-slate-500">Ver Horas</div>
+        <div className="flex items-center justify-center gap-1 text-slate-700">
+          <Camera className="w-5 h-5" />
+          <span className="text-sm font-medium">View Hours</span>
+        </div>
+        <div className="text-sm text-slate-500">Ver Horas</div>
       </div>
     </div>
   )
