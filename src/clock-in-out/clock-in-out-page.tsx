@@ -275,7 +275,7 @@ export default function ClockInOut() {
           {/* Kiosk Card */}
           <div className="bg-white/80 rounded-3xl shadow-xl p-12 w-full max-w-lg text-center z-10">
             {/* Brand Logo */}
-            <img src="/PrimaryLogo_9.svg" alt="Bagel Crust" className="h-8 mx-auto mb-3 opacity-[0.97]" />
+            <img src="/PrimaryLogo_9.svg" alt="Bagel Crust" className="h-12 mx-auto mb-3 opacity-[0.97]" />
 
             {/* Label */}
             <div className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-4">
