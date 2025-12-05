@@ -258,7 +258,7 @@ export default function ClockInOut() {
         </div>
 
         {/* RIGHT PANEL: The Stage (Clock + Keypad) */}
-        <div className="flex-1 h-full flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="flex-1 h-full flex flex-col items-center justify-center relative overflow-hidden pb-16">
           {/* Ambient Blobs */}
           <div className="absolute -top-20 -right-20 w-80 h-80 bg-purple-200/25 blur-3xl rounded-full z-0 pointer-events-none"></div>
           <div className="absolute -bottom-32 right-1/4 w-72 h-72 bg-blue-200/20 blur-3xl rounded-full z-0 pointer-events-none"></div>
