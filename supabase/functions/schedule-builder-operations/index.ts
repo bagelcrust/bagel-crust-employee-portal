@@ -621,20 +621,29 @@ serve(async (req) => {
         );
       }
 
-      // Delete old published shifts for this week first
+      // Get week date range for new shifts
       const weekStartDate = weekStart.toISOString().split('T')[0];
       const weekEndDate = weekEnd.toISOString().split('T')[0];
 
-      const { error: deleteError } = await supabase
+      // Fetch existing published shifts to prevent duplicates
+      const { data: existingShifts } = await supabase
         .from('published_shifts')
-        .delete()
+        .select('employee_id, start_time')
         .eq('week_start', weekStartDate)
         .eq('week_end', weekEndDate);
 
-      if (deleteError) throw deleteError;
+      // Create lookup set for existing shifts (employee_id + start_time)
+      const existingKeys = new Set(
+        (existingShifts || []).map(s => `${s.employee_id}-${s.start_time}`)
+      );
 
-      // Copy draft shifts to published_shifts
-      const publishedShiftsData = draftShifts.map(draft => ({
+      // Filter out drafts that already exist as published shifts
+      const newDrafts = draftShifts.filter(
+        draft => !existingKeys.has(`${draft.employee_id}-${draft.start_time}`)
+      );
+
+      // Copy NEW draft shifts to published_shifts (merge, don't replace)
+      const publishedShiftsData = newDrafts.map(draft => ({
         employee_id: draft.employee_id,
         start_time: draft.start_time,
         end_time: draft.end_time,
@@ -645,19 +654,25 @@ serve(async (req) => {
         published_at: new Date().toISOString()
       }));
 
-      const { error: insertError } = await supabase
-        .from('published_shifts')
-        .insert(publishedShiftsData);
+      // Only insert if there are new shifts to publish
+      if (publishedShiftsData.length > 0) {
+        const { error: insertError } = await supabase
+          .from('published_shifts')
+          .insert(publishedShiftsData);
 
-      if (insertError) throw insertError;
+        if (insertError) throw insertError;
+      }
 
-      console.log('[Schedule Builder] Published', draftShifts.length, 'shifts');
+      const skippedCount = draftShifts.length - newDrafts.length;
+      console.log('[Schedule Builder] Published', newDrafts.length, 'shifts, skipped', skippedCount, 'duplicates');
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Published ${draftShifts.length} shift(s) successfully`,
-          publishedCount: draftShifts.length,
+          message: newDrafts.length > 0
+            ? `Published ${newDrafts.length} shift(s) successfully${skippedCount > 0 ? ` (${skippedCount} already published)` : ''}`
+            : `All ${draftShifts.length} shift(s) were already published`,
+          publishedCount: newDrafts.length,
           conflicts: conflicts.length > 0 ? conflicts : []
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

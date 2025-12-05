@@ -9,7 +9,7 @@ export function PortalQRCode() {
   const portalUrl = 'https://bagelcrust.biz/employee-portal'
 
   return (
-    <div className="fixed top-4 left-4 flex flex-col items-center gap-2 z-20">
+    <div className="fixed left-6 top-[calc(1rem+env(safe-area-inset-top))] flex flex-col items-center gap-2 z-20">
       <div className="bg-white p-2 rounded-lg shadow-md">
         <QRCodeSVG
           value={portalUrl}

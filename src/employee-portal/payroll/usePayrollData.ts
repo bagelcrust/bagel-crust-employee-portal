@@ -75,29 +75,6 @@ export function usePayrollData() {
       const payRatesData = rpcResult.pay_rates || []
       let existingPayrollRecords = rpcResult.payroll_records || []
 
-      // For "Last Week" view, also fetch bi-weekly payments from previous week
-      // (Carlos/Mere bi-weekly payments have pay_period_start = Nov 10, but we're viewing Nov 17)
-      if (weekSelection === 'last') {
-        const biweeklyStartDate = format(subWeeks(new Date(startDateET), 1), 'yyyy-MM-dd')
-        const { data: biweeklyRecords } = await supabase
-          .schema('employees')
-          .from('payroll_records')
-          .select('*')
-          .gte('pay_period_start', biweeklyStartDate)
-          .lt('pay_period_start', startDateET)
-          .eq('status', 'paid')
-
-        if (biweeklyRecords && biweeklyRecords.length > 0) {
-          // Merge bi-weekly records, avoiding duplicates
-          const existingIds = new Set(existingPayrollRecords.map((r: any) => r.id))
-          biweeklyRecords.forEach((record: any) => {
-            if (!existingIds.has(record.id)) {
-              existingPayrollRecords.push(record)
-            }
-          })
-        }
-      }
-
       // Create pay rates map - employees can have MULTIPLE active pay arrangements
       // (e.g., Carlos has both 1099/Weekly and W-2/Bi-weekly)
       const payRatesMap = new Map<string, PayRateArrangement[]>()
@@ -150,7 +127,7 @@ export function usePayrollData() {
                 const inTime = new Date(clockIn.event_timestamp)
                 workedShifts.push({
                   date: format(inTime, 'yyyy-MM-dd'),
-                  dayName: format(inTime, 'EEEE'),
+                  dayName: format(inTime, 'EEEE') + ' (' + format(inTime, 'M/d') + ')',
                   clockIn: format(inTime, 'h:mm a'),
                   clockOut: null,
                   hoursWorked: 0,
@@ -178,7 +155,7 @@ export function usePayrollData() {
 
               workedShifts.push({
                 date: format(inTime, 'yyyy-MM-dd'),
-                dayName: format(inTime, 'EEEE'),
+                dayName: format(inTime, 'EEEE') + ' (' + format(inTime, 'M/d') + ')',
                 clockIn: format(inTime, 'h:mm a'),
                 clockOut: format(outTime, 'h:mm a'),
                 hoursWorked: hours,
@@ -198,7 +175,7 @@ export function usePayrollData() {
             const inTime = new Date(clockIn.event_timestamp)
             workedShifts.push({
               date: format(inTime, 'yyyy-MM-dd'),
-              dayName: format(inTime, 'EEEE'),
+              dayName: format(inTime, 'EEEE') + ' (' + format(inTime, 'M/d') + ')',
               clockIn: format(inTime, 'h:mm a'),
               clockOut: null,
               hoursWorked: 0,

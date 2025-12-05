@@ -268,7 +268,7 @@ export default function ClockInOut() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden flex items-start justify-center px-5 pt-10 pb-[env(safe-area-inset-bottom,0px)] relative">
+    <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden flex items-start justify-center px-5 pt-[calc(2rem+env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom,0px)] relative">
       {/* Background Layer - Decoupled to prevent white gap from safe-area */}
       <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50 -z-50" />
 

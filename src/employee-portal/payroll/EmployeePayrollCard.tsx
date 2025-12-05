@@ -224,7 +224,9 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
               <div className="text-2xl font-bold text-green-800">
                 ${actualPaidAmount.toFixed(2)}
               </div>
-              <HoursDisplay colorClass="text-green-600" decimalColorClass="text-green-500" />
+              <div className="text-sm text-green-600">
+                ${hourlyRate.toFixed(2)} × {employee.totalHours.toFixed(2)}h
+              </div>
             </div>
             {isExpanded ? (
               <ChevronUp className="w-5 h-5 text-green-600" />
@@ -342,7 +344,9 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
             <div className="text-2xl font-bold text-gray-900">
               ${expectedPay.toFixed(2)}
             </div>
-            <HoursDisplay />
+            <div className="text-sm text-gray-500">
+              ${hourlyRate.toFixed(2)} × {employee.totalHours.toFixed(2)}h
+            </div>
           </div>
           {isExpanded ? (
             <ChevronUp className="w-5 h-5 text-gray-400" />

@@ -18,20 +18,31 @@ interface ScheduleTabProps {
 const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 
 /**
+ * Get current date/time in Eastern timezone
+ * CRITICAL: All date calculations must use this, not new Date()
+ */
+function getEasternNow(): Date {
+  const etString = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
+  return new Date(etString)
+}
+
+/**
  * Finds the next upcoming shift from schedule data
  * Searches through current day (future shifts only), rest of this week, and next week
+ * Uses EASTERN TIME for all calculations
  */
 function getNextShift(scheduleData: any) {
   if (!scheduleData) return null
 
-  const now = new Date()
-  const currentTime = now.getHours() * 60 + now.getMinutes() // minutes since midnight
+  // Use Eastern time, not browser local time!
+  const now = getEasternNow()
+  const currentTime = now.getHours() * 60 + now.getMinutes() // minutes since midnight ET
   const currentDayOfWeek = now.getDay() // 0 = Sunday, 1 = Monday, etc.
 
   // Convert to our day order (Monday = 0)
   const currentDayIndex = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1
 
-  // Calculate Monday of this week
+  // Calculate Monday of this week in Eastern time
   const mondayOfThisWeek = new Date(now)
   const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek
   mondayOfThisWeek.setDate(now.getDate() + mondayOffset)
@@ -89,7 +100,8 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
   const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
   const [teamScheduleWeek, setTeamScheduleWeek] = useState<'this' | 'next'>('this')
   const [selectedTeamDay, setSelectedTeamDay] = useState<typeof dayOrder[number]>(() => {
-    const today = new Date().getDay()
+    // Use Eastern time for today's day of week
+    const today = getEasternNow().getDay()
     const todayIndex = today === 0 ? 6 : today - 1
     return dayOrder[todayIndex]
   })

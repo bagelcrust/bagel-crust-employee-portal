@@ -3,8 +3,18 @@ import { supabase } from '../shared/supabase-client'
 import { logData, logError, logApiCall } from '../shared/debug-utils'
 
 /**
+ * Get current date/time in Eastern timezone
+ * CRITICAL: All date calculations must use this, not new Date()
+ */
+function getEasternNow(): Date {
+  const etString = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
+  return new Date(etString)
+}
+
+/**
  * Helper to group schedule by day of week
- * Used for "My Schedule" view (filtered to one employee)
+ * Uses server-provided day_of_week_et (from Postgres get_eastern_dow)
+ * Day mapping: 0=Monday, 1=Tuesday, ..., 6=Sunday
  */
 function groupScheduleByDay(schedules: any[]) {
   const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -20,26 +30,31 @@ function groupScheduleByDay(schedules: any[]) {
   }
 
   schedules.forEach(schedule => {
-    const startDate = new Date(schedule.start_time)
-    const endDate = new Date(schedule.end_time)
-    const dayOfWeek = startDate.getDay()
-    const dayName = dayOrder[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+    // USE SERVER-PROVIDED day_of_week_et - don't recalculate!
+    // Postgres get_eastern_dow returns: 0=Mon, 1=Tue, ..., 6=Sun
+    const dayOfWeek = schedule.day_of_week_et
+    const dayName = dayOrder[dayOfWeek]
+
+    // Parse times from Eastern time strings (format: "2025-12-03 07:00:00")
+    const startTimeParts = schedule.start_time.split(' ')[1]?.split(':') || ['0', '0']
+    const endTimeParts = schedule.end_time.split(' ')[1]?.split(':') || ['0', '0']
+
+    const startHours = parseInt(startTimeParts[0])
+    const startMinutes = parseInt(startTimeParts[1])
+    const endHours = parseInt(endTimeParts[0])
+    const endMinutes = parseInt(endTimeParts[1])
 
     // Calculate hours scheduled
-    const hoursScheduled = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)
-
-    // Format times as HH:MM
-    const formatTimeString = (date: Date) => {
-      const hours = date.getHours().toString().padStart(2, '0')
-      const minutes = date.getMinutes().toString().padStart(2, '0')
-      return `${hours}:${minutes}`
-    }
+    const hoursScheduled = (endHours * 60 + endMinutes - startHours * 60 - startMinutes) / 60
 
     grouped[dayName].push({
-      startTime: formatTimeString(startDate),
-      endTime: formatTimeString(endDate),
+      startTime: `${startTimeParts[0]}:${startTimeParts[1]}`,
+      endTime: `${endTimeParts[0]}:${endTimeParts[1]}`,
       hoursScheduled: hoursScheduled.toFixed(1),
-      location: schedule.location
+      location: schedule.location,
+      // Pass through server data for next shift calculation
+      day_of_week_et: dayOfWeek,
+      start_date_et: schedule.start_date_et
     })
   })
 
@@ -63,8 +78,8 @@ export function useGetMySchedule(employeeId: string | undefined, enabled = true)
       const start = performance.now()
       const finishLog = logApiCall('SCHEDULE', 'fetch_my_schedule', { employeeId: employeeId.substring(0, 8) + '...' })
 
-      // Calculate week boundaries
-      const today = new Date()
+      // Calculate week boundaries IN EASTERN TIME
+      const today = getEasternNow()
       const thisWeekStart = new Date(today)
       thisWeekStart.setDate(today.getDate() - today.getDay()) // Sunday
       const thisWeekEnd = new Date(thisWeekStart)
@@ -75,8 +90,13 @@ export function useGetMySchedule(employeeId: string | undefined, enabled = true)
       const nextWeekEnd = new Date(nextWeekStart)
       nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
 
-      // Format dates as YYYY-MM-DD
-      const formatDate = (date: Date) => date.toISOString().split('T')[0]
+      // Format dates as YYYY-MM-DD (already in Eastern from getEasternNow)
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
 
       // Fetch both weeks in parallel using Postgres RPC
       const [thisWeek, nextWeek] = await Promise.all([
@@ -138,6 +158,7 @@ export function useGetMySchedule(employeeId: string | undefined, enabled = true)
 
 /**
  * Helper to group team schedule by day (keeps full schedule objects with employee data)
+ * Uses server-provided day_of_week_et (from Postgres get_eastern_dow)
  */
 function groupTeamScheduleByDay(schedules: any[]) {
   const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -153,9 +174,9 @@ function groupTeamScheduleByDay(schedules: any[]) {
   }
 
   schedules.forEach(schedule => {
-    const startDate = new Date(schedule.start_time)
-    const dayOfWeek = startDate.getDay()
-    const dayName = dayOrder[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+    // USE SERVER-PROVIDED day_of_week_et - don't recalculate!
+    const dayOfWeek = schedule.day_of_week_et
+    const dayName = dayOrder[dayOfWeek]
 
     // Keep the full schedule object with employee data
     grouped[dayName].push(schedule)
@@ -179,8 +200,8 @@ export function useGetTeamSchedule(enabled = true) {
       const start = performance.now()
       const finishLog = logApiCall('TEAM_SCHEDULE', 'fetch_team_schedule', {})
 
-      // Calculate week boundaries
-      const today = new Date()
+      // Calculate week boundaries IN EASTERN TIME
+      const today = getEasternNow()
       const thisWeekStart = new Date(today)
       thisWeekStart.setDate(today.getDate() - today.getDay()) // Sunday
       const thisWeekEnd = new Date(thisWeekStart)
@@ -191,8 +212,13 @@ export function useGetTeamSchedule(enabled = true) {
       const nextWeekEnd = new Date(nextWeekStart)
       nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
 
-      // Format dates as YYYY-MM-DD
-      const formatDate = (date: Date) => date.toISOString().split('T')[0]
+      // Format dates as YYYY-MM-DD (already in Eastern from getEasternNow)
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
 
       // Fetch both weeks in parallel using Postgres RPC
       const [thisWeek, nextWeek] = await Promise.all([
