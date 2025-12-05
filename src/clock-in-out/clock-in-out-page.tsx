@@ -258,7 +258,7 @@ export default function ClockInOut() {
         </div>
 
         {/* RIGHT PANEL: The Stage (Clock + Keypad) */}
-        <div className="flex-1 h-full flex flex-col items-center justify-center relative overflow-hidden pb-16">
+        <div className="flex-1 h-full flex flex-col items-center justify-center relative overflow-hidden">
           {/* Ambient Blobs */}
           <div className="absolute -top-20 -right-20 w-80 h-80 bg-purple-200/25 blur-3xl rounded-full z-0 pointer-events-none"></div>
           <div className="absolute -bottom-32 right-1/4 w-72 h-72 bg-blue-200/20 blur-3xl rounded-full z-0 pointer-events-none"></div>
@@ -274,6 +274,9 @@ export default function ClockInOut() {
 
           {/* Kiosk Card */}
           <div className="bg-white/80 rounded-3xl shadow-xl p-12 w-full max-w-lg text-center z-10">
+            {/* Brand Logo */}
+            <img src="/PrimaryLogo_9.svg" alt="Bagel Crust" className="h-8 mx-auto mb-4 opacity-[0.97]" />
+
             {/* Label */}
             <div className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-4">
               Clock In / Clock Out
@@ -315,9 +318,7 @@ export default function ClockInOut() {
             )}
           </div>
 
-          {/* Brand signature */}
-          <img src="/PrimaryLogo_9.svg" alt="Bagel Crust" className="absolute bottom-4 right-4 h-8 opacity-[0.97]" />
-        </div>
+                  </div>
       </div>
 
       {/* Success/Error Message Display */}
