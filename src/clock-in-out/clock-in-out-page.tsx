@@ -22,6 +22,20 @@ if (import.meta.env.DEV) {
  * ✅ AUTOMATIC HEALTH MONITORING - Detects and logs failures (DEV mode)
  * ✅ OPTIMIZED FOR OLD/SLOW IPADS - Minimal animations, fast PIN entry
  *
+ * IPAD SAFE AREA LAYOUT:
+ * Different iPad models report different safe areas (notch, status bar height).
+ * Fixed pixel padding (pt-10) caused inconsistent positioning - content would
+ * appear "jammed" against the top on some iPads or "sinking" lower on others.
+ *
+ * Solution: Use env(safe-area-inset-top) for dynamic positioning.
+ * - Main container: pt-[calc(2rem+env(safe-area-inset-top))] = 32px below safe area
+ * - QR code: top-[calc(1rem+env(safe-area-inset-top))] = 16px below safe area
+ * - Bottom message: already uses env(safe-area-inset-bottom)
+ *
+ * Prerequisites (in index.html):
+ * - viewport-fit=cover in meta viewport tag
+ * - apple-mobile-web-app-status-bar-style="black-translucent"
+ *
  * Features refined glassmorphism design with professional aesthetic:
  * - PIN-based clock in/out with unified keypad component
  * - Live clock display at the top (Eastern Time, plain text for performance)
