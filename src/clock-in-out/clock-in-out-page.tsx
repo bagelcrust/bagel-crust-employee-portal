@@ -278,7 +278,7 @@ export default function ClockInOut() {
             <div className="flex items-center justify-center gap-3 mb-4">
               <img src="/PrimaryLogo_9.svg" alt="Bagel Crust" className="h-8 opacity-[0.97]" />
               <div className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase">
-                Clock In / Clock Out
+                Clock In/Out
               </div>
             </div>
 
