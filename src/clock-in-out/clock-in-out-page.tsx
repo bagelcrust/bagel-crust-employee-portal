@@ -274,12 +274,12 @@ export default function ClockInOut() {
 
           {/* Kiosk Card */}
           <div className="bg-white/80 rounded-3xl shadow-xl p-12 w-full max-w-lg text-center z-10">
-            {/* Brand Logo */}
-            <img src="/PrimaryLogo_9.svg" alt="Bagel Crust" className="h-8 mx-auto mb-4 opacity-[0.97]" />
-
-            {/* Label */}
-            <div className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-4">
-              Clock In / Clock Out
+            {/* Brand Logo + Label Row */}
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <img src="/PrimaryLogo_9.svg" alt="Bagel Crust" className="h-8 opacity-[0.97]" />
+              <div className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase">
+                Clock In / Clock Out
+              </div>
             </div>
 
             {/* Clock Display */}
