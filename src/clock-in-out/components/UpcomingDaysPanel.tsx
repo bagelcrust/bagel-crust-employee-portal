@@ -162,7 +162,7 @@ export function UpcomingDaysPanel() {
                   key={day.dateStr}
                   onClick={() => setSelectedDay(day.dateStr)}
                   className={`h-11 flex flex-col items-center justify-center rounded-lg text-sm relative transition-colors cursor-pointer
-                    ${day.isToday ? 'bg-blue-400 text-white font-bold' : ''}
+                    ${day.isToday ? 'bg-[#4d94f8] text-white font-bold' : ''}
                     ${!day.isToday && status.bg ? status.bg : ''}
                     ${!day.isToday && !status.bg ? 'hover:bg-white/50 text-slate-700' : ''}
                     ${selectedDay === day.dateStr ? 'ring-2 ring-blue-600' : ''}
