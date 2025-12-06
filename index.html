@@ -8,12 +8,8 @@
          Must be inline <style>, not Tailwind/React classes. -->
     <style>
       html, body {
-        background-color: #FFFFFF !important;
+        background-color: #EFF6FF !important;
       }
-      /* DEBUG: Visual outlines to see element boundaries */
-      html { outline: 4px solid red !important; }
-      body { outline: 4px solid blue !important; }
-      #root { outline: 4px solid green !important; }
     </style>
 
     <!-- PWA Manifest - Set based on current URL path BEFORE React loads -->
@@ -56,7 +52,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Theme Colors - Light to match app background -->
-    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="theme-color" content="#EFF6FF" />
     <meta name="msapplication-TileColor" content="#2563EB" />
 
     <!-- Description -->
@@ -65,8 +61,6 @@
     <title>Bagel Crust Employee Portal</title>
   </head>
   <body>
-    <!-- DEBUG: Fixed div to fill status bar area with visible color -->
-    <div id="status-bar-debug" style="position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 50px); background-color: #FF0000; z-index: 999999;"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
