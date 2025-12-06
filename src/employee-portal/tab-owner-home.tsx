@@ -132,6 +132,11 @@ export function OwnerHomeTab() {
           )
         })()}
       </div>
+
+      {/* Version indicator for cache debugging */}
+      <div className="text-center text-[10px] text-gray-300 pt-4">
+        v1.0.1
+      </div>
     </div>
   )
 }
