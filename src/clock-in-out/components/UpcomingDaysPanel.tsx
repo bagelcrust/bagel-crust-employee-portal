@@ -152,7 +152,7 @@ export function UpcomingDaysPanel() {
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((day, idx) => {
               if (!day.date) {
-                return <div key={`empty-${idx}`} className="h-11" />
+                return <div key={`empty-${idx}`} className="h-[54px]" />
               }
 
               const status = getDayStatus(day.dateStr)
@@ -161,7 +161,7 @@ export function UpcomingDaysPanel() {
                 <div
                   key={day.dateStr}
                   onClick={() => setSelectedDay(day.dateStr)}
-                  className={`h-11 flex flex-col items-center justify-center rounded-lg text-sm relative transition-colors cursor-pointer
+                  className={`h-[54px] flex flex-col items-center justify-center rounded-lg text-sm relative transition-colors cursor-pointer
                     ${day.isToday ? 'bg-[#4d94f8] text-white font-bold' : ''}
                     ${!day.isToday && status.bg ? status.bg : ''}
                     ${!day.isToday && !status.bg ? 'hover:bg-white/50 text-slate-700' : ''}

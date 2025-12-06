@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { SyncEvent } from './syncManager'
 
 /**
@@ -22,8 +23,21 @@ export function RecentActivityPanel({
   syncStatus,
   realtimeStatus,
   devMode,
-  activityListRef
+  activityListRef: _activityListRef
 }: RecentActivityPanelProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to right (newest) when events load or change
+  useEffect(() => {
+    // Small delay to ensure DOM has rendered
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+      }
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [recentEvents])
+
   return (
     <div className="bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-3">
       {/* Header row */}
@@ -54,9 +68,9 @@ export function RecentActivityPanel({
         </div>
       </div>
 
-      {/* Horizontal scrolling cards */}
+      {/* Horizontal scrolling cards - newest on right */}
       {recentEvents.length > 0 ? (
-        <div ref={activityListRef} className="flex gap-2 overflow-x-auto pb-1">
+        <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-1">
           {recentEvents
             .filter(event => {
               if (!devMode && event.employeeId === 'bbb42de4-61b0-45cc-ae92-2e6dec6b53ee') {
@@ -65,27 +79,29 @@ export function RecentActivityPanel({
               return true;
             })
             .slice(0, 10)
+            .reverse()
             .map((event) => (
             <div
               key={event.id}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg ${
+              className={`flex-shrink-0 w-16 px-2 py-3 rounded-xl text-center ${
                 event.action === 'Clock In'
                   ? 'bg-green-100 border border-green-200'
                   : 'bg-orange-100 border border-orange-200'
               }`}
             >
               {/* Name */}
-              <div className="text-[12px] font-semibold text-slate-700 whitespace-nowrap">
+              <div className="text-[11px] font-semibold text-slate-700 truncate">
                 {event.name.split(' ')[0]}
               </div>
-              {/* Time + Badge */}
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] text-slate-500">{event.time}</span>
-                <span className={`text-[10px] font-bold ${
-                  event.action === 'Clock In' ? 'text-green-600' : 'text-orange-600'
-                }`}>
-                  {event.action === 'Clock In' ? 'IN' : 'OUT'}
-                </span>
+              {/* Time */}
+              <div className="text-[10px] text-slate-500 mt-1">
+                {event.time}
+              </div>
+              {/* Badge */}
+              <div className={`text-[11px] font-bold mt-1 ${
+                event.action === 'Clock In' ? 'text-green-600' : 'text-orange-600'
+              }`}>
+                {event.action === 'Clock In' ? 'IN' : 'OUT'}
               </div>
             </div>
           ))}
