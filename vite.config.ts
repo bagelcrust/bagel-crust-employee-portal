@@ -20,7 +20,7 @@ export default defineConfig({
         name: 'Bagel Crust',
         short_name: 'Bagel Crust',
         description: 'Employee scheduling, timesheets, and clock in/out system',
-        theme_color: '#2563EB',
+        theme_color: '#EFF6FF',
         background_color: '#FAF9F6',
         display: 'standalone',
         orientation: 'portrait',
