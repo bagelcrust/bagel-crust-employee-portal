@@ -9,6 +9,13 @@
  * - 100dvh includes status bar and home indicator areas
  * - Fixed Nov 5, 2024 after 9 failed attempts
  */
+html {
+  /* Global gradient background on html element
+   * html fills entire screen including safe areas on all iPads
+   * Body/root elements sit on top with transparent backgrounds */
+  background: linear-gradient(to bottom right, #eff6ff, #faf5ff);
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -18,9 +25,6 @@ html, body {
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  /* Global gradient background - extends to all edges on all devices
-   * This is set on body (not components) to ensure it fills safe areas on iPads */
-  background: linear-gradient(to bottom right, #eff6ff, #faf5ff);
 }
 
 #root {
@@ -97,6 +101,8 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    /* bg-background removed - using gradient on html instead */
+    @apply text-foreground;
+    background: transparent !important;
   }
 }
