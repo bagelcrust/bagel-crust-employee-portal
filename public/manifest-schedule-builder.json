@@ -7,7 +7,7 @@
   "start_url": "/schedule-builder",
   "scope": "/schedule-builder",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#eff6ff",
   "theme_color": "#EFF6FF",
   "orientation": "portrait",
   "icons": [
