@@ -96,7 +96,7 @@ export function TimeLogsTab() {
   return (
     <div className="space-y-4">
       {/* Title */}
-      <h1 className="text-2xl font-bold text-slate-900 mb-4">Time Logs</h1>
+      <h1 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">Time Logs</h1>
 
       {/* Action Required Header OR All Clear */}
       {isAllClear ? (

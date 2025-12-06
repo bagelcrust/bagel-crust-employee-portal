@@ -78,17 +78,20 @@ export function useGetMySchedule(employeeId: string | undefined, enabled = true)
       const start = performance.now()
       const finishLog = logApiCall('SCHEDULE', 'fetch_my_schedule', { employeeId: employeeId.substring(0, 8) + '...' })
 
-      // Calculate week boundaries IN EASTERN TIME
+      // Calculate week boundaries IN EASTERN TIME (Monday-Sunday weeks)
       const today = getEasternNow()
+      const dayOfWeek = today.getDay() // 0=Sun, 1=Mon...6=Sat
+      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+
       const thisWeekStart = new Date(today)
-      thisWeekStart.setDate(today.getDate() - today.getDay()) // Sunday
+      thisWeekStart.setDate(today.getDate() - daysFromMonday) // Monday
       const thisWeekEnd = new Date(thisWeekStart)
-      thisWeekEnd.setDate(thisWeekStart.getDate() + 6) // Saturday
+      thisWeekEnd.setDate(thisWeekStart.getDate() + 6) // Sunday
 
       const nextWeekStart = new Date(thisWeekEnd)
-      nextWeekStart.setDate(thisWeekEnd.getDate() + 1)
+      nextWeekStart.setDate(thisWeekEnd.getDate() + 1) // Next Monday
       const nextWeekEnd = new Date(nextWeekStart)
-      nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
+      nextWeekEnd.setDate(nextWeekStart.getDate() + 6) // Next Sunday
 
       // Format dates as YYYY-MM-DD (already in Eastern from getEasternNow)
       const formatDate = (date: Date) => {
@@ -200,17 +203,20 @@ export function useGetTeamSchedule(enabled = true) {
       const start = performance.now()
       const finishLog = logApiCall('TEAM_SCHEDULE', 'fetch_team_schedule', {})
 
-      // Calculate week boundaries IN EASTERN TIME
+      // Calculate week boundaries IN EASTERN TIME (Monday-Sunday weeks)
       const today = getEasternNow()
+      const dayOfWeek = today.getDay() // 0=Sun, 1=Mon...6=Sat
+      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+
       const thisWeekStart = new Date(today)
-      thisWeekStart.setDate(today.getDate() - today.getDay()) // Sunday
+      thisWeekStart.setDate(today.getDate() - daysFromMonday) // Monday
       const thisWeekEnd = new Date(thisWeekStart)
-      thisWeekEnd.setDate(thisWeekStart.getDate() + 6) // Saturday
+      thisWeekEnd.setDate(thisWeekStart.getDate() + 6) // Sunday
 
       const nextWeekStart = new Date(thisWeekEnd)
-      nextWeekStart.setDate(thisWeekEnd.getDate() + 1)
+      nextWeekStart.setDate(thisWeekEnd.getDate() + 1) // Next Monday
       const nextWeekEnd = new Date(nextWeekStart)
-      nextWeekEnd.setDate(nextWeekStart.getDate() + 6)
+      nextWeekEnd.setDate(nextWeekStart.getDate() + 6) // Next Sunday
 
       // Format dates as YYYY-MM-DD (already in Eastern from getEasternNow)
       const formatDate = (date: Date) => {

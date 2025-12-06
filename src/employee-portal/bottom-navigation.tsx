@@ -14,7 +14,7 @@
  * - Staff 2, Owner, cashier, Staff see all tabs (Schedule, Time Off, Hours, Profile)
  */
 
-import { Calendar, CalendarDays, Clock, User, MapPin, DollarSign, FileClock, ClipboardList } from 'lucide-react'
+import { Calendar, CalendarDays, Clock, User, MapPin, DollarSign, FileClock, ClipboardList, Home } from 'lucide-react'
 import type { TabConfig, TabKey } from '../shared/roleConfig'
 import type { Translations } from '../shared/translations'
 
@@ -34,7 +34,8 @@ const iconMap = {
   'map-pin': MapPin,
   'dollar-sign': DollarSign,
   'file-clock': FileClock,
-  'clipboard-list': ClipboardList
+  'clipboard-list': ClipboardList,
+  'home': Home
 }
 
 /**
@@ -57,7 +58,8 @@ export function BottomNav({ tabs, activeTab, onTabChange, t }: BottomNavProps) {
       profile: 'profile',
       calendar: 'calendar',
       timeLogs: 'timeLogs',
-      inventory: 'inventory'
+      inventory: 'inventory',
+      home: 'home'
     }
     return t[labelMap[tabKey]] || tabKey
   }

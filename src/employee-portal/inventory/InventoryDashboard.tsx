@@ -242,7 +242,7 @@ export function InventoryDashboard({ onStartSession, onResumeSession }: Inventor
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Package className="w-7 h-7 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900">Stock Count</h1>
+          <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">Stock Count</h1>
         </div>
 
         {/* New Session Button */}

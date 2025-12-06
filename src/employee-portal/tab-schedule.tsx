@@ -3,7 +3,6 @@
  * Displays employee's personal schedule and full team schedule
  */
 
-import { useState } from 'react'
 import { formatTime } from '../shared/employeeUtils'
 import type { Translations } from '../shared/translations'
 import { assertShape, logCondition, logData } from '../shared/debug-utils'
@@ -97,17 +96,6 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
   assertShape('ScheduleTab', scheduleData, ['thisWeek', 'nextWeek'], 'scheduleData')
   logData('ScheduleTab', 'fullTeamSchedule', fullTeamSchedule, ['thisWeek', 'nextWeek'])
 
-  const [showWeek, setShowWeek] = useState<'this' | 'next'>('this')
-  const [teamScheduleWeek, setTeamScheduleWeek] = useState<'this' | 'next'>('this')
-  const [selectedTeamDay, setSelectedTeamDay] = useState<typeof dayOrder[number]>(() => {
-    // Use Eastern time for today's day of week
-    const today = getEasternNow().getDay()
-    const todayIndex = today === 0 ? 6 : today - 1
-    return dayOrder[todayIndex]
-  })
-
-  const currentSchedule = showWeek === 'this' ? scheduleData?.thisWeek : scheduleData?.nextWeek
-  logCondition('ScheduleTab', `Using ${showWeek} week schedule`, !!currentSchedule, { showWeek, hasData: !!currentSchedule })
 
   return (
     <div className="space-y-6">
@@ -125,11 +113,11 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
 
           if (!nextShift) {
             return (
-              <div className="p-5 bg-gradient-to-br from-gray-400 to-gray-500 rounded-[14px] text-white shadow-[0_6px_16px_rgba(0,0,0,0.15)]">
-                <div className="text-xs opacity-90 mb-1.5 font-semibold tracking-wide">
+              <div className="p-4 bg-gradient-to-br from-gray-400 to-gray-500 rounded-[14px] text-white shadow-[0_6px_16px_rgba(0,0,0,0.15)]">
+                <div className="text-sm opacity-90 mb-1 font-semibold tracking-wide">
                   NEXT SHIFT
                 </div>
-                <div className="text-[22px] font-bold mb-1">
+                <div className="text-xl font-bold">
                   No upcoming shifts
                 </div>
               </div>
@@ -159,14 +147,11 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
           }
 
           return (
-            <div className="p-5 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E53] rounded-[14px] text-white shadow-[0_4px_12px_rgba(255,107,107,0.2)]">
-              <div className="text-lg opacity-90 mb-2 font-semibold tracking-wide">
-                NEXT SHIFT
+            <div className="p-4 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E53] rounded-[14px] text-white shadow-[0_4px_12px_rgba(255,107,107,0.2)]">
+              <div className="text-lg opacity-90 font-semibold tracking-wide">
+                NEXT SHIFT: {dayLabel}
               </div>
-              <div className="text-[28px] font-bold mb-1">
-                {dayLabel}
-              </div>
-              <div className="text-lg font-semibold opacity-95">
+              <div className="text-2xl font-bold">
                 {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
               </div>
             </div>
@@ -174,196 +159,212 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
         })()}
       </div>
 
-      {/* My Schedule */}
+      {/* My Schedule - Shows all published shifts */}
       <div>
         <h2 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">
           My Schedule
         </h2>
 
-        {/* Week Toggle */}
-        <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
-          <button
-            onClick={() => setShowWeek('this')}
-            className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
-              showWeek === 'this'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-            type="button"
-          >
-            {t.thisWeek}
-          </button>
-          <button
-            onClick={() => setShowWeek('next')}
-            className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
-              showWeek === 'next'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-            type="button"
-          >
-            {t.nextWeek}
-          </button>
-        </div>
+        {/* All Scheduled Shifts (this week + next week combined) */}
+        {(() => {
+          // Calculate Monday of this week
+          const now = new Date()
+          const currentDayOfWeek = now.getDay()
+          const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek
+          const monday = new Date(now)
+          monday.setDate(now.getDate() + mondayOffset)
+          monday.setHours(0, 0, 0, 0)
 
-        {/* Weekly Schedule */}
-        <div className="flex flex-col gap-2.5">
-          {dayOrder.map((day, index) => {
-            const shifts = currentSchedule?.[day] || []
-            const dayName = t[day as keyof typeof t] as string
-            const isToday = showWeek === 'this' && new Date().getDay() === (dayOrder.indexOf(day) + 1) % 7
+          // Build array of all shifts with dates from both weeks
+          const allShifts: Array<{ day: string; dayIndex: number; weekOffset: number; shifts: any[]; date: Date }> = []
 
-            // Calculate date for this day
-            const now = new Date()
-            const currentDayOfWeek = now.getDay()
-            const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek
-            const monday = new Date(now)
-            monday.setDate(now.getDate() + mondayOffset)
+          // This week
+          dayOrder.forEach((day, dayIndex) => {
+            const shifts = scheduleData?.thisWeek?.[day] || []
+            if (shifts.length > 0) {
+              const date = new Date(monday)
+              date.setDate(monday.getDate() + dayIndex)
+              allShifts.push({ day, dayIndex, weekOffset: 0, shifts, date })
+            }
+          })
 
-            const weekOffset = showWeek === 'next' ? 7 : 0
-            const dayDate = new Date(monday)
-            dayDate.setDate(monday.getDate() + index + weekOffset)
+          // Next week
+          dayOrder.forEach((day, dayIndex) => {
+            const shifts = scheduleData?.nextWeek?.[day] || []
+            if (shifts.length > 0) {
+              const date = new Date(monday)
+              date.setDate(monday.getDate() + dayIndex + 7)
+              allShifts.push({ day, dayIndex, weekOffset: 7, shifts, date })
+            }
+          })
 
-            const dateStr = `${dayDate.getMonth() + 1}/${dayDate.getDate()}`
-
+          if (allShifts.length === 0) {
             return (
-              <div
-                key={day}
-                className={`p-3.5 px-4 rounded-[10px] flex justify-between items-center shadow-[0_2px_4px_rgba(0,0,0,0.04)] ${
-                  isToday
-                    ? 'border-2 border-blue-600 bg-blue-600/5'
-                    : 'border border-gray-200 bg-white'
-                }`}
-              >
-                {/* Left: Day & Date */}
-                <div className="text-left">
-                  <div className="font-semibold text-gray-800 text-base mb-0.5">
-                    {dayName}
-                    {isToday && (
-                      <span className="text-[10px] text-blue-600 font-bold ml-2 bg-blue-600/15 px-1.5 py-0.5 rounded">
-                        TODAY
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[13px] text-gray-500">
-                    {dateStr}
-                  </div>
-                </div>
-
-                {/* Right: Time */}
-                <div className="text-right">
-                  {shifts.length === 0 ? (
-                    <span className="text-gray-400 text-[15px] font-semibold">
-                      OFF
-                    </span>
-                  ) : (
-                    shifts.map((shift: any, idx: number) => (
-                      <div key={idx} className={idx < shifts.length - 1 ? 'mb-1' : ''}>
-                        <div className="font-semibold text-blue-600 text-base">
-                          {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+              <div className="text-center py-8 text-gray-400 text-base">
+                No shifts scheduled
               </div>
             )
-          })}
-        </div>
+          }
+
+          // Get today's date for comparison
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+
+          return (
+            <div className="flex flex-col gap-2.5">
+              {allShifts.map(({ day, shifts, date }, idx) => {
+                const dayName = t[day as keyof typeof t] as string
+                const isToday = date.getTime() === today.getTime()
+                const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
+
+                return (
+                  <div
+                    key={`${day}-${idx}`}
+                    className={`p-3.5 px-4 rounded-[10px] flex justify-between items-center shadow-[0_2px_4px_rgba(0,0,0,0.04)] ${
+                      isToday
+                        ? 'border-2 border-blue-600 bg-blue-600/5'
+                        : 'border border-gray-200 bg-white'
+                    }`}
+                  >
+                    {/* Left: Day & Date */}
+                    <div className="text-left">
+                      <div className="font-semibold text-gray-800 text-base mb-0.5">
+                        {dayName}
+                        {isToday && (
+                          <span className="text-[10px] text-blue-600 font-bold ml-2 bg-blue-600/15 px-1.5 py-0.5 rounded">
+                            TODAY
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[13px] text-gray-500">
+                        {dateStr}
+                      </div>
+                    </div>
+
+                    {/* Right: Time */}
+                    <div className="text-right">
+                      {shifts.map((shift: any, shiftIdx: number) => (
+                        <div key={shiftIdx} className={shiftIdx < shifts.length - 1 ? 'mb-1' : ''}>
+                          <div className="font-semibold text-blue-600 text-base">
+                            {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
 
-      {/* Open Shifts (Placeholder) */}
-      <div>
-        <h2 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">
-          Open Shifts
-        </h2>
-        <div className="flex items-center justify-center py-8">
-          <p className="text-gray-500 text-lg">Coming soon</p>
-        </div>
-      </div>
-
-      {/* Team Schedule */}
+      {/* Team Schedule - All days with shifts */}
       <div>
         <h2 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">
           Team Schedule
         </h2>
 
-        {fullTeamSchedule && (
-          <div>
-            {/* Week Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
-              <button
-                onClick={() => setTeamScheduleWeek('this')}
-                className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
-                  teamScheduleWeek === 'this'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                type="button"
-              >
-                {t.thisWeek}
-              </button>
-              <button
-                onClick={() => setTeamScheduleWeek('next')}
-                className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
-                  teamScheduleWeek === 'next'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                type="button"
-              >
-                {t.nextWeek}
-              </button>
-            </div>
+        {(() => {
+          if (!fullTeamSchedule) return null
 
-            {/* Day Selector */}
-            <div className="flex gap-1.5 mb-4 overflow-x-auto [overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none]">
-              {dayOrder.map(day => {
+          // Calculate Monday of this week
+          const now = new Date()
+          const currentDayOfWeek = now.getDay()
+          const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek
+          const monday = new Date(now)
+          monday.setDate(now.getDate() + mondayOffset)
+          monday.setHours(0, 0, 0, 0)
+
+          // Build array of all days with team schedules
+          const allTeamDays: Array<{ day: string; schedules: any[]; date: Date }> = []
+
+          // This week
+          dayOrder.forEach((day, dayIndex) => {
+            const schedules = fullTeamSchedule.thisWeek?.[day] || []
+            if (schedules.length > 0) {
+              const date = new Date(monday)
+              date.setDate(monday.getDate() + dayIndex)
+              allTeamDays.push({ day, schedules, date })
+            }
+          })
+
+          // Next week
+          dayOrder.forEach((day, dayIndex) => {
+            const schedules = fullTeamSchedule.nextWeek?.[day] || []
+            if (schedules.length > 0) {
+              const date = new Date(monday)
+              date.setDate(monday.getDate() + dayIndex + 7)
+              allTeamDays.push({ day, schedules, date })
+            }
+          })
+
+          // Get today for comparison
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+
+          // Filter to only show today and future days
+          const upcomingDays = allTeamDays.filter(({ date }) => date >= today)
+
+          if (upcomingDays.length === 0) {
+            return (
+              <div className="text-center py-8 text-gray-400 text-base">
+                No upcoming team shifts
+              </div>
+            )
+          }
+
+          return (
+            <div className="flex flex-col gap-3">
+              {upcomingDays.map(({ day, schedules, date }, idx) => {
                 const dayName = t[day as keyof typeof t] as string
+                const isToday = date.getTime() === today.getTime()
+                const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
+
                 return (
-                  <button
-                    key={day}
-                    onClick={() => setSelectedTeamDay(day)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border-none cursor-pointer transition-all duration-150 ${
-                      selectedTeamDay === day ? 'bg-blue-600 text-white' : 'bg-black/5 text-gray-500'
+                  <div
+                    key={`team-${day}-${idx}`}
+                    className={`rounded-[10px] overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.04)] ${
+                      isToday
+                        ? 'border-2 border-blue-600'
+                        : 'border border-gray-200'
                     }`}
                   >
-                    {dayName.slice(0, 3)}
-                  </button>
+                    {/* Day Header */}
+                    <div className={`px-4 py-2.5 ${isToday ? 'bg-blue-600/10' : 'bg-gray-50'}`}>
+                      <span className="font-semibold text-gray-800">{dayName}</span>
+                      <span className="text-gray-500 ml-2">{dateStr}</span>
+                      {isToday && (
+                        <span className="text-[10px] text-blue-600 font-bold ml-2 bg-blue-600/15 px-1.5 py-0.5 rounded">
+                          TODAY
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Team Members */}
+                    <div className="bg-white">
+                      {schedules.map((schedule: any, index: number) => (
+                        <div
+                          key={index}
+                          className={`px-4 py-2.5 flex justify-between items-center ${
+                            index < schedules.length - 1 ? 'border-b border-gray-100' : ''
+                          }`}
+                        >
+                          <span className="font-medium text-gray-800">
+                            {schedule.employee?.first_name}
+                          </span>
+                          <span className="font-semibold text-blue-600 text-sm">
+                            {formatTime(schedule.start_time?.split(' ')[1]?.slice(0,5) || '')} - {formatTime(schedule.end_time?.split(' ')[1]?.slice(0,5) || '')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )
               })}
             </div>
-
-            {/* Team List for Selected Day */}
-            {(() => {
-              const currentWeekSchedule = teamScheduleWeek === 'this' ? fullTeamSchedule.thisWeek : fullTeamSchedule.nextWeek
-              const daySchedules = currentWeekSchedule?.[selectedTeamDay] || []
-              logCondition('ScheduleTab', `Team schedule for ${selectedTeamDay} (${teamScheduleWeek} week)`, daySchedules.length > 0, { count: daySchedules.length })
-
-              return daySchedules.length === 0 ? (
-                <div className="text-center pt-12 pb-12 text-gray-400 text-sm font-medium">
-                  No one scheduled for this day
-                </div>
-              ) : (
-                <div className="rounded-lg overflow-hidden">
-                  {daySchedules.map((schedule: any, index: number) => (
-                    <div
-                      key={index}
-                      className={`p-4 text-center ${index < daySchedules.length - 1 ? 'border-b border-black/5' : ''}`}
-                    >
-                      <div className="font-bold text-gray-800 text-lg mb-1.5">
-                        {schedule.employee?.first_name}
-                      </div>
-                      <div className="font-semibold text-blue-600 text-[17px]">
-                        {formatTime(new Date(schedule.start_time).toTimeString().slice(0,5))} - {formatTime(new Date(schedule.end_time).toTimeString().slice(0,5))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            })()}
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )

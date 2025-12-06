@@ -21,6 +21,7 @@ import { TimeOffTab } from './tab-time-off'
 import { TimesheetTab } from './tab-timesheet'
 import { PayrollTab } from './tab-payroll'
 import { TimeLogsTab } from './tab-time-logs'
+import { OwnerHomeTab } from './tab-owner-home'
 import { ProfileTab } from './tab-profile'
 import { CalendarTab } from './tab-calendar'
 import { InventoryTab } from './tab-inventory'
@@ -343,7 +344,7 @@ export default function EmployeePortal() {
           {activeTab === 'timesheet' && (
             <>
               {logCondition('PORTAL', 'Rendering TimesheetTab', true, { hasTimesheetData: !!timesheetData })}
-              <TimesheetTab timesheetData={timesheetData} t={t} />
+              <TimesheetTab timesheetData={timesheetData} t={t} language={(employee?.preferred_language === 'en' ? 'en' : 'es') as 'en' | 'es'} />
             </>
           )}
 
@@ -360,6 +361,14 @@ export default function EmployeePortal() {
             <>
               {logCondition('PORTAL', 'Rendering TimeLogsTab', true, { role: employee?.role })}
               <TimeLogsTab />
+            </>
+          )}
+
+          {/* HOME TAB (Owner Only - Combined Time Logs + Team Schedule) */}
+          {activeTab === 'home' && (
+            <>
+              {logCondition('PORTAL', 'Rendering OwnerHomeTab', true, { role: employee?.role })}
+              <OwnerHomeTab />
             </>
           )}
 

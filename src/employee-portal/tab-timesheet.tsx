@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { es, enUS } from 'date-fns/locale'
 import { formatTime, formatHoursMinutes } from '../shared/employeeUtils'
 import type { Translations } from '../shared/translations'
 import { assertShape, logCondition } from '../shared/debug-utils'
@@ -13,9 +13,10 @@ import { assertShape, logCondition } from '../shared/debug-utils'
 interface TimesheetTabProps {
   timesheetData: any
   t: Translations
+  language: 'en' | 'es'
 }
 
-export function TimesheetTab({ timesheetData, t }: TimesheetTabProps) {
+export function TimesheetTab({ timesheetData, t, language }: TimesheetTabProps) {
   const [timesheetWeek, setTimesheetWeek] = useState<'this' | 'last'>('this')
 
   // Validate props
@@ -99,7 +100,7 @@ export function TimesheetTab({ timesheetData, t }: TimesheetTabProps) {
                     {translateDayName(day.day_name)}
                   </div>
                   <div className="text-[13px] text-gray-400 mt-0.5">
-                    {format(new Date(day.date), "d 'de' MMMM", { locale: es })}
+                    {format(new Date(day.date), language === 'en' ? 'MMMM d' : "d 'de' MMMM", { locale: language === 'en' ? enUS : es })}
                   </div>
                 </div>
                 <div className="text-right">
