@@ -25,7 +25,7 @@ export function RecentActivityPanel({
   activityListRef
 }: RecentActivityPanelProps) {
   return (
-    <div className="bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-3 max-h-[180px] overflow-y-auto">
+    <div className="bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-3 flex-1 min-h-[180px] overflow-y-auto">
       <div className="relative flex items-center justify-center mb-3">
         <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
           Recent Activity
@@ -64,7 +64,7 @@ export function RecentActivityPanel({
               }
               return true;
             })
-            .slice(0, 5)
+            .slice(0, 8)
             .map((event) => (
             <div
               key={event.id}
