@@ -225,8 +225,7 @@ export default function ClockInOut() {
 
   return (
     <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden">
-      {/* Background Layer */}
-      <div className="absolute -inset-[50px] bg-gradient-to-br from-blue-50 to-purple-50 -z-50" />
+      {/* Background is now on body in index.css to ensure it fills safe areas on all iPads */}
 
 
       {/* COMMAND CENTER: Sidebar & Stage Layout */}

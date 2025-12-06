@@ -18,6 +18,9 @@ html, body {
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
+  /* Global gradient background - extends to all edges on all devices
+   * This is set on body (not components) to ensure it fills safe areas on iPads */
+  background: linear-gradient(to bottom right, #eff6ff, #faf5ff);
 }
 
 #root {
