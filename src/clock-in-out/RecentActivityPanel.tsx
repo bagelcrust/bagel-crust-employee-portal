@@ -25,7 +25,8 @@ export function RecentActivityPanel({
   activityListRef
 }: RecentActivityPanelProps) {
   return (
-    <div className="bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-3 flex-1 min-h-[180px] overflow-y-auto">
+    <div className="bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-3">
+      {/* Header row */}
       <div className="relative flex items-center justify-center mb-3">
         <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
           Recent Activity
@@ -53,44 +54,44 @@ export function RecentActivityPanel({
         </div>
       </div>
 
+      {/* Horizontal scrolling cards */}
       {recentEvents.length > 0 ? (
-        <div ref={activityListRef} className="flex flex-col gap-2">
+        <div ref={activityListRef} className="flex gap-2 overflow-x-auto pb-1">
           {recentEvents
             .filter(event => {
-              // FILTER TEST USER: Hide test user (employeeId: bbb42de4-61b0-45cc-ae92-2e6dec6b53ee) in production mode
-              // Test user entries only show when devMode is enabled
               if (!devMode && event.employeeId === 'bbb42de4-61b0-45cc-ae92-2e6dec6b53ee') {
                 return false;
               }
               return true;
             })
-            .slice(0, 8)
+            .slice(0, 10)
             .map((event) => (
             <div
               key={event.id}
-              className="flex items-center gap-3 py-2 px-2 border-b border-slate-200 last:border-b-0"
+              className={`flex-shrink-0 px-3 py-2 rounded-lg ${
+                event.action === 'Clock In'
+                  ? 'bg-green-100 border border-green-200'
+                  : 'bg-orange-100 border border-orange-200'
+              }`}
             >
               {/* Name */}
-              <div className="flex-1 min-w-0 text-[13px] font-medium text-slate-800 overflow-hidden text-ellipsis whitespace-nowrap">
-                {event.name}
+              <div className="text-[12px] font-semibold text-slate-700 whitespace-nowrap">
+                {event.name.split(' ')[0]}
               </div>
-              {/* Time */}
-              <div className="text-xs text-slate-500 whitespace-nowrap">
-                {event.time}
+              {/* Time + Badge */}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] text-slate-500">{event.time}</span>
+                <span className={`text-[10px] font-bold ${
+                  event.action === 'Clock In' ? 'text-green-600' : 'text-orange-600'
+                }`}>
+                  {event.action === 'Clock In' ? 'IN' : 'OUT'}
+                </span>
               </div>
-              {/* Badge */}
-              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                event.action === 'Clock In'
-                  ? 'bg-green-400/15 text-green-500'
-                  : 'bg-orange-400/15 text-orange-500'
-              }`}>
-                {event.action === 'Clock In' ? 'IN' : 'OUT'}
-              </span>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-xs text-slate-400 text-center p-4 italic">
+        <div className="text-xs text-slate-400 text-center py-2 italic">
           No recent activity
         </div>
       )}
