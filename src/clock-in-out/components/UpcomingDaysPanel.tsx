@@ -113,7 +113,7 @@ export function UpcomingDaysPanel() {
   const monthName = displayMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   return (
-    <div className="flex-1 bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 overflow-hidden flex flex-col relative">
+    <div className="bg-white/70 backdrop-blur-md border border-white/80 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-4 flex flex-col relative">
       {/* Header with navigation */}
       <div className="flex items-center justify-between mb-3">
         <button
