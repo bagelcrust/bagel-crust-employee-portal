@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../shared/supabase-client'
 import type { DraftShift, PublishedShift, TimeOff, Employee } from '../shared/supabase-client'
-import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek, addDays } from 'date-fns'
+import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek, addDays, differenceInWeeks } from 'date-fns'
 import { logError, logApiCall } from '../shared/debug-utils'
 
 /**
@@ -41,6 +41,18 @@ export function useGetScheduleBuilderData() {
     isSameWeek(currentWeekStart, new Date(), { weekStartsOn: 1 }),
     [currentWeekStart]
   )
+
+  // Relative week label ("This Week", "Last Week", "2 Weeks Ago", etc.)
+  const relativeWeekLabel = useMemo(() => {
+    const todayWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+    const weeksDiff = differenceInWeeks(currentWeekStart, todayWeekStart)
+
+    if (weeksDiff === 0) return 'This Week'
+    if (weeksDiff === -1) return 'Last Week'
+    if (weeksDiff === 1) return 'Next Week'
+    if (weeksDiff < -1) return `${Math.abs(weeksDiff)} Weeks Ago`
+    return `In ${weeksDiff} Weeks`
+  }, [currentWeekStart])
 
   // Navigation functions
   const goToToday = () => {
@@ -116,6 +128,7 @@ export function useGetScheduleBuilderData() {
   const shiftsByEmployeeAndDayFromServer = (scheduleData?.shiftsByEmployeeAndDay || {}) as Record<string, Record<number, ScheduleShift[]>>
   const timeOffsByEmployeeAndDayFromServer = (scheduleData?.timeOffsByEmployeeAndDay || {}) as Record<string, Record<number, TimeOff[]>>
   const availabilityByEmployeeAndDayFromServer = (scheduleData?.availabilityByEmployeeAndDay || {}) as Record<string, Record<number, any[]>>
+  const availabilityByEmployeeAndDateFromServer = (scheduleData?.availabilityByEmployeeAndDate || {}) as Record<string, Record<string, any[]>>
 
   // Refetch functions for backward compatibility
   const refetchShifts = refetch
@@ -147,6 +160,7 @@ export function useGetScheduleBuilderData() {
   const shiftsByEmployeeAndDay = shiftsByEmployeeAndDayFromServer
   const timeOffsByEmployeeAndDay = timeOffsByEmployeeAndDayFromServer
   const availabilityByEmployeeAndDay = availabilityByEmployeeAndDayFromServer
+  const availabilityByEmployeeAndDate = availabilityByEmployeeAndDateFromServer
 
   return {
     // Week data
@@ -154,6 +168,7 @@ export function useGetScheduleBuilderData() {
     currentWeekEnd,
     dateRangeString,
     isThisWeek,
+    relativeWeekLabel,
     daysOfWeek,
 
     // Navigation
@@ -169,6 +184,7 @@ export function useGetScheduleBuilderData() {
     shiftsByEmployeeAndDay,
     timeOffsByEmployeeAndDay,
     availabilityByEmployeeAndDay,
+    availabilityByEmployeeAndDate,
     weeklyHours: weeklyHours || {},
     isWeekPublished,
 
