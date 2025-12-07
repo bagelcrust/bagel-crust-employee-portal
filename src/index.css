@@ -2,26 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global reset for proper viewport control
- * CRITICAL: Using 100dvh (dynamic viewport height) instead of 100%
- * - In PWA mode, 100% doesn't include iOS safe areas at bottom
- * - This was preventing gradient background from reaching bottom edge
- * - 100dvh includes status bar and home indicator areas
- * - Fixed Nov 5, 2024 after 9 failed attempts
+/* Global gradient on html - NO height constraint
+ * html naturally fills entire screen including safe areas
+ * Setting height: 100dvh would actually SHRINK it to viewport only
  */
 html {
-  /* Global gradient background on html element
-   * html fills entire screen including safe areas on all iPads
-   * Body/root elements sit on top with transparent backgrounds */
   background: linear-gradient(to bottom right, #eff6ff, #faf5ff);
+  margin: 0;
+  padding: 0;
 }
 
-html, body {
+/* Body gets min-height so content can grow if needed */
+body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100vh;
-  height: 100dvh; /* Dynamic viewport height - includes safe areas */
+  min-height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;

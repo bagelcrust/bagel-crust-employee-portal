@@ -48,6 +48,7 @@ export function EditTimeLogModal({
 }: EditTimeLogModalProps) {
   const [clockInTime, setClockInTime] = useState<Date | null>(null)
   const [clockOutTime, setClockOutTime] = useState<Date | null>(null)
+  const [noClockOut, setNoClockOut] = useState(false) // "Still working" toggle
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -78,15 +79,17 @@ export function EditTimeLogModal({
           new Date()
         )
         setClockOutTime(clockOutParsed)
+        setNoClockOut(false)
       } else {
-        // Smart default: use average shift duration for this employee
-        const durationMinutes = Math.round(averageDuration * 60)
-        setClockOutTime(addMinutes(clockInParsed, durationMinutes))
+        // Shift has no clock-out - keep it that way by default
+        setClockOutTime(null)
+        setNoClockOut(true)
       }
     } else if (isOpen && !shift) {
       // CREATE MODE: Set default times for new entry
       const today = new Date()
       setSelectedDate(today)
+      setNoClockOut(false) // Default to having a clock-out
 
       // Default clock-in: 8:00 AM
       const defaultClockIn = new Date(today)
@@ -118,26 +121,29 @@ export function EditTimeLogModal({
   const handleSave = async () => {
     setIsLoading(true)
     try {
+      // If "no clock-out" is checked, pass null for clock-out
+      const effectiveClockOut = noClockOut ? null : clockOutTime
+
       if (shift) {
         // EDIT MODE: Determine if we need to create a new clock-out entry
-        const needsClockOutCreate = !shift.clockOutId && clockOutTime !== null
+        const needsClockOutCreate = !shift.clockOutId && effectiveClockOut !== null
 
         await onSave(
           shift.clockInId || null,
           shift.clockOutId || null,
           clockInTime,
-          clockOutTime,
+          effectiveClockOut,
           needsClockOutCreate,
           false // not creating clock-in
         )
       } else {
-        // CREATE MODE: Both entries need to be created
+        // CREATE MODE: Create clock-in, optionally clock-out
         await onSave(
           null,
           null,
           clockInTime,
-          clockOutTime,
-          true, // create clock-out
+          effectiveClockOut,
+          !noClockOut, // only create clock-out if toggle is off
           true  // create clock-in
         )
       }
@@ -286,35 +292,62 @@ export function EditTimeLogModal({
 
           {/* Clock Out Time */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-slate-700 mb-2">
-              Clock Out
-              {!isCreateMode && !shift?.clockOut && (
-                <span className="ml-2 text-xs text-amber-600 font-normal">(will create new entry)</span>
-              )}
-            </label>
-            <div className="flex items-center justify-between w-full px-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-slate-700">
+                Clock Out
+                {!isCreateMode && !shift?.clockOut && !noClockOut && (
+                  <span className="ml-2 text-xs text-amber-600 font-normal">(will create new entry)</span>
+                )}
+              </label>
               <button
-                onClick={() => adjustTime(setClockOutTime, clockOutTime, 'down')}
-                className="h-16 w-16 flex-shrink-0 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all rounded-2xl flex items-center justify-center"
                 type="button"
+                onClick={() => {
+                  setNoClockOut(!noClockOut)
+                  // If turning off "no clock-out", set a default time
+                  if (noClockOut && !clockOutTime && clockInTime) {
+                    const durationMinutes = Math.round(averageDuration * 60)
+                    setClockOutTime(addMinutes(clockInTime, durationMinutes))
+                  }
+                }}
+                className={`text-xs px-3 py-1 rounded-full transition-all ${
+                  noClockOut
+                    ? 'bg-amber-100 text-amber-700 font-medium'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
               >
-                <Minus size={28} className="text-slate-700" />
-              </button>
-              <div className="text-3xl font-bold text-slate-900 whitespace-nowrap">
-                {clockOutTime ? format(clockOutTime, 'h:mm a') : '--:--'}
-              </div>
-              <button
-                onClick={() => adjustTime(setClockOutTime, clockOutTime, 'up')}
-                className="h-16 w-16 flex-shrink-0 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all rounded-2xl flex items-center justify-center"
-                type="button"
-              >
-                <Plus size={28} className="text-slate-700" />
+                {noClockOut ? 'Still working' : 'No clock-out'}
               </button>
             </div>
+            {!noClockOut && (
+              <div className="flex items-center justify-between w-full px-4">
+                <button
+                  onClick={() => adjustTime(setClockOutTime, clockOutTime, 'down')}
+                  className="h-16 w-16 flex-shrink-0 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all rounded-2xl flex items-center justify-center"
+                  type="button"
+                >
+                  <Minus size={28} className="text-slate-700" />
+                </button>
+                <div className="text-3xl font-bold text-slate-900 whitespace-nowrap">
+                  {clockOutTime ? format(clockOutTime, 'h:mm a') : '--:--'}
+                </div>
+                <button
+                  onClick={() => adjustTime(setClockOutTime, clockOutTime, 'up')}
+                  className="h-16 w-16 flex-shrink-0 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all rounded-2xl flex items-center justify-center"
+                  type="button"
+                >
+                  <Plus size={28} className="text-slate-700" />
+                </button>
+              </div>
+            )}
+            {noClockOut && (
+              <div className="text-center py-4 text-amber-600 font-medium">
+                Employee still working
+              </div>
+            )}
           </div>
 
           {/* Hours Preview */}
-          {clockInTime && clockOutTime && (
+          {clockInTime && clockOutTime && !noClockOut && (
             <div className="text-center pt-4 border-t border-slate-100">
               <span className="text-sm text-slate-500">Total: </span>
               <span className="text-lg font-bold text-slate-900">
