@@ -38,8 +38,7 @@ export default function ClockInOut() {
     realtimeStatus,
     syncStatus,
     criticalError,
-    activityListRef,
-    loadRecentEvents
+    activityListRef
   } = useClockTerminal()
 
   const [message, setMessage] = useState('')
@@ -152,6 +151,15 @@ export default function ClockInOut() {
       })
       logData('CLOCK', 'Clock action result', { eventType: result.event.event_type, isOffline: result.isOffline })
 
+      // CRITICAL: Check if clock action was rejected (debounce, validation, etc.)
+      if (!result.success) {
+        logWarning('Clock Action', '🚫 Clock action rejected', { message: result.message })
+        setMessage(result.message || 'Please wait before clocking again')
+        setMessageType('error')
+        setTimeout(() => { setMessage(''); setMessageType('') }, 4000)
+        return
+      }
+
       const action = result.event.event_type === 'in' ? 'clocked in' : 'clocked out'
 
       log('Clock Action', '📍 Step 3/3: Updating UI and refreshing events...')
@@ -166,11 +174,7 @@ export default function ClockInOut() {
       }
       log('State', 'Success message displayed to user')
 
-      log('Clock Action', 'Scheduling fallback refresh in 500ms')
-      setTimeout(() => {
-        log('Clock Action', 'Executing fallback refresh')
-        loadRecentEvents()
-      }, 500)
+      // Realtime subscription handles activity refresh - no manual refresh needed
 
       setTimeout(() => {
         setMessage('')

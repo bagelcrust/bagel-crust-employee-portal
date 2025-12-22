@@ -219,9 +219,13 @@ export function useClockTerminal(): ClockTerminalState {
           table: 'time_entries'
         },
         (payload) => {
-          logSuccess('Realtime', '🔔 New time entry received via Realtime', payload)
-          // Reload recent events when new entry is inserted
-          loadRecentEvents()
+          try {
+            logSuccess('Realtime', '🔔 New time entry received via Realtime', payload)
+            // Reload recent events when new entry is inserted
+            loadRecentEvents()
+          } catch (err) {
+            logError('Realtime', 'Handler error', err)
+          }
         }
       )
       .subscribe((status) => {
@@ -232,6 +236,8 @@ export function useClockTerminal(): ClockTerminalState {
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           logError('Realtime', 'Subscription failed', { status })
           setRealtimeStatus('error')
+          // Fallback: refresh activity manually since realtime is down
+          loadRecentEvents()
         } else {
           log('Realtime', `Status: ${status}`)
           setRealtimeStatus('disconnected')
