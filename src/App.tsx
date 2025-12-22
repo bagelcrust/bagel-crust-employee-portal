@@ -30,6 +30,7 @@ const ClockInOut = lazy(() => import('./clock-in-out/clock-in-out-page'));
 const EmployeePortal = lazy(() => import('./employee-portal/employee-portal-page'));
 const ScheduleBuilder = lazy(() => import('./schedule-builder/schedule-builder-page'));
 const SupportPage = lazy(() => import('./support/support-page'));
+const PrivacyPage = lazy(() => import('./support/privacy-page'));
 
 // Loading spinner component
 function LoadingFallback() {
@@ -62,6 +63,7 @@ function App() {
             <Route path="/employee-portal" element={<EmployeePortal />} />
             <Route path="/schedule-builder" element={<ScheduleBuilder />} />
             <Route path="/support" element={<SupportPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
           </Routes>
         </Suspense>
         <Toaster />
