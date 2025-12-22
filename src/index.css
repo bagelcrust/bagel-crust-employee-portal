@@ -7,6 +7,25 @@
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* iOS PWA Status Bar Blur Effect
+ * Creates a blurred overlay behind the status bar for better readability
+ * Only activates on devices that support safe-area-inset-top (iOS)
+ */
+@supports (padding: env(safe-area-inset-top)) {
+  .status-bar-blur {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 9999;
+    pointer-events: none;
+  }
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;

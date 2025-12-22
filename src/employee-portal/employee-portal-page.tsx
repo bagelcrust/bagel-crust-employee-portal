@@ -274,6 +274,8 @@ export default function EmployeePortal() {
   if (isLoadingData) {
     return (
       <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+        {/* iOS PWA status bar blur overlay */}
+        <div className="status-bar-blur" />
         <div className="text-center text-gray-500 text-base font-semibold">
           {t.loadingSchedule}
         </div>
@@ -310,6 +312,8 @@ export default function EmployeePortal() {
   // ============================================================================
   return (
     <div className="fixed inset-0 w-full overflow-hidden flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
+      {/* iOS PWA status bar blur overlay */}
+      <div className="status-bar-blur" />
       <div className="flex-1 overflow-y-auto pb-[calc(96px+env(safe-area-inset-bottom,0px))] pt-[calc(env(safe-area-inset-top,0px)+12px)] [overflow-scrolling:touch]">
         <div className="max-w-2xl mx-auto px-4 py-3">
 

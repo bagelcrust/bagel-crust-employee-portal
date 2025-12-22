@@ -34,6 +34,8 @@ export function LoginScreen({
 }: EmployeeLoginProps) {
   return (
     <div className="fixed inset-0 w-full overflow-hidden flex items-center justify-center px-5 py-20 bg-slate-100">
+      {/* iOS PWA status bar blur overlay */}
+      <div className="status-bar-blur" />
       {/* Bag pattern as subtle tiled background */}
       <div
         className="absolute inset-0 opacity-[0.07] pointer-events-none"
