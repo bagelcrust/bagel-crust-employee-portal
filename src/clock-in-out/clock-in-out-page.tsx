@@ -8,10 +8,8 @@ import { PortalQRCode } from './components/PortalQRCode'
 import { UpcomingDaysPanel } from './components/UpcomingDaysPanel'
 import { assertShape, logCondition, logData, logError as debugLogError } from '../shared/debug-utils'
 
-// CRITICAL TEST: This should fire immediately when file loads (DEV only)
-if (import.meta.env.DEV) {
-  console.log('🔴 ClockInOut.tsx loaded at', new Date().toISOString())
-}
+// PRODUCTION DEBUG: This fires when file loads
+console.log('🔴🔴🔴 CLOCK PAGE LOADED 🔴🔴🔴', new Date().toISOString())
 
 /**
  * STANDALONE EMPLOYEE CLOCK IN/OUT PAGE
@@ -27,9 +25,7 @@ if (import.meta.env.DEV) {
 export default function ClockInOut() {
   const [devMode, setDevMode] = useState(import.meta.env.DEV)
 
-  if (import.meta.env.DEV) {
-    console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
-  }
+  console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
 
   const {
     currentTime,
