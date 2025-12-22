@@ -25,7 +25,7 @@ console.log('🔴🔴🔴 CLOCK PAGE LOADED 🔴🔴🔴', new Date().toISOStrin
 export default function ClockInOut() {
   const [devMode, setDevMode] = useState(import.meta.env.DEV)
 
-  console.log('🟢 ClockInOut component rendering at', new Date().toISOString())
+  // Removed: component renders every second for clock timer - too noisy
 
   const {
     currentTime,
