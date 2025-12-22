@@ -29,6 +29,7 @@ import { ErrorBoundary } from './shared/error-boundary';
 const ClockInOut = lazy(() => import('./clock-in-out/clock-in-out-page'));
 const EmployeePortal = lazy(() => import('./employee-portal/employee-portal-page'));
 const ScheduleBuilder = lazy(() => import('./schedule-builder/schedule-builder-page'));
+const SupportPage = lazy(() => import('./support/support-page'));
 
 // Loading spinner component
 function LoadingFallback() {
@@ -60,6 +61,7 @@ function App() {
             <Route path="/clockinout" element={<ClockInOut />} />
             <Route path="/employee-portal" element={<EmployeePortal />} />
             <Route path="/schedule-builder" element={<ScheduleBuilder />} />
+            <Route path="/support" element={<SupportPage />} />
           </Routes>
         </Suspense>
         <Toaster />
