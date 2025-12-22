@@ -29,12 +29,14 @@ interface KeypadProps {
   onComplete: (pin: string) => void
   maxLength?: number
   disabled?: boolean
+  dark?: boolean
 }
 
 export function Keypad({
   onComplete,
   maxLength = 4,
-  disabled = false
+  disabled = false,
+  dark = false
 }: KeypadProps) {
   const [value, setValue] = useState('')
 
@@ -60,12 +62,18 @@ export function Keypad({
   return (
     <div className="w-[330px]">
       {/* PIN Display - Glass Effect */}
-      <div className="h-[68px] bg-white/60 backdrop-blur-md border border-white/80 rounded-[10px] flex items-center justify-center mb-5 gap-[14px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+      <div className={`h-[68px] backdrop-blur-md rounded-[10px] flex items-center justify-center mb-5 gap-[14px] ${
+        dark
+          ? 'bg-white/10 border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]'
+          : 'bg-white/60 border border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.06)]'
+      }`}>
         {Array.from({ length: maxLength }).map((_, i) => (
           <div
             key={i}
             className={`w-[14px] h-[14px] rounded-full transition-all duration-[250ms] ease-in-out ${
-              i < value.length ? 'bg-blue-600' : 'bg-black/10'
+              i < value.length
+                ? (dark ? 'bg-violet-400' : 'bg-blue-600')
+                : (dark ? 'bg-white/20' : 'bg-black/10')
             }`}
           />
         ))}
@@ -83,9 +91,11 @@ export function Keypad({
             disabled={disabled}
             className={`h-[68px] ${
               item === '←' ? 'text-[22px]' : 'text-[26px]'
-            } font-semibold bg-white/50 backdrop-blur-md border border-white/60 rounded-[10px] cursor-pointer text-gray-800 transition-all duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-white/70 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/50 disabled:hover:translate-y-0 ${
-              item === 0 ? 'col-start-2' : ''
-            }`}
+            } font-semibold backdrop-blur-md rounded-[10px] cursor-pointer transition-all duration-200 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed ${
+              dark
+                ? 'bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:-translate-y-px shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+                : 'bg-white/50 border border-white/60 text-gray-800 hover:bg-white/70 hover:-translate-y-px shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] disabled:hover:bg-white/50 disabled:hover:translate-y-0'
+            } ${item === 0 ? 'col-start-2' : ''}`}
           >
             {item}
           </button>

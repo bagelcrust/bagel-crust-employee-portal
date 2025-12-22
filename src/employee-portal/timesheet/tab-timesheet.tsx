@@ -73,10 +73,10 @@ export function TimesheetTab({ timesheetData, t, language }: TimesheetTabProps) 
       </div>
 
       {/* Week Toggle */}
-      <div className="flex bg-gray-100 rounded-lg p-1 w-full">
+      <div className="flex bg-gray-100 rounded-xl p-1 w-full">
         <button
           onClick={() => setTimesheetWeek('this')}
-          className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm transition-all ${
             timesheetWeek === 'this'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
@@ -87,7 +87,7 @@ export function TimesheetTab({ timesheetData, t, language }: TimesheetTabProps) 
         </button>
         <button
           onClick={() => setTimesheetWeek('last')}
-          className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm transition-all ${
             timesheetWeek === 'last'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'

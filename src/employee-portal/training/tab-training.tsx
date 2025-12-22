@@ -12,8 +12,6 @@
 import { useState } from 'react'
 import {
   BookOpen,
-  User,
-  Coffee,
   ArrowLeft,
   ChevronRight
 } from 'lucide-react'
@@ -45,30 +43,24 @@ export function TrainingTab() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-1 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
-        <div className="flex">
-          {[
-            { id: 'start' as MainTab, label: 'Getting Started', icon: BookOpen },
-            { id: 'reference' as MainTab, label: 'Recipes', icon: Coffee },
-            { id: 'faq' as MainTab, label: 'FAQ', icon: User }
-          ].map((tab) => {
-            const TabIcon = tab.icon
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-600'
-                }`}
-              >
-                <TabIcon size={14} />
-                <span>{tab.label}</span>
-              </button>
-            )
-          })}
-        </div>
+      <div className="flex bg-gray-100 rounded-xl p-1 w-full">
+        {[
+          { id: 'start' as MainTab, label: 'Getting Started' },
+          { id: 'reference' as MainTab, label: 'Recipes' },
+          { id: 'faq' as MainTab, label: 'FAQ' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => handleTabChange(tab.id)}
+            className={`flex-1 py-2 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === tab.id
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Getting Started Tab */}

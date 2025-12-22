@@ -11,7 +11,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, FileClock } from 'lucide-react'
 import { usePayrollData } from '../payroll/usePayrollData'
 import { TimeLogCard } from '../payroll/TimeLogCard'
 import { EditTimeLogModal } from '../payroll/EditTimeLogModal'
@@ -96,7 +96,10 @@ export function TimeLogsTab() {
   return (
     <div className="space-y-4">
       {/* Title */}
-      <h1 className="text-[28px] font-bold text-gray-800 mb-4 tracking-tight">Time Logs</h1>
+      <div className="flex items-center gap-2 mb-4">
+        <FileClock className="w-7 h-7 text-blue-600" />
+        <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">Time Logs</h1>
+      </div>
 
       {/* Action Required Header OR All Clear */}
       {isAllClear ? (

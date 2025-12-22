@@ -389,22 +389,22 @@ export function BankTab() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h2 className="text-[24px] font-bold text-gray-800">Documents</h2>
-        <p className="text-gray-500 text-[14px]">Tax records organized for easy access</p>
+      <div className="flex items-center gap-2">
+        <FileText className="w-7 h-7 text-blue-600" />
+        <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">Documents</h1>
       </div>
 
       {/* Tabs */}
-      <div className="overflow-x-auto -mx-4 px-4">
-        <div className="flex gap-1 min-w-max">
+      <div className="overflow-x-auto">
+        <div className="flex bg-gray-100 rounded-xl p-1 w-fit">
           {TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-lg text-[14px] font-medium whitespace-nowrap transition-colors ${
+              className={`px-5 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
                 activeTab === tab.key
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               {tab.label}
