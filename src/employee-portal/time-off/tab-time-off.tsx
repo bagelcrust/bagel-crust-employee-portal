@@ -3,7 +3,8 @@
  * Submit new requests and view previous requests
  */
 
-import { logCondition, logData } from '../shared/debug-utils'
+import { MapPin } from 'lucide-react'
+import { logCondition, logData } from '../../shared/debug-utils'
 
 interface TimeOffTabProps {
   timeOffStartDate: string
@@ -34,12 +35,20 @@ export function TimeOffTab({
   logCondition('TimeOffTab', 'Has previous requests', requests.length > 0, { count: requests.length })
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <MapPin className="w-7 h-7 text-blue-600" />
+        <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">
+          Time Off
+        </h1>
+      </div>
+
       {/* Request Form */}
-      <div className="mb-6">
-        <h3 className="text-[28px] font-bold text-gray-800 mb-6 tracking-tight">
+      <div>
+        <h2 className="text-[22px] font-bold text-gray-800 mb-4 tracking-tight">
           Request Time Off
-        </h3>
+        </h2>
 
         <div className="mb-4">
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -50,7 +59,7 @@ export function TimeOffTab({
             value={timeOffStartDate}
             onChange={(e) => onStartDateChange(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            className="w-full p-3 text-base rounded-lg border border-black/10 bg-white/95 text-gray-800 font-sans"
+            className="w-full p-3 text-base rounded-lg border border-gray-200 bg-white text-gray-800 font-sans"
           />
         </div>
 
@@ -63,7 +72,7 @@ export function TimeOffTab({
             value={timeOffEndDate}
             onChange={(e) => onEndDateChange(e.target.value)}
             min={timeOffStartDate || new Date().toISOString().split('T')[0]}
-            className="w-full p-3 text-base rounded-lg border border-black/10 bg-white/95 text-gray-800 font-sans"
+            className="w-full p-3 text-base rounded-lg border border-gray-200 bg-white text-gray-800 font-sans"
           />
         </div>
 
@@ -76,7 +85,7 @@ export function TimeOffTab({
             onChange={(e) => onReasonChange(e.target.value)}
             placeholder="E.g., Vacation, doctor's appointment..."
             rows={3}
-            className="w-full p-3 text-base rounded-lg border border-black/10 bg-white/95 text-gray-800 font-sans resize-y"
+            className="w-full p-3 text-base rounded-lg border border-gray-200 bg-white text-gray-800 font-sans resize-y"
           />
         </div>
 
@@ -96,10 +105,10 @@ export function TimeOffTab({
       {/* Previous Requests */}
       {requests.length > 0 && (
         <div>
-          <h3 className="text-[22px] font-bold text-gray-800 mb-4 tracking-tight">
+          <h2 className="text-[22px] font-bold text-gray-800 mb-4 tracking-tight">
             Your Requests
-          </h3>
-          <div className="rounded-lg overflow-hidden">
+          </h2>
+          <div className="flex flex-col gap-2.5">
             {requests
               .filter((request) => {
                 // Filter out past time-off (end date is before today)
@@ -111,10 +120,9 @@ export function TimeOffTab({
                 logCondition('TimeOffTab', `Request ${request.id} is future`, isFuture, { end_date: request.end_date })
                 return isFuture
               })
-              .map((request, index, filteredRequests) => {
-                logData('TimeOffTab', `Rendering request ${index}`, request, ['id', 'start_date', 'end_date', 'reason'])
+              .map((request) => {
+                logData('TimeOffTab', `Rendering request`, request, ['id', 'start_date', 'end_date', 'reason'])
                 // Parse date string components directly to avoid timezone bugs
-                // Input: "2025-11-20" -> Output: Nov 20
                 const parseDate = (dateStr: string) => {
                   const [year, month, day] = dateStr.split('-').map(Number)
                   return new Date(year, month - 1, day)
@@ -127,16 +135,18 @@ export function TimeOffTab({
                 return (
                   <div
                     key={request.id}
-                    className={`p-4 text-center ${index < filteredRequests.length - 1 ? 'border-b border-black/5' : ''}`}
+                    className="p-3.5 px-4 rounded-[10px] flex justify-between items-center border border-gray-200 bg-white shadow-[0_2px_4px_rgba(0,0,0,0.04)]"
                   >
-                    <div className="text-base font-bold text-gray-800 mb-1">
-                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </div>
-                    <div className="text-[13px] text-gray-500 mb-1.5">
-                      {days} day{days !== 1 ? 's' : ''}
+                    <div className="text-left">
+                      <div className="font-semibold text-base text-gray-800 mb-0.5">
+                        {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div className="text-[13px] text-gray-500">
+                        {days} day{days !== 1 ? 's' : ''}
+                      </div>
                     </div>
                     {request.reason && (
-                      <div className="text-sm text-gray-400 italic">
+                      <div className="text-sm text-gray-400 italic text-right max-w-[50%]">
                         {request.reason}
                       </div>
                     )}

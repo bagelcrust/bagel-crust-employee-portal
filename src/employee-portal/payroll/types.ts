@@ -51,6 +51,7 @@ export interface EmployeePayroll {
   paidArrangements: Map<number, { hours: number; pay: number }> // Track paid arrangements
   paymentMethod?: string
   paymentDate?: string
+  lastPaymentMethod?: 'cash' | 'check' // From most recent payment in archive.payroll_records
   // Computed from selectedArrangement
   hourlyRate?: number
   totalPay?: number
@@ -60,7 +61,8 @@ export interface EmployeePayrollCardProps {
   employee: EmployeePayroll
   weekSelection: 'this' | 'last' | 'lastPayPeriod'
   onFinalize: (employeeId: string, arrangementId: number, manualHours: number) => void
-  onLogPayment: (arrangement: PayRateArrangement) => void
+  onLogPayment: (arrangement: PayRateArrangement, hours: number) => void
+  onQuickLogPayment: (arrangement: PayRateArrangement, hours: number, amount: number, method: 'cash' | 'check') => void
   isFinalizing: boolean
   // Optional shift editing callbacks
   onEditShift?: (shift: WorkedShift, employeeName: string, employeeId: string) => void

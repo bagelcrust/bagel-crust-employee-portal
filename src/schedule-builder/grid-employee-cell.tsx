@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react'
-import { Button } from '@/shared/ui/button'
-import { formatShiftTime, formatAvailabilityTime } from '../shared/scheduleUtils'
+import { useDroppable } from '@dnd-kit/core'
+import { formatAvailabilityTime } from '../shared/scheduleUtils'
+import { DraggableShiftCard } from './draggable-shift-card'
 import type { ScheduleShift } from './fetch-schedule-data'
 import type { TimeOff } from '@/shared/supabase-client'
 
@@ -13,6 +14,7 @@ interface ShiftCellProps {
   employeeId: string
   employeeName: string
   dayIndex: number
+  date: Date
   shifts: ScheduleShift[]
   timeOffs: TimeOff[]
   availability: Availability[]
@@ -24,47 +26,57 @@ interface ShiftCellProps {
 }
 
 export function EmployeeDayCell({
+  employeeId,
   employeeName,
+  dayIndex,
+  date,
   shifts,
   timeOffs,
   availability,
-  isToday,
+  isToday: _isToday,
   onCellClick,
   onShiftClick,
   onDeleteShift
 }: ShiftCellProps) {
-  /**
-   * Display logic (6 states):
-   * 1. scheduled + not published → grey dashed border
-   * 2. scheduled + published → white solid border
-   * 3. not scheduled + no availability + no time-off → "-"
-   * 4. not scheduled + no availability + HAS time-off → "TIME OFF"
-   * 5. not scheduled + has availability + is available → show availability times
-   * 6. not scheduled + has availability + time-off → "TIME OFF"
-   *
-   * Simplified:
-   * - Shifts exist → show shifts
-   * - No shifts + ANY time-off → "TIME OFF"
-   * - No shifts + no time-off + availability → show availability
-   * - No shifts + no time-off + no availability → "-"
-   */
+  // Set up droppable zone - ID format: "cell-{employeeId}-{dayIndex}"
+  const { setNodeRef, isOver, active } = useDroppable({
+    id: `cell-${employeeId}-${dayIndex}`,
+    data: { employeeId, dayIndex, date }
+  })
 
   const hasTimeOff = timeOffs.length > 0
   const hasAvailability = availability.length > 0
   const isClickable = shifts.length === 0 && !hasTimeOff && hasAvailability
 
+  // Determine if this is a valid drop target
+  // Invalid if: has all-day time-off OR no availability
+  const isValidDropTarget = !hasTimeOff && hasAvailability
+  const isDragging = active !== null
+
+  // Visual feedback colors for drag-and-drop
+  let dropFeedback = ''
+  if (isDragging && isOver) {
+    dropFeedback = isValidDropTarget
+      ? 'ring-2 ring-blue-400 bg-blue-50'  // Valid: blue highlight
+      : 'ring-2 ring-red-400 bg-red-50'    // Invalid: red highlight
+  } else if (isDragging && !isValidDropTarget) {
+    dropFeedback = 'bg-red-50/30'
+  }
+
+  // Background color logic (no special today background - just text)
+  let bgColor = 'transparent'
+  if (dropFeedback) {
+    bgColor = undefined as any // Let dropFeedback class handle it
+  }
+
   return (
     <td
-      className={`
-        border-r border-b p-1.5 align-top group relative
-        ${isClickable ? 'cursor-pointer hover:bg-zinc-800/20' : 'cursor-not-allowed'}
-      `}
+      ref={setNodeRef}
+      className={`border-b border-gray-200 border-r border-gray-100 p-1.5 align-middle group transition-all ${isClickable ? 'cursor-pointer hover:bg-blue-50/50' : ''} ${dropFeedback}`}
       style={{
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        background: isToday ? 'rgba(255, 255, 255, 0.03)' : 'rgba(24, 24, 27, 0.4)',
-        height: '48px',
-        maxHeight: '48px',
-        overflow: 'hidden'
+        background: bgColor,
+        height: '56px',
+        minWidth: '100px'
       }}
       onClick={(e) => {
         const target = e.target as HTMLElement
@@ -75,67 +87,42 @@ export function EmployeeDayCell({
       }}
     >
       {shifts.length > 0 ? (
-        /* State 1 & 2: Show shifts (published: white/solid, draft: grey/dashed) */
-        <div className="overflow-hidden h-full flex flex-col justify-center gap-1">
+        <div className="flex flex-col gap-1">
           {shifts.map((shift) => (
-            <div
-              key={shift.id}
-              className="shift-card rounded px-2 py-0.5 hover:shadow-md transition-shadow text-center group relative"
-              onClick={(e) => {
-                e.stopPropagation()
-                onShiftClick(shift, employeeName)
-              }}
-            >
-              <div
-                style={{
-                  background: shift.status === 'published' ? 'white' : 'rgb(156, 163, 175)',
-                  border: shift.status === 'published' ? '1px solid black' : '1px dashed rgb(75, 85, 99)',
-                  borderRadius: '0.375rem',
-                  padding: '0.25rem 0.5rem'
+            <div key={shift.id} className="group/shift relative">
+              <DraggableShiftCard
+                shift={shift}
+                employeeName={employeeName}
+                date={date}
+                onShiftClick={onShiftClick}
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDeleteShift(shift.id)
                 }}
-                className="cursor-pointer"
+                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full opacity-0 group-hover/shift:opacity-100 flex items-center justify-center shadow-sm transition-all"
+                title="Delete shift"
               >
-                <div className="text-xs font-medium text-black">
-                  {formatShiftTime(shift.start_time, shift.end_time)}
-                </div>
-
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteShift(shift.id)
-                  }}
-                  size="icon"
-                  variant="destructive"
-                  className="absolute top-0 right-0 -mt-1 -mr-1 rounded-full h-6 w-6 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                  title="Delete shift"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
+                <Trash2 className="w-3 h-3" />
+              </button>
             </div>
           ))}
         </div>
       ) : hasTimeOff ? (
-        /* State 4 & 6: Show "TIME OFF" (grey cell, regular border) */
         <div className="h-full flex items-center justify-center">
-          <span className="text-zinc-500 text-sm uppercase">Time Off</span>
+          <span className="text-gray-400 text-xs font-medium">Time Off</span>
         </div>
       ) : hasAvailability ? (
-        /* State 5: Show availability times */
-        <div className="h-full flex items-center justify-center">
-          <div className="text-xs text-zinc-400 text-center space-y-0.5">
+        <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="text-xs text-gray-400 text-center">
             {availability.map((avail, idx) => (
-              <div key={idx}>
-                {formatAvailabilityTime(avail.start_time)} - {formatAvailabilityTime(avail.end_time)}
-              </div>
+              <div key={idx}>{formatAvailabilityTime(avail.start_time)} - {formatAvailabilityTime(avail.end_time)}</div>
             ))}
           </div>
         </div>
       ) : (
-        /* State 3: Show "-" (no availability, no time-off) */
-        <div className="h-full flex items-center justify-center">
-          <span className="text-zinc-500 text-sm">-</span>
-        </div>
+        <div className="h-full flex items-center justify-center text-gray-300">—</div>
       )}
     </td>
   )

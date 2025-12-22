@@ -12,10 +12,10 @@
 
 import { useState, useMemo } from 'react'
 import { AlertTriangle, CheckCircle } from 'lucide-react'
-import { usePayrollData } from './payroll/usePayrollData'
-import { TimeLogCard } from './payroll/TimeLogCard'
-import { EditTimeLogModal } from './payroll/EditTimeLogModal'
-import type { WorkedShift, EmployeePayroll } from './payroll/types'
+import { usePayrollData } from '../payroll/usePayrollData'
+import { TimeLogCard } from '../payroll/TimeLogCard'
+import { EditTimeLogModal } from '../payroll/EditTimeLogModal'
+import type { WorkedShift, EmployeePayroll } from '../payroll/types'
 
 // Red flag detection for a single shift
 // NOTE: isIncomplete (currently clocked in) is NOT a red flag

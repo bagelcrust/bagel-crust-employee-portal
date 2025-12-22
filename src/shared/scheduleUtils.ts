@@ -73,12 +73,17 @@ export function formatShiftTimeDetailed(
 
 /**
  * Check if a time-off entry is all day
- * All-day time-off has specific start/end hours (5am-4am next day UTC)
+ * Uses the all_day field from database, falls back to hour check
  *
  * @param timeOff - Time-off entry
  * @returns true if all-day time-off
  */
 export function isAllDayTimeOff(timeOff: TimeOff): boolean {
+  // Use the all_day field directly if available
+  if ('all_day' in timeOff && timeOff.all_day !== null) {
+    return timeOff.all_day === true
+  }
+  // Fallback to hour-based check for legacy data
   const start = new Date(timeOff.start_time)
   const end = new Date(timeOff.end_time)
   const startHour = start.getUTCHours()
@@ -309,4 +314,111 @@ export function formatAvailabilityTime(timeString: string): string {
   const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
 
   return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`
+}
+
+// ============================================
+// Artisan Schedule Builder Helpers
+// ============================================
+
+/**
+ * Shift visual category for artisan color scheme
+ * Used to determine shift block color and label
+ */
+export type ShiftVisualType = 'morning' | 'evening' | 'brunch'
+
+/**
+ * Determine shift visual type based on start time and day
+ * - Weekend mornings (6am-noon) → brunch (mustard)
+ * - Weekday mornings (before noon) → morning (terracotta)
+ * - Afternoon/evening (noon+) → evening (sage)
+ *
+ * @param startTime - ISO timestamp or Date
+ * @param date - The date of the shift (to check weekend)
+ * @returns Visual type for color/label selection
+ */
+export function getShiftVisualType(startTime: string | Date, date: Date): ShiftVisualType {
+  const start = new Date(startTime)
+  const startHour = start.getHours()
+  const dayOfWeek = date.getDay() // 0=Sun, 6=Sat
+
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+  if (isWeekend && startHour >= 6 && startHour < 12) {
+    return 'brunch'
+  }
+  if (startHour < 12) {
+    return 'morning'
+  }
+  return 'evening'
+}
+
+/**
+ * Get display label for shift visual type
+ */
+export function getShiftLabel(visualType: ShiftVisualType): string {
+  switch (visualType) {
+    case 'morning': return 'OPEN'
+    case 'evening': return 'CLOSE'
+    case 'brunch': return 'BRUNCH'
+  }
+}
+
+/**
+ * Get artisan color class for shift visual type
+ * Returns the Tailwind background color class
+ */
+export function getShiftColorClass(visualType: ShiftVisualType): string {
+  switch (visualType) {
+    case 'morning': return 'bg-artisan-terracotta'
+    case 'evening': return 'bg-artisan-sage'
+    case 'brunch': return 'bg-artisan-mustard'
+  }
+}
+
+/**
+ * Get hex color for shift visual type (for inline styles)
+ */
+export function getShiftColor(visualType: ShiftVisualType): string {
+  switch (visualType) {
+    case 'morning': return '#C06C46'  // terracotta
+    case 'evening': return '#96A689'  // sage
+    case 'brunch': return '#D9B650'   // mustard
+  }
+}
+
+/**
+ * Get initials from name for avatar display
+ * "Marco Polo" → "MP", "Luna" → "LU"
+ */
+export function getInitials(firstName: string, lastName?: string | null): string {
+  const first = firstName?.[0]?.toUpperCase() || ''
+  const last = lastName?.[0]?.toUpperCase() || firstName?.[1]?.toUpperCase() || ''
+  return first + last
+}
+
+/**
+ * Generate deterministic color from name for avatar background
+ * Uses a simple hash to pick from a warm color palette
+ */
+export function getAvatarColor(name: string): string {
+  // Warm avatar colors that complement the artisan palette
+  const avatarColors = [
+    '#8B7355', // warm brown
+    '#6B8E6B', // muted sage
+    '#A67B5B', // caramel
+    '#7B8B8B', // slate
+    '#9B7B6B', // dusty rose
+    '#6B7B6B', // olive
+    '#8B6B7B', // mauve
+    '#7B6B5B', // taupe
+  ]
+
+  // Simple hash from name
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+
+  const index = Math.abs(hash) % avatarColors.length
+  return avatarColors[index]
 }

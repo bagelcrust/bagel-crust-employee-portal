@@ -3,9 +3,9 @@
  * Displays employee's personal schedule and full team schedule
  */
 
-import { formatTime } from '../shared/employeeUtils'
-import type { Translations } from '../shared/translations'
-import { assertShape, logCondition, logData } from '../shared/debug-utils'
+import { formatTime } from '../../shared/employeeUtils'
+import type { Translations } from '../../shared/translations'
+import { assertShape, logCondition, logData } from '../../shared/debug-utils'
 
 interface ScheduleTabProps {
   employee: any
@@ -215,28 +215,36 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
               {allShifts.map(({ day, shifts, date }, idx) => {
                 const dayName = t[day as keyof typeof t] as string
                 const isToday = date.getTime() === today.getTime()
+                const isPast = date.getTime() < today.getTime()
                 const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
 
                 return (
                   <div
                     key={`${day}-${idx}`}
                     className={`p-3.5 px-4 rounded-[10px] flex justify-between items-center shadow-[0_2px_4px_rgba(0,0,0,0.04)] ${
-                      isToday
-                        ? 'border-2 border-blue-600 bg-blue-600/5'
-                        : 'border border-gray-200 bg-white'
+                      isPast
+                        ? 'border border-gray-200 bg-gray-50 opacity-60'
+                        : isToday
+                          ? 'border-2 border-blue-600 bg-blue-600/5'
+                          : 'border border-gray-200 bg-white'
                     }`}
                   >
                     {/* Left: Day & Date */}
                     <div className="text-left">
-                      <div className="font-semibold text-gray-800 text-base mb-0.5">
+                      <div className={`font-semibold text-base mb-0.5 ${isPast ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
                         {dayName}
                         {isToday && (
-                          <span className="text-[10px] text-blue-600 font-bold ml-2 bg-blue-600/15 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-blue-600 font-bold ml-2 bg-blue-600/15 px-1.5 py-0.5 rounded no-underline">
                             TODAY
                           </span>
                         )}
+                        {isPast && (
+                          <span className="text-[10px] text-gray-400 font-bold ml-2 bg-gray-200 px-1.5 py-0.5 rounded no-underline">
+                            PASSED
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[13px] text-gray-500">
+                      <div className={`text-[13px] ${isPast ? 'text-gray-400' : 'text-gray-500'}`}>
                         {dateStr}
                       </div>
                     </div>
@@ -245,7 +253,7 @@ export function ScheduleTab({ employee, scheduleData, fullTeamSchedule, t }: Sch
                     <div className="text-right">
                       {shifts.map((shift: any, shiftIdx: number) => (
                         <div key={shiftIdx} className={shiftIdx < shifts.length - 1 ? 'mb-1' : ''}>
-                          <div className="font-semibold text-blue-600 text-base">
+                          <div className={`font-semibold text-base ${isPast ? 'text-gray-400 line-through' : 'text-blue-600'}`}>
                             {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                           </div>
                         </div>

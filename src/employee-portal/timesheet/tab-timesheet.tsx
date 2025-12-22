@@ -4,11 +4,12 @@
  */
 
 import { useState } from 'react'
+import { Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { es, enUS } from 'date-fns/locale'
-import { formatTime, formatHoursMinutes } from '../shared/employeeUtils'
-import type { Translations } from '../shared/translations'
-import { assertShape, logCondition } from '../shared/debug-utils'
+import { formatTime, formatHoursMinutes } from '../../shared/employeeUtils'
+import type { Translations } from '../../shared/translations'
+import { assertShape, logCondition } from '../../shared/debug-utils'
 
 interface TimesheetTabProps {
   timesheetData: any
@@ -25,7 +26,13 @@ export function TimesheetTab({ timesheetData, t, language }: TimesheetTabProps) 
   // Loading state - data not yet loaded
   if (!timesheetData) {
     return (
-      <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Clock className="w-7 h-7 text-blue-600" />
+          <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">
+            {t.timesheet}
+          </h1>
+        </div>
         <div className="text-center text-gray-500 text-base font-semibold py-8">
           Loading timesheet...
         </div>
@@ -56,13 +63,17 @@ export function TimesheetTab({ timesheetData, t, language }: TimesheetTabProps) 
   }
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-[10px] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] border border-white/50">
-      <h2 className="text-[28px] font-bold text-gray-800 mb-6 tracking-tight">
-        {t.timesheet}
-      </h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Clock className="w-7 h-7 text-blue-600" />
+        <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">
+          {t.timesheet}
+        </h1>
+      </div>
 
       {/* Week Toggle */}
-      <div className="flex bg-gray-100 rounded-lg p-1 mb-4 w-full">
+      <div className="flex bg-gray-100 rounded-lg p-1 w-full">
         <button
           onClick={() => setTimesheetWeek('this')}
           className={`flex-1 py-2 rounded-md font-semibold text-sm transition-all ${
@@ -89,22 +100,23 @@ export function TimesheetTab({ timesheetData, t, language }: TimesheetTabProps) 
 
       {hasHours ? (
         <div>
-          <div className="rounded-lg overflow-hidden mb-3.5">
+          {/* Hours List */}
+          <div className="flex flex-col gap-2.5">
             {currentWeekData.days.map((day: any, idx: number) => (
               <div
                 key={idx}
-                className={`p-3.5 flex justify-between ${idx < currentWeekData.days.length - 1 ? 'border-b border-black/5' : ''}`}
+                className="p-3.5 px-4 rounded-[10px] flex justify-between items-center border border-gray-200 bg-white shadow-[0_2px_4px_rgba(0,0,0,0.04)]"
               >
-                <div>
+                <div className="text-left">
                   <div className="font-semibold text-gray-800 text-[15px]">
                     {translateDayName(day.day_name)}
                   </div>
-                  <div className="text-[13px] text-gray-400 mt-0.5">
+                  <div className="text-[13px] text-gray-500 mt-0.5">
                     {format(new Date(day.date), language === 'en' ? 'MMMM d' : "d 'de' MMMM", { locale: language === 'en' ? enUS : es })}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-gray-800 text-[15px]">
+                  <div className="font-semibold text-blue-600 text-[15px]">
                     {formatHoursMinutes(day.hours_worked)}
                   </div>
                   <div className="text-[13px] text-gray-500 mt-0.5">
@@ -115,7 +127,8 @@ export function TimesheetTab({ timesheetData, t, language }: TimesheetTabProps) 
             ))}
           </div>
 
-          <div className="p-3.5 bg-blue-600/6 rounded-lg flex justify-between items-center">
+          {/* Total */}
+          <div className="mt-4 p-3.5 bg-blue-600/6 rounded-lg flex justify-between items-center">
             <span className="font-semibold text-gray-800 text-[15px]">
               {t.total}
             </span>

@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, subWeeks, addDays } from 'date-fns'
-import { getDisplayName, supabase, fetchPayrollDataRpc } from '../../shared/supabase-client'
+import { getDisplayName, supabase, fetchPayrollDataRpc, fetchLastPaymentMethods } from '../../shared/supabase-client'
 import { logCondition, logData } from '../../shared/debug-utils'
 import type { EmployeePayroll, FlaggedActivity, PayRateArrangement, WorkedShift, WeekSelection } from './types'
 
@@ -22,7 +22,8 @@ export function usePayrollData() {
     isOpen: boolean
     employee: EmployeePayroll | null
     arrangement: PayRateArrangement | null
-  }>({ isOpen: false, employee: null, arrangement: null })
+    hours: number
+  }>({ isOpen: false, employee: null, arrangement: null, hours: 0 })
 
   useEffect(() => {
     loadPayrollData()
@@ -67,8 +68,11 @@ export function usePayrollData() {
       // Store date range for display
       setDateRange({ start: startDateET, end: format(displayEnd, 'yyyy-MM-dd') })
 
-      // Fetch all payroll data in one RPC call
-      const rpcResult = await fetchPayrollDataRpc(startDateET, endDateET)
+      // Fetch payroll data and last payment methods in parallel
+      const [rpcResult, lastPaymentMethodMap] = await Promise.all([
+        fetchPayrollDataRpc(startDateET, endDateET),
+        fetchLastPaymentMethods()
+      ])
 
       const employeesData = rpcResult.employees || []
       const timeEntriesData = rpcResult.time_entries || []
@@ -77,7 +81,13 @@ export function usePayrollData() {
 
       // Create pay rates map - employees can have MULTIPLE active pay arrangements
       // (e.g., Carlos has both 1099/Weekly and W-2/Bi-weekly)
+      // BUT: Only keep the most recent rate per (pay_schedule + tax_classification)
+      // This handles rate history (e.g., Clara's $12→$14 raise)
       const payRatesMap = new Map<string, PayRateArrangement[]>()
+
+      // First, group by employee_id and find most recent rate per arrangement type
+      const tempMap = new Map<string, Map<string, { arrangement: PayRateArrangement; effectiveDate: string }>>()
+
       payRatesData.forEach((rate: any) => {
         const arrangement: PayRateArrangement = {
           id: rate.id,
@@ -87,9 +97,29 @@ export function usePayrollData() {
           tax_classification: rate.tax_classification
         }
 
-        const existing = payRatesMap.get(rate.employee_id) || []
-        existing.push(arrangement)
-        payRatesMap.set(rate.employee_id, existing)
+        // Unique key for arrangement type (not including rate)
+        const arrangementKey = `${rate.pay_schedule || 'Standard'}|${rate.tax_classification || 'Cash'}`
+        const effectiveDate = rate.effective_date || '1900-01-01'
+
+        if (!tempMap.has(rate.employee_id)) {
+          tempMap.set(rate.employee_id, new Map())
+        }
+        const employeeArrangements = tempMap.get(rate.employee_id)!
+
+        // Keep only the most recent effective_date for each arrangement type
+        const existing = employeeArrangements.get(arrangementKey)
+        if (!existing || effectiveDate > existing.effectiveDate) {
+          employeeArrangements.set(arrangementKey, { arrangement, effectiveDate })
+        }
+      })
+
+      // Convert to final map format
+      tempMap.forEach((arrangements, employeeId) => {
+        const ratesList: PayRateArrangement[] = []
+        arrangements.forEach(({ arrangement }) => {
+          ratesList.push(arrangement)
+        })
+        payRatesMap.set(employeeId, ratesList)
       })
 
       // Create payroll records map (employee_id -> array of records)
@@ -193,19 +223,19 @@ export function usePayrollData() {
           // Build map of paid arrangements: arrangement_id -> { hours, pay }
           const paidArrangements = new Map<number, { hours: number; pay: number }>()
           payrollRecords.forEach((record: any) => {
-            if (record.status === 'paid' && record.payment_type === 'regular') {
+            if (record.status === 'paid') {
               // If pay_rate_id exists, use it to track specific arrangement
               if (record.pay_rate_id) {
                 paidArrangements.set(record.pay_rate_id, {
-                  hours: parseFloat(record.total_hours),
-                  pay: parseFloat(record.gross_pay)
+                  hours: parseFloat(record.hours_worked),
+                  pay: parseFloat(record.gross_amount)
                 })
               } else {
                 // Legacy record without pay_rate_id - mark first arrangement as paid
                 if (arrangements.length > 0) {
                   paidArrangements.set(arrangements[0].id, {
-                    hours: parseFloat(record.total_hours),
-                    pay: parseFloat(record.gross_pay)
+                    hours: parseFloat(record.hours_worked),
+                    pay: parseFloat(record.gross_amount)
                   })
                 }
               }
@@ -216,9 +246,8 @@ export function usePayrollData() {
           const unpaidArrangements = arrangements.filter(arr => !paidArrangements.has(arr.id))
           const selectedArrangement = unpaidArrangements[0] || arrangements[0]
 
-          // Employee is fully paid if all arrangements are paid AND they have worked hours
-          // BUT: Don't show as paid if we're viewing "This Week" (current week)
-          const isFullyPaid = weekSelection !== 'this' && arrangements.length > 0 && arrangements.every(arr => paidArrangements.has(arr.id))
+          // Employee is fully paid if all arrangements are paid
+          const isFullyPaid = arrangements.length > 0 && arrangements.every(arr => paidArrangements.has(arr.id))
 
           const hourlyRate = selectedArrangement?.rate || 0
           const totalPay = totalHours * hourlyRate
@@ -238,7 +267,8 @@ export function usePayrollData() {
             payrollRecordId: payrollRecords[0]?.id,
             isPaid: isFullyPaid,
             paymentMethod: payrollRecords[0]?.payment_method,
-            paymentDate: payrollRecords[0]?.payment_date
+            paymentDate: payrollRecords[0]?.prepared_date,
+            lastPaymentMethod: lastPaymentMethodMap.get(employee.id) || 'check'
           }
         })
         .filter((emp: EmployeePayroll) => {
@@ -342,24 +372,24 @@ export function usePayrollData() {
       // Calculate pay based on selected arrangement and manual hours
       const hourlyRate = arrangement.rate
       const hoursToUse = manualHours || employee.totalHours
-      const totalPay = hoursToUse * hourlyRate
+      const estimatedPay = employee.totalHours * hourlyRate  // What system calculated
+      const preparedPay = hoursToUse * hourlyRate            // What manager is logging
 
-      // Insert payroll record with pay_rate_id to track which arrangement was used
+      // Insert pay record
       const { error } = await supabase
-        .from('payroll_records')
+        .schema('accounting')
+        .from('portal_pay_records')
         .insert({
           employee_id: employeeId,
-          pay_rate_id: arrangementId,
           pay_period_start: startDateET,
           pay_period_end: endDateET,
-          total_hours: hoursToUse,
+          hours_worked: hoursToUse,
           hourly_rate: hourlyRate,
-          gross_pay: totalPay,
-          deductions: 0,
-          net_pay: totalPay,
-          payment_date: format(new Date(), 'yyyy-MM-dd'),
-          payment_method: arrangement.payment_method,
-          status: 'paid'
+          estimated_amount: estimatedPay,
+          gross_amount: preparedPay,
+          net_amount: preparedPay,
+          prepared_date: format(new Date(), 'yyyy-MM-dd'),
+          payment_method: arrangement.payment_method
         })
 
       if (error) throw error
@@ -397,24 +427,26 @@ export function usePayrollData() {
   }) => {
     logData('PayrollTab', 'Logging manual payment', data)
 
+    // estimated = hours × rate (what system calculated)
+    // gross = what manager actually logged (might be different)
+    const estimatedAmount = data.totalHours * data.hourlyRate
+
     const { error } = await supabase
-      .schema('employees')
-      .from('payroll_records')
+      .schema('accounting')
+      .from('portal_pay_records')
       .insert({
         employee_id: data.employeeId,
-        pay_rate_id: data.arrangementId,
         pay_period_start: data.payPeriodStart,
         pay_period_end: data.payPeriodEnd,
-        total_hours: data.totalHours,
+        hours_worked: data.totalHours,
         hourly_rate: data.hourlyRate,
-        gross_pay: data.grossPay,
-        deductions: 0,
-        net_pay: data.grossPay,
-        payment_date: format(new Date(), 'yyyy-MM-dd'),
+        estimated_amount: estimatedAmount,
+        gross_amount: data.grossPay,
+        net_amount: data.grossPay,
+        prepared_date: format(new Date(), 'yyyy-MM-dd'),
         payment_method: data.paymentMethod,
         check_number: data.checkNumber || null,
-        notes: data.notes || null,
-        status: 'paid'
+        notes: data.notes || null
       })
 
     if (error) throw error
@@ -428,6 +460,50 @@ export function usePayrollData() {
       if (employeeCard) {
         employeeCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
+    })
+  }
+
+  // Quick log payment - one-tap with preset amount and method
+  const handleQuickLogPayment = async (
+    employeeId: string,
+    arrangement: PayRateArrangement,
+    hours: number,
+    amount: number,
+    method: 'cash' | 'check'
+  ) => {
+    // Calculate pay period dates based on current weekSelection
+    const nowET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
+    const todayET = new Date(nowET)
+
+    let payPeriodStart: string
+    let payPeriodEnd: string
+
+    if (weekSelection === 'lastPayPeriod') {
+      const twoWeeksAgo = subWeeks(todayET, 2)
+      const oneWeekAgo = subWeeks(todayET, 1)
+      const mondayET = startOfWeek(twoWeeksAgo, { weekStartsOn: 1 })
+      const sundayET = endOfWeek(oneWeekAgo, { weekStartsOn: 1 })
+      payPeriodStart = format(mondayET, 'yyyy-MM-dd')
+      payPeriodEnd = format(addDays(sundayET, 1), 'yyyy-MM-dd')
+    } else {
+      const referenceDate = weekSelection === 'this' ? todayET : subWeeks(todayET, 1)
+      const mondayET = startOfWeek(referenceDate, { weekStartsOn: 1 })
+      const sundayET = endOfWeek(referenceDate, { weekStartsOn: 1 })
+      payPeriodStart = format(mondayET, 'yyyy-MM-dd')
+      payPeriodEnd = format(addDays(sundayET, 1), 'yyyy-MM-dd')
+    }
+
+    await handleLogPayment({
+      employeeId,
+      arrangementId: arrangement.id,
+      totalHours: hours,
+      hourlyRate: arrangement.rate,
+      grossPay: amount,
+      paymentMethod: method,
+      checkNumber: '',
+      notes: '',
+      payPeriodStart,
+      payPeriodEnd
     })
   }
 
@@ -513,6 +589,7 @@ export function usePayrollData() {
     // Actions
     handleFinalizeEmployee,
     handleLogPayment,
+    handleQuickLogPayment,
     handleUpdateTimeEntry,
     handleCreateTimeEntry,
     refreshData: loadPayrollData,

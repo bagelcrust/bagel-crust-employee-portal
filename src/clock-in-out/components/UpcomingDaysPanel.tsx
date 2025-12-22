@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useGetCalendarEvents, type CalendarEvent } from '../../employee-portal/fetch-calendar-data'
+import { useGetCalendarEvents, type CalendarEvent } from '../../shared/fetch-calendar-data'
 
 /**
  * Get current date in Eastern timezone

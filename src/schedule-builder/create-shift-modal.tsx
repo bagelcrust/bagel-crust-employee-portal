@@ -136,13 +136,13 @@ export function CreateShiftModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-white/95 backdrop-blur-md border border-white/50 shadow-xl">
         <DialogHeader className="space-y-1.5">
-          <DialogTitle className="text-xl">Add Shift for {employeeName}</DialogTitle>
-          <DialogDescription className="text-sm">
+          <DialogTitle className="text-xl text-gray-800">Add Shift for {employeeName}</DialogTitle>
+          <DialogDescription className="text-sm text-gray-500">
             {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             {availabilityWindow && (
-              <span className="block mt-1 text-xs text-zinc-500">
+              <span className="block mt-1 text-xs text-gray-400">
                 Available {formatAvailabilityTime(availabilityWindow.start)} - {formatAvailabilityTime(availabilityWindow.end)}
               </span>
             )}
@@ -150,11 +150,11 @@ export function CreateShiftModal({
         </DialogHeader>
 
         {hasTimeOff && (
-          <div className="bg-white/10 border border-white/30 rounded-lg p-4">
-            <p className="text-sm font-medium text-white">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm font-medium text-amber-800">
               ⚠️ {employeeName} has time-off on this day
             </p>
-            <p className="text-xs text-gray-300 mt-1">{timeOffReason}</p>
+            <p className="text-xs text-amber-600 mt-1">{timeOffReason}</p>
           </div>
         )}
 
@@ -162,8 +162,8 @@ export function CreateShiftModal({
         {suggestedPatterns.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-zinc-400" />
-              <p className="text-sm font-medium text-zinc-300">Recommended (past month)</p>
+              <Clock className="w-4 h-4 text-gray-400" />
+              <p className="text-sm font-medium text-gray-600">Recommended (past month)</p>
             </div>
             <div className="grid gap-2">
               {suggestedPatterns.map((pattern, index) => (
@@ -171,13 +171,13 @@ export function CreateShiftModal({
                   key={index}
                   type="button"
                   onClick={() => handlePatternClick(pattern)}
-                  className="w-full text-left px-4 py-3 rounded-lg border border-zinc-700 bg-zinc-900/40 hover:bg-zinc-800/60 hover:border-zinc-600 transition-colors"
+                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 bg-white/80 hover:bg-blue-50 hover:border-blue-200 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-medium text-white">
+                    <span className="text-base font-medium text-gray-700">
                       {formatShiftPattern(pattern)}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-gray-400">
                       {pattern.count}x
                     </span>
                   </div>
@@ -260,10 +260,10 @@ export function CreateShiftModal({
           </div>
 
           <DialogFooter className="gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-[100px]">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-[100px] border-gray-200 hover:bg-gray-50">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="min-w-[120px]">
+            <Button type="submit" disabled={isLoading} className="min-w-[120px] bg-blue-600 hover:bg-blue-700">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Shift
             </Button>

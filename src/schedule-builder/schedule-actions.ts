@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { shiftService } from './shift-operations'
 import { publishService } from './publish-schedule'
+import { supabase } from '../shared/supabase-client'
 import {
   isAllDayTimeOff,
   countDraftShifts
@@ -29,6 +30,7 @@ interface UseScheduleBuilderActionsProps {
   daysOfWeek: any[]
   timeOffsByEmployeeAndDay: Record<string, Record<number, any[]>>
   availabilityByEmployeeAndDay: Record<string, Record<number, any[]>>
+  availabilityByEmployeeAndDate?: Record<string, Record<string, any[]>>
   shiftsByEmployeeAndDay: Record<string, Record<number, ScheduleShift[]>>
   refetchShifts: () => Promise<any>
   refetchPublishStatus: () => Promise<any>
@@ -45,6 +47,7 @@ export function useScheduleActions({
   daysOfWeek,
   timeOffsByEmployeeAndDay,
   availabilityByEmployeeAndDay,
+  availabilityByEmployeeAndDate,
   shiftsByEmployeeAndDay,
   refetchShifts,
   refetchPublishStatus,
@@ -63,6 +66,49 @@ export function useScheduleActions({
     ) as ScheduleShift[]
     return countDraftShifts(allShifts)
   }, [shiftsByEmployeeAndDay])
+
+  // Auto-kick shifts to open shifts when employee has time off conflict
+  useEffect(() => {
+    const checkAndKickConflictingShifts = async () => {
+      const shiftsToKick: number[] = []
+
+      // Check all employee shifts for time off conflicts
+      for (const [employeeId, dayShifts] of Object.entries(shiftsByEmployeeAndDay)) {
+        for (const [dayIndexStr, shifts] of Object.entries(dayShifts)) {
+          const dayIndex = parseInt(dayIndexStr, 10)
+          const timeOffsForDay = timeOffsByEmployeeAndDay[employeeId]?.[dayIndex] || []
+
+          // If employee has ALL-DAY time off, kick all their shifts for that day
+          const hasAllDayTimeOff = timeOffsForDay.some((timeOff: any) => isAllDayTimeOff(timeOff))
+
+          if (hasAllDayTimeOff && shifts.length > 0) {
+            for (const shift of shifts) {
+              // Only kick draft shifts (not published ones)
+              if (shift.status === 'draft') {
+                shiftsToKick.push(shift.id)
+              }
+            }
+          }
+        }
+      }
+
+      // Move conflicting shifts to open shifts
+      if (shiftsToKick.length > 0) {
+        console.log(`🚨 Auto-kicking ${shiftsToKick.length} shifts due to time off conflicts`)
+        for (const shiftId of shiftsToKick) {
+          try {
+            await shiftService.moveToOpenShift(shiftId)
+          } catch (error) {
+            console.error(`Failed to kick shift ${shiftId}:`, error)
+          }
+        }
+        // Refresh to show updated data
+        refetchShifts()
+      }
+    }
+
+    checkAndKickConflictingShifts()
+  }, [shiftsByEmployeeAndDay, timeOffsByEmployeeAndDay, refetchShifts])
 
   // Handle cell click (add shift)
   const handleCellClick = useCallback((
@@ -210,47 +256,34 @@ export function useScheduleActions({
     })
   }, [setModalState])
 
-  // Handle repeat last week
+  // Handle repeat last week - uses server-side RPC for proper timezone handling
   const handleRepeatLastWeek = useCallback(async () => {
     if (!confirm('Copy all published shifts from last week to this week as drafts?')) {
       return
     }
 
     try {
-      const lastWeekStart = new Date(currentWeekStart)
-      lastWeekStart.setDate(lastWeekStart.getDate() - 7)
-      const lastWeekEnd = new Date(currentWeekEnd)
-      lastWeekEnd.setDate(lastWeekEnd.getDate() - 7)
+      // Format dates as YYYY-MM-DD for the RPC function
+      const formatDate = (d: Date) => d.toISOString().split('T')[0]
 
-      const lastWeekShifts = await shiftService.getPublishedShifts(
-        lastWeekStart.toISOString().split('T')[0],
-        lastWeekEnd.toISOString().split('T')[0]
-      )
-
-      if (lastWeekShifts.length === 0) {
-        return
-      }
-
-      let createdCount = 0
-      for (const shift of lastWeekShifts) {
-        const startDate = new Date(shift.start_time)
-        startDate.setDate(startDate.getDate() + 7)
-        const endDate = new Date(shift.end_time)
-        endDate.setDate(endDate.getDate() + 7)
-
-        await shiftService.createShift({
-          employee_id: shift.employee_id,
-          start_time: startDate.toISOString(),
-          end_time: endDate.toISOString(),
-          location: shift.location || 'Calder',
-          role: shift.role
+      const { data: count, error } = await supabase
+        .schema('employees')
+        .rpc('repeat_last_week', {
+          p_current_week_start: formatDate(currentWeekStart),
+          p_current_week_end: formatDate(currentWeekEnd)
         })
-        createdCount++
+
+      if (error) throw error
+
+      if (count === 0) {
+        alert('No published shifts found from last week to copy.')
+        return
       }
 
       refetchShifts()
     } catch (error: any) {
-      // Error already logged
+      console.error('❌ REPEAT LAST WEEK FAILED:', error)
+      alert('Failed to repeat last week shifts.')
     }
   }, [currentWeekStart, currentWeekEnd, refetchShifts])
 
@@ -278,14 +311,18 @@ export function useScheduleActions({
       return
     }
 
-    // Parse drop target ID (format: "cell-{employeeId}-{dayIndex}")
+    // Parse drop target ID
+    // Format: "cell-{employeeId}-{dayIndex}" for employee cells
+    // Format: "cell-open-{dayIndex}" for open shift cells
     const dropId = over.id as string
     if (!dropId.startsWith('cell-')) {
       return
     }
 
-    const [, targetEmployeeId, targetDayIndexStr] = dropId.split('-')
-    const targetDayIndex = parseInt(targetDayIndexStr, 10)
+    const parts = dropId.split('-')
+    const isOpenShiftDrop = parts[1] === 'open'
+    const targetEmployeeId = isOpenShiftDrop ? null : parts[1]
+    const targetDayIndex = parseInt(parts[isOpenShiftDrop ? 2 : 2], 10)
 
     // Get target date from daysOfWeek
     const targetDay = daysOfWeek[targetDayIndex]
@@ -293,19 +330,25 @@ export function useScheduleActions({
       return
     }
 
-    // Check if employee has ALL-DAY time-off on target day
-    const timeOffsForDay = timeOffsByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
-    const hasAllDayTimeOff = timeOffsForDay.some((timeOff: any) => isAllDayTimeOff(timeOff))
-    if (hasAllDayTimeOff) {
-      return
-    }
+    // For employee cells, validate time-off and availability
+    if (!isOpenShiftDrop && targetEmployeeId) {
+      // Check if employee has ALL-DAY time-off on target day
+      const timeOffsForDay = timeOffsByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
+      const hasAllDayTimeOff = timeOffsForDay.some((timeOff: any) => isAllDayTimeOff(timeOff))
+      if (hasAllDayTimeOff) {
+        return
+      }
 
-    // Check if employee has no availability on target day
-    const availabilityForTargetDay = availabilityByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
-    const partialTimeOffsForDay = timeOffsForDay.filter((timeOff: any) => !isAllDayTimeOff(timeOff))
-    const hasNoAvailability = availabilityForTargetDay.length === 0 && partialTimeOffsForDay.length === 0
-    if (hasNoAvailability) {
-      return
+      // Check if employee has no availability on target day
+      const targetDateString = targetDay.date.toISOString().split('T')[0]
+      const specificDateAvailability = availabilityByEmployeeAndDate?.[targetEmployeeId]?.[targetDateString] || []
+      const recurringAvailability = availabilityByEmployeeAndDay[targetEmployeeId]?.[targetDayIndex] || []
+      const availabilityForTargetDay = specificDateAvailability.length > 0 ? specificDateAvailability : recurringAvailability
+      const partialTimeOffsForDay = timeOffsForDay.filter((timeOff: any) => !isAllDayTimeOff(timeOff))
+      const hasNoAvailability = availabilityForTargetDay.length === 0 && partialTimeOffsForDay.length === 0
+      if (hasNoAvailability) {
+        return
+      }
     }
 
     try {
@@ -320,7 +363,7 @@ export function useScheduleActions({
       const newEndDate = new Date(targetDate)
       newEndDate.setHours(originalEndDate.getHours(), originalEndDate.getMinutes(), 0, 0)
 
-      // Update shift with new employee and/or date
+      // Update shift with new employee (null for open shifts) and/or date
       await shiftService.updateShift(activeShift.id, {
         employee_id: targetEmployeeId,
         start_time: newStartDate.toISOString(),
@@ -331,7 +374,7 @@ export function useScheduleActions({
     } catch (error: any) {
       console.error('❌ MOVE SHIFT FAILED:', error)
     }
-  }, [activeShift, daysOfWeek, timeOffsByEmployeeAndDay, availabilityByEmployeeAndDay, refetchShifts])
+  }, [activeShift, daysOfWeek, timeOffsByEmployeeAndDay, availabilityByEmployeeAndDay, availabilityByEmployeeAndDate, refetchShifts])
 
   // Handle shift click to edit
   const handleShiftClick = useCallback((shift: ScheduleShift, employeeName: string) => {

@@ -237,26 +237,41 @@ export interface Database {
         Row: {
           id: number
           employee_id: string
-          day_of_week: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+          day_of_week: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | null
+          specific_date: string | null
           start_time: string
           end_time: string
           effective_start_date: string
+          effective_end_date: string | null
+          notes: string | null
+          source_text: string | null
+          requested_date: string | null
         }
         Insert: {
           id?: number
           employee_id: string
-          day_of_week: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+          day_of_week?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | null
+          specific_date?: string | null
           start_time: string
           end_time: string
           effective_start_date: string
+          effective_end_date?: string | null
+          notes?: string | null
+          source_text?: string | null
+          requested_date?: string | null
         }
         Update: {
           id?: number
           employee_id?: string
-          day_of_week?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+          day_of_week?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | null
+          specific_date?: string | null
           start_time?: string
           end_time?: string
           effective_start_date?: string
+          effective_end_date?: string | null
+          notes?: string | null
+          source_text?: string | null
+          requested_date?: string | null
         }
       }
       payroll_records: {
@@ -270,7 +285,7 @@ export interface Database {
           gross_pay: number
           deductions: number | null
           net_pay: number
-          payment_date: string | null
+          prepared_date: string | null
           payment_method: string | null
           check_number: string | null
           status: 'pending' | 'paid' | 'cancelled'
@@ -289,7 +304,7 @@ export interface Database {
           gross_pay: number
           deductions?: number | null
           net_pay: number
-          payment_date?: string | null
+          prepared_date?: string | null
           payment_method?: string | null
           check_number?: string | null
           status?: 'pending' | 'paid' | 'cancelled'
@@ -308,7 +323,7 @@ export interface Database {
           gross_pay?: number
           deductions?: number | null
           net_pay?: number
-          payment_date?: string | null
+          prepared_date?: string | null
           payment_method?: string | null
           check_number?: string | null
           status?: 'pending' | 'paid' | 'cancelled'

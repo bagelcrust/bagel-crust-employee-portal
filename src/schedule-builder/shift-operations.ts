@@ -93,6 +93,7 @@ export const shiftService = {
     end.setHours(23, 59, 59, 999)
 
     const { data, error } = await supabase
+      .schema('employees')
       .from('draft_shifts')
       .select('*')
       .gte('start_time', start.toISOString())
@@ -113,6 +114,7 @@ export const shiftService = {
     end.setHours(23, 59, 59, 999)
 
     const { data, error } = await supabase
+      .schema('employees')
       .from('published_shifts')
       .select('*')
       .gte('start_time', start.toISOString())
@@ -121,5 +123,25 @@ export const shiftService = {
 
     if (error) throw error
     return data as PublishedShift[]
+  },
+
+  /**
+   * Move shift to open shifts (remove employee assignment)
+   * Used when employee has time off conflict
+   */
+  async moveToOpenShift(shiftId: number): Promise<DraftShift> {
+    const { data, error } = await supabase
+      .schema('employees')
+      .rpc('update_shift', {
+        p_shift_id: shiftId,
+        p_employee_id: null, // null = open shift
+        p_start_time: null,
+        p_end_time: null,
+        p_location: null,
+        p_role: null
+      })
+
+    if (error) throw error
+    return data as DraftShift
   }
 }

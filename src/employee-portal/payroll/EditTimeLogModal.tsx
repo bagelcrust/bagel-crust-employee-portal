@@ -309,13 +309,13 @@ export function EditTimeLogModal({
                     setClockOutTime(addMinutes(clockInTime, durationMinutes))
                   }
                 }}
-                className={`text-xs px-3 py-1 rounded-full transition-all ${
+                className={`text-sm px-3 py-1.5 rounded-full transition-all ${
                   noClockOut
-                    ? 'bg-amber-100 text-amber-700 font-medium'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    ? 'bg-blue-600 text-white font-medium'
+                    : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {noClockOut ? 'Still working' : 'No clock-out'}
+                {noClockOut ? 'Add Clock-Out' : 'Remove'}
               </button>
             </div>
             {!noClockOut && (
@@ -340,8 +340,8 @@ export function EditTimeLogModal({
               </div>
             )}
             {noClockOut && (
-              <div className="text-center py-4 text-amber-600 font-medium">
-                Employee still working
+              <div className="text-center py-6 text-slate-400 text-sm">
+                —
               </div>
             )}
           </div>

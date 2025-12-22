@@ -10,23 +10,27 @@
  * - owner: Management tabs (Schedule, Payroll, Profile) - No Time Off or Hours
  */
 
-export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile' | 'calendar' | 'timeLogs' | 'inventory' | 'home'
+export type TabKey = 'weeklySchedule' | 'timeOff' | 'timesheet' | 'payroll' | 'profile' | 'timeLogs' | 'inventory' | 'home' | 'pl' | 'wages' | 'bank' | 'training' | 'vision' | 'schedule' | 'accountantHome'
 
 export interface TabConfig {
   key: TabKey
   label: string
-  iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user' | 'calendar-days' | 'file-clock' | 'clipboard-list' | 'home'
+  iconName: 'calendar' | 'map-pin' | 'clock' | 'dollar-sign' | 'user' | 'calendar-days' | 'file-clock' | 'clipboard-list' | 'home' | 'file-text' | 'banknote' | 'landmark' | 'book-open' | 'compass'
 }
 
 // Test role sees ALL tabs (for development/testing)
 const TEST_TABS: TabConfig[] = [
   { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
-  { key: 'calendar', label: 'Calendar', iconName: 'calendar-days' },
   { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
   { key: 'timesheet', label: 'Hours', iconName: 'clock' },
   { key: 'timeLogs', label: 'Time Logs', iconName: 'file-clock' },
   { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
+  { key: 'pl', label: 'P&L', iconName: 'file-text' },
+  // { key: 'wages', label: 'Wages', iconName: 'banknote' }, // HIDDEN - wages_v2 table removed
+  { key: 'bank', label: 'Documents', iconName: 'file-text' },
   { key: 'inventory', label: 'Inventory', iconName: 'clipboard-list' },
+  { key: 'training', label: 'Training', iconName: 'book-open' },
+  // { key: 'vision', label: 'Vision', iconName: 'compass' }, // TEMPORARILY HIDDEN
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 
@@ -35,12 +39,14 @@ const STANDARD_TABS: TabConfig[] = [
   { key: 'weeklySchedule', label: 'Schedule', iconName: 'calendar' },
   { key: 'timeOff', label: 'Time Off', iconName: 'map-pin' },
   { key: 'timesheet', label: 'Hours', iconName: 'clock' },
+  { key: 'training', label: 'Training', iconName: 'book-open' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
 ]
 
-// Owner gets Home (Time Logs + Team Schedule), then Payroll, Inventory, and Profile
+// Owner gets Home (Time Logs + Team Schedule), then Schedule Builder, Payroll, Inventory, and Profile
 const OWNER_TABS: TabConfig[] = [
   { key: 'home', label: 'Home', iconName: 'home' },
+  { key: 'schedule', label: 'Schedule', iconName: 'calendar-days' },
   { key: 'payroll', label: 'Payroll', iconName: 'dollar-sign' },
   { key: 'inventory', label: 'Inventory', iconName: 'clipboard-list' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
@@ -48,9 +54,18 @@ const OWNER_TABS: TabConfig[] = [
 
 // Staff 1 sees Calendar, Hours, and Profile tabs
 const STAFF_ONE_TABS: TabConfig[] = [
-  { key: 'calendar', label: 'Calendar', iconName: 'calendar-days' },
   { key: 'timesheet', label: 'Hours', iconName: 'clock' },
   { key: 'profile', label: 'Profile', iconName: 'user' }
+]
+
+// Accountant role - Home (intro), then financials (Bank, Wages, P&L)
+// No profile tab - logout button is on Home tab
+const ACCOUNTANT_TABS: TabConfig[] = [
+  { key: 'accountantHome', label: 'Home', iconName: 'home' },
+  // { key: 'vision', label: 'Vision', iconName: 'compass' }, // TEMPORARILY HIDDEN
+  { key: 'bank', label: 'Documents', iconName: 'file-text' },
+  // { key: 'wages', label: 'Wages', iconName: 'banknote' }, // HIDDEN - wages_v2 table removed
+  { key: 'pl', label: 'P&L', iconName: 'file-text' }
 ]
 
 /**
@@ -78,6 +93,11 @@ export function getTabsForRole(role: string): TabConfig[] {
   // No Time Off or Hours tabs - those are for employees to track their own data
   if (normalizedRole === 'owner') {
     return OWNER_TABS
+  }
+
+  // Accountant gets P&L and Wages tabs (read-only financial views)
+  if (normalizedRole === 'accountant') {
+    return ACCOUNTANT_TABS
   }
 
   // Everyone else gets standard tabs (Schedule, Time Off, Hours, Profile)

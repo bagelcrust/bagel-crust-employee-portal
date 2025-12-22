@@ -1,52 +1,61 @@
-import { formatShiftTime } from '../shared/scheduleUtils'
+import { formatShiftTime, getShiftVisualType, getShiftLabel, getShiftColor } from '../shared/scheduleUtils'
 import type { ScheduleShift } from './fetch-schedule-data'
 
 /**
- * ShiftCard - A simple shift card for the schedule grid
+ * ShiftCard - Artisan-styled shift card for the schedule grid
  *
  * Features:
- * - Click to edit (delete available in edit modal)
- * - Visual styling based on status (published vs draft)
+ * - Color-coded by shift type (terracotta/sage/mustard)
+ * - Two-line display: time range + shift label
+ * - Draft vs published visual distinction
+ * - Click to edit
  *
- * Used in: ShiftCell component for rendering shifts in the schedule grid
+ * Used in: EmployeeDayCell for rendering shifts
  */
 
 interface ShiftCardProps {
   shift: ScheduleShift
   employeeName: string
+  date: Date  // Needed to determine weekend for brunch coloring
   onShiftClick: (shift: ScheduleShift, employeeName: string) => void
 }
 
 export function ShiftCard({
   shift,
   employeeName,
+  date,
   onShiftClick
 }: ShiftCardProps) {
+  const visualType = getShiftVisualType(shift.start_time, date)
+  const label = getShiftLabel(visualType)
+  const bgColor = getShiftColor(visualType)
+  const isDraft = shift.status === 'draft'
+
   return (
     <div
-      className="shift-card rounded px-1.5 py-0.5 hover:shadow-md transition-shadow text-center cursor-pointer"
+      className="shift-card cursor-pointer transition-shadow hover:shadow-md"
       onClick={(e) => {
         e.stopPropagation()
         onShiftClick(shift, employeeName)
       }}
     >
       <div
+        className="rounded-md px-2 py-1 mx-0.5"
         style={{
-          background: shift.status === 'published'
-            ? 'rgba(255, 255, 255, 0.95)' // Solid white for published
-            : 'rgba(255, 255, 255, 0.20)', // Slightly more visible draft
-          border: shift.status === 'published'
-            ? '1px solid rgba(255, 255, 255, 1)' // Solid border
-            : '1px dashed rgba(255, 255, 255, 0.5)', // DASHED border for draft
-          backdropFilter: 'blur(5px)',
-          borderRadius: '0.25rem',
-          padding: '0.25rem 0.5rem'
+          backgroundColor: bgColor,
+          opacity: isDraft ? 0.75 : 1,
+          border: isDraft
+            ? '2px dashed rgba(0,0,0,0.2)'
+            : '2px solid rgba(0,0,0,0.1)',
         }}
       >
-        <div className={`text-sm font-medium ${
-          shift.status === 'published' ? 'text-black' : 'text-white'
-        }`}>
+        {/* Time range */}
+        <div className="text-xs font-medium text-white leading-tight">
           {formatShiftTime(shift.start_time, shift.end_time)}
+        </div>
+        {/* Shift type label */}
+        <div className="text-xs text-white/80 uppercase tracking-wide">
+          {label}
         </div>
       </div>
     </div>

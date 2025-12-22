@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../shared/supabase-client'
 import type { DraftShift, PublishedShift, TimeOff, Employee } from '../shared/supabase-client'
-import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfDay, isSameWeek, addDays, differenceInWeeks } from 'date-fns'
+import { startOfWeek, endOfWeek, addWeeks, format, startOfDay, addDays } from 'date-fns'
 import { logError, logApiCall } from '../shared/debug-utils'
 
 /**
@@ -18,12 +18,18 @@ export type ScheduleShift = (DraftShift | PublishedShift) & {
  * Manages week navigation, employee data, and shift data
  *
  * Naming matches Postgres function: fetch_schedule_builder_data
+ *
+ * Week offset system: -1 = last week, 0 = this week, 1 = next week, 2 = week after
  */
 export function useGetScheduleBuilderData() {
-  // Current week start date (Sunday = start of week)
-  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday start
-  )
+  // Week offset from current week (-1, 0, 1, 2)
+  const [weekOffset, setWeekOffset] = useState(0)
+
+  // Calculate week start based on offset
+  const currentWeekStart = useMemo(() => {
+    const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+    return addWeeks(thisWeekStart, weekOffset)
+  }, [weekOffset])
 
   // Calculate week end
   const currentWeekEnd = useMemo(() =>
@@ -37,35 +43,7 @@ export function useGetScheduleBuilderData() {
   }, [currentWeekStart, currentWeekEnd])
 
   // Check if current week is this week
-  const isThisWeek = useMemo(() =>
-    isSameWeek(currentWeekStart, new Date(), { weekStartsOn: 1 }),
-    [currentWeekStart]
-  )
-
-  // Relative week label ("This Week", "Last Week", "2 Weeks Ago", etc.)
-  const relativeWeekLabel = useMemo(() => {
-    const todayWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-    const weeksDiff = differenceInWeeks(currentWeekStart, todayWeekStart)
-
-    if (weeksDiff === 0) return 'This Week'
-    if (weeksDiff === -1) return 'Last Week'
-    if (weeksDiff === 1) return 'Next Week'
-    if (weeksDiff < -1) return `${Math.abs(weeksDiff)} Weeks Ago`
-    return `In ${weeksDiff} Weeks`
-  }, [currentWeekStart])
-
-  // Navigation functions
-  const goToToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
-  }
-
-  const goToPreviousWeek = () => {
-    setCurrentWeekStart(prev => subWeeks(prev, 1))
-  }
-
-  const goToNextWeek = () => {
-    setCurrentWeekStart(prev => addWeeks(prev, 1))
-  }
+  const isThisWeek = weekOffset === 0
 
   // Fetch ALL schedule builder data in a single call to Postgres function
   // Calls: fetch_schedule_builder_data(start_date, end_date)
@@ -168,13 +146,9 @@ export function useGetScheduleBuilderData() {
     currentWeekEnd,
     dateRangeString,
     isThisWeek,
-    relativeWeekLabel,
+    weekOffset,
+    setWeekOffset,
     daysOfWeek,
-
-    // Navigation
-    goToToday,
-    goToPreviousWeek,
-    goToNextWeek,
 
     // Data
     employees,

@@ -12,7 +12,6 @@ export interface TimeOffRequest {
   start_date: string
   end_date: string
   reason: string
-  status: 'pending' | 'approved' | 'denied'
   created_at: string
 }
 
@@ -48,7 +47,7 @@ export function useGetTimeOff(employeeId: string | undefined) {
 
         finishLog?.()
 
-        logData('TIME_OFF', 'RPC returned data', data, ['id', 'employee_id', 'start_date_et', 'end_date_et', 'status'])
+        logData('TIME_OFF', 'RPC returned data', data, ['id', 'employee_id', 'start_date_et', 'end_date_et'])
 
         // Map database fields to interface format
         const mapped = (data || []).map((notice: any) => ({
@@ -57,13 +56,12 @@ export function useGetTimeOff(employeeId: string | undefined) {
           start_date: notice.start_date_et, // Already in Eastern Time from RPC
           end_date: notice.end_date_et,     // Already in Eastern Time from RPC
           reason: notice.reason || '',
-          status: notice.status as 'pending' | 'approved' | 'denied',
           created_at: notice.requested_date_et || notice.start_time_et
         }))
 
-        logData('TIME_OFF', 'Mapped to interface format', mapped, ['id', 'start_date', 'end_date', 'status', 'created_at'])
+        logData('TIME_OFF', 'Mapped to interface format', mapped, ['id', 'start_date', 'end_date', 'created_at'])
         if (mapped.length > 0) {
-          assertShape('TIME_OFF', mapped[0], ['id', 'employee_id', 'start_date', 'end_date', 'status', 'reason', 'created_at'], 'time-off request')
+          assertShape('TIME_OFF', mapped[0], ['id', 'employee_id', 'start_date', 'end_date', 'reason', 'created_at'], 'time-off request')
         }
 
         return mapped
@@ -107,7 +105,7 @@ export function useGetTimeOff(employeeId: string | undefined) {
 
         finishLog?.()
 
-        logData('TIME_OFF', 'RPC submit response', data, ['id', 'employee_id', 'start_date_et', 'end_date_et', 'status'])
+        logData('TIME_OFF', 'RPC submit response', data, ['id', 'employee_id', 'start_date_et', 'end_date_et'])
 
         // RPC returns array with single record
         const timeOff = data?.[0]
@@ -122,11 +120,10 @@ export function useGetTimeOff(employeeId: string | undefined) {
           start_date: timeOff.start_date_et, // Already in Eastern Time from RPC
           end_date: timeOff.end_date_et,     // Already in Eastern Time from RPC
           reason: timeOff.reason || '',
-          status: timeOff.status as 'pending' | 'approved' | 'denied',
           created_at: timeOff.requested_date_et || timeOff.start_time_et
         }
 
-        assertShape('TIME_OFF', mapped, ['id', 'employee_id', 'start_date', 'end_date', 'status', 'reason', 'created_at'], 'submitted time-off')
+        assertShape('TIME_OFF', mapped, ['id', 'employee_id', 'start_date', 'end_date', 'reason', 'created_at'], 'submitted time-off')
         return mapped
       } catch (error) {
         logError('TIME_OFF', 'Submit mutation failed', error, { params })

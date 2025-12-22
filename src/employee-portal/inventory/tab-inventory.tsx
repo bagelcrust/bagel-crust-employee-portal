@@ -6,11 +6,11 @@
  */
 
 import { useState } from 'react'
-import { InventoryDashboard } from './inventory/InventoryDashboard'
-import { ActiveCountView } from './inventory/ActiveCountView'
-import { useInventorySession } from './inventory/useInventorySession'
+import { InventoryDashboard } from './InventoryDashboard'
+import { ActiveCountView } from './ActiveCountView'
+import { useInventorySession } from './useInventorySession'
 import { supabase } from '@/shared/supabase-client'
-import type { CountSessionWithDetails } from './inventory/types'
+import type { CountSessionWithDetails } from './types'
 
 interface InventoryTabProps {
   employee: {

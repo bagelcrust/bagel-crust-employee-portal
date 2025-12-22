@@ -11,13 +11,13 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { DollarSign } from 'lucide-react'
-import { formatHoursMinutes } from '../shared/employeeUtils'
-import { supabase } from '../shared/supabase-client'
+import { formatHoursMinutes } from '../../shared/employeeUtils'
+import { supabase } from '../../shared/supabase-client'
 import { LogPaymentModal } from './log-payment-modal'
-import { EditTimeLogModal } from './payroll/EditTimeLogModal'
-import { usePayrollData } from './payroll/usePayrollData'
-import { EmployeePayrollCard } from './payroll/EmployeePayrollCard'
-import type { WorkedShift } from './payroll/types'
+import { EditTimeLogModal } from './EditTimeLogModal'
+import { usePayrollData } from './usePayrollData'
+import { EmployeePayrollCard } from './EmployeePayrollCard'
+import type { WorkedShift } from './types'
 
 export function PayrollTab() {
   const {
@@ -30,6 +30,7 @@ export function PayrollTab() {
     setLogPaymentModal,
     handleFinalizeEmployee,
     handleLogPayment,
+    handleQuickLogPayment,
     handleUpdateTimeEntry,
     handleCreateTimeEntry,
     refreshData,
@@ -160,11 +161,15 @@ export function PayrollTab() {
                 employee={employee}
                 weekSelection={weekSelection}
                 onFinalize={handleFinalizeEmployee}
-                onLogPayment={(arrangement) => setLogPaymentModal({
+                onLogPayment={(arrangement, hours) => setLogPaymentModal({
                   isOpen: true,
                   employee,
-                  arrangement
+                  arrangement,
+                  hours
                 })}
+                onQuickLogPayment={(arrangement, hours, amount, method) =>
+                  handleQuickLogPayment(employee.id, arrangement, hours, amount, method)
+                }
                 isFinalizing={finalizingEmployee === employee.id}
                 onEditShift={handleEditShift}
                 onCreateShift={handleCreateShift}
@@ -198,12 +203,12 @@ export function PayrollTab() {
       {logPaymentModal.employee && logPaymentModal.arrangement && (
         <LogPaymentModal
           isOpen={logPaymentModal.isOpen}
-          onClose={() => setLogPaymentModal({ isOpen: false, employee: null, arrangement: null })}
+          onClose={() => setLogPaymentModal({ isOpen: false, employee: null, arrangement: null, hours: 0 })}
           onSave={handleLogPayment}
           employeeName={logPaymentModal.employee.name}
           employeeId={logPaymentModal.employee.id}
           arrangement={logPaymentModal.arrangement}
-          defaultHours={logPaymentModal.employee.totalHours}
+          defaultHours={logPaymentModal.hours}
           weekSelection={weekSelection}
         />
       )}

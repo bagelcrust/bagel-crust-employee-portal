@@ -111,25 +111,28 @@ export function EditShiftModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-white/95 backdrop-blur-md border border-white/50 shadow-xl">
         <DialogHeader className="space-y-3">
           <div className="flex items-center gap-3">
-            <DialogTitle className="text-xl">Edit Shift for {employeeName}</DialogTitle>
-            <Badge variant={shift.status === 'published' ? 'default' : 'secondary'} className="shrink-0">
+            <DialogTitle className="text-xl text-gray-800">Edit Shift for {employeeName}</DialogTitle>
+            <Badge
+              variant={shift.status === 'published' ? 'default' : 'secondary'}
+              className={`shrink-0 ${shift.status === 'published' ? 'bg-blue-600' : 'bg-gray-200 text-gray-700'}`}
+            >
               {shift.status === 'published' ? 'Published' : 'Draft'}
             </Badge>
           </div>
-          <DialogDescription className="text-base">
+          <DialogDescription className="text-base text-gray-500">
             {shiftDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </DialogDescription>
         </DialogHeader>
 
         {shift.status === 'published' && (
-          <div className="bg-white/10 border border-white/30 rounded-lg p-4">
-            <p className="text-sm font-medium text-white">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm font-medium text-blue-800">
               ℹ️ This shift is published
             </p>
-            <p className="text-xs text-gray-300 mt-1">
+            <p className="text-xs text-blue-600 mt-1">
               Editing will convert it to a draft. You'll need to re-publish the week.
             </p>
           </div>
@@ -216,16 +219,16 @@ export function EditShiftModal({
                   onClose()
                 }}
                 disabled={isLoading}
-                className="min-w-[100px]"
+                className="min-w-[100px] bg-red-500 hover:bg-red-600"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </Button>
             </div>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-[100px]">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-[100px] border-gray-200 hover:bg-gray-50">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="min-w-[120px]">
+            <Button type="submit" disabled={isLoading} className="min-w-[120px] bg-blue-600 hover:bg-blue-700">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>

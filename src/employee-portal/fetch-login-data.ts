@@ -47,10 +47,17 @@ export function useGetEmployeeByPin() {
 
       return employeeData
     },
-    onSuccess: (employeeData) => {
+    onSuccess: async (employeeData) => {
       console.log('[AUTH] Login successful, setting employee state')
       setEmployee(employeeData)
       setIsLoggedIn(true)
+
+      // Silently log the login (fire and forget)
+      supabase
+        .schema('employees')
+        .from('login_log')
+        .insert({ employee_id: employeeData.id })
+        .then(() => console.log('[AUTH] Login logged'))
     }
   })
 

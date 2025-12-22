@@ -130,6 +130,18 @@ export default {
   			'accordion-up': 'accordion-up 0.2s ease-out'
   		},
   		colors: {
+  			// Artisan palette - warm earth tones for Schedule Builder
+  			artisan: {
+  				canvas: '#C8BCA6',      // Warm taupe page background
+  				card: '#FDFBF7',        // Cream card background
+  				sidebar: '#F2EFE9',     // Employee column background
+  				grid: '#A69B8F',        // Coffee brown borders
+  				gridLight: '#D4C9BB',   // Lighter vertical lines
+  				text: '#2D2A26',        // Deep charcoal
+  				terracotta: '#C06C46',  // Morning shifts
+  				sage: '#96A689',        // Evening shifts
+  				mustard: '#D9B650',     // Weekend brunch shifts
+  			},
   			'hub-background': '#F2F2F7',
   			'hub-card': '#FFFFFF',
   			'hub-card-secondary': '#F9F9FB',

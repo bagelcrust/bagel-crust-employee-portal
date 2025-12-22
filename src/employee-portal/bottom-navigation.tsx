@@ -14,7 +14,7 @@
  * - Staff 2, Owner, cashier, Staff see all tabs (Schedule, Time Off, Hours, Profile)
  */
 
-import { Calendar, CalendarDays, Clock, User, MapPin, DollarSign, FileClock, ClipboardList, Home } from 'lucide-react'
+import { Calendar, CalendarDays, Clock, User, MapPin, DollarSign, FileClock, ClipboardList, Home, FileText, Banknote, Landmark, BookOpen, Compass } from 'lucide-react'
 import type { TabConfig, TabKey } from '../shared/roleConfig'
 import type { Translations } from '../shared/translations'
 
@@ -35,7 +35,12 @@ const iconMap = {
   'dollar-sign': DollarSign,
   'file-clock': FileClock,
   'clipboard-list': ClipboardList,
-  'home': Home
+  'home': Home,
+  'file-text': FileText,
+  'banknote': Banknote,
+  'landmark': Landmark,
+  'book-open': BookOpen,
+  'compass': Compass
 }
 
 /**
@@ -50,18 +55,26 @@ const iconMap = {
 export function BottomNav({ tabs, activeTab, onTabChange, t }: BottomNavProps) {
   // Map tab keys to translation keys
   const getTabLabel = (tabKey: TabKey): string => {
-    const labelMap: Record<TabKey, keyof Translations> = {
+    const labelMap: Record<TabKey, keyof Translations | string> = {
       weeklySchedule: 'weeklySchedule',
       timeOff: 'timeOff',
       timesheet: 'timesheet',
       payroll: 'payroll',
       profile: 'profile',
-      calendar: 'calendar',
       timeLogs: 'timeLogs',
       inventory: 'inventory',
-      home: 'home'
+      home: 'home',
+      pl: 'P&L',
+      wages: 'Wages',
+      bank: 'Documents',
+      training: 'Training',
+      vision: 'Vision',
+      schedule: 'Schedule',
+      accountantHome: 'Home'
     }
-    return t[labelMap[tabKey]] || tabKey
+    const label = labelMap[tabKey]
+    // If label is a translation key that exists, use it; otherwise use the label directly
+    return (t as Record<string, string>)[label] || label || tabKey
   }
 
   return (

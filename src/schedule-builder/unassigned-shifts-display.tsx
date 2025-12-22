@@ -32,10 +32,9 @@ export function UnassignedShiftDisplay({
   // This fixed height ensures all cells are uniform regardless of content
   return (
     <td
-      className="border-r border-b p-1 group cursor-pointer hover:bg-zinc-800/20"
+      className="border-b border-slate-200/50 p-1 group cursor-pointer hover:bg-slate-50/50"
       style={{
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        background: 'rgba(24, 24, 27, 0.4)',
+        background: 'transparent',
         height: '48px',
         maxHeight: '48px',
         overflow: 'hidden'
@@ -58,14 +57,14 @@ export function UnassignedShiftDisplay({
             >
               <div
                 style={{
-                  background: 'rgba(255, 255, 255, 0.20)',
-                  border: '1px dashed rgba(255, 255, 255, 0.5)',
-                  backdropFilter: 'blur(5px)',
-                  borderRadius: '0.25rem',
-                  padding: '0.25rem 0.5rem'
+                  background: 'white',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  padding: '0.375rem 0.5rem',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)'
                 }}
               >
-                <div className="text-sm font-medium text-white">
+                <div className="text-[11px] font-bold text-slate-600 tracking-wide">
                   {formatShiftTime(shift.start_time, shift.end_time)}
                 </div>
               </div>
@@ -90,7 +89,7 @@ export function UnassignedShiftDisplay({
         </div>
       ) : (
         <div className="h-full flex items-center justify-center">
-          <Plus className="w-3.5 h-3.5 text-gray-600 group-hover:text-white transition-colors opacity-0 group-hover:opacity-100" />
+          <Plus className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors opacity-0 group-hover:opacity-100" />
         </div>
       )}
     </td>

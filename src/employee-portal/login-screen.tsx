@@ -73,10 +73,6 @@ export function LoginScreen({
         )}
       </div>
 
-      {/* Version indicator for cache debugging */}
-      <div className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-gray-400">
-        v1.0.6
-      </div>
     </div>
   )
 }

@@ -55,7 +55,11 @@ export const translations = {
     hourlyRate: 'Hourly Rate',
     employeeId: 'Employee ID',
     phoneNumber: 'Phone Number',
-    email: 'Email'
+    email: 'Email',
+    installApp: 'Install App',
+    installInstructions: 'Add to your home screen for quick access:',
+    iphoneInstructions: 'Tap the Share button, then "Add to Home Screen"',
+    androidInstructions: 'Tap the menu (⋮), then "Add to Home Screen"'
   },
   es: {
     bagelCrust: 'Bagel Crust',
@@ -109,7 +113,11 @@ export const translations = {
     hourlyRate: 'Tarifa por Hora',
     employeeId: 'ID de Empleado',
     phoneNumber: 'Número de Teléfono',
-    email: 'Correo Electrónico'
+    email: 'Correo Electrónico',
+    installApp: 'Instalar App',
+    installInstructions: 'Agregar a tu pantalla de inicio para acceso rápido:',
+    iphoneInstructions: 'Toca el botón Compartir, luego "Agregar a Inicio"',
+    androidInstructions: 'Toca el menú (⋮), luego "Agregar a Inicio"'
   }
 }
 

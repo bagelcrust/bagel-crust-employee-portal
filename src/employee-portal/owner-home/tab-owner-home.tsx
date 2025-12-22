@@ -6,10 +6,10 @@
  * 2. Team Schedule (EXACT copy from ScheduleTab)
  */
 
-import { TimeLogsTab } from './tab-time-logs'
-import { useGetTeamSchedule } from './fetch-schedule-data'
-import { formatTime } from '../shared/employeeUtils'
-import { translations } from '../shared/translations'
+import { TimeLogsTab } from '../time-logs/tab-time-logs'
+import { useGetTeamSchedule } from '../fetch-schedule-data'
+import { formatTime } from '../../shared/employeeUtils'
+import { translations } from '../../shared/translations'
 
 // Day order for iteration
 const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const

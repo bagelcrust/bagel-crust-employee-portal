@@ -12,11 +12,11 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { CheckCircle, ChevronDown, ChevronUp, Pencil, Plus, AlertTriangle, Clock } from 'lucide-react'
+import { CheckCircle, ChevronDown, ChevronUp, Pencil, Plus, AlertTriangle, Clock, MoreHorizontal } from 'lucide-react'
 import { formatHoursMinutes } from '../../shared/employeeUtils'
 import type { EmployeePayrollCardProps, PayRateArrangement } from './types'
 
-export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isFinalizing, onEditShift, onCreateShift }: EmployeePayrollCardProps) {
+export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, onQuickLogPayment, isFinalizing, onEditShift, onCreateShift }: EmployeePayrollCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   // Format name as "First L."
@@ -25,6 +25,32 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
     ? `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`
     : nameParts[0]
 
+  // Filter arrangements based on current tab view
+  // - This Week → Show ALL arrangements (monitoring view)
+  // - Last Week → Weekly arrangements only (paying weekly employees)
+  // - Bi-weekly → Bi-weekly arrangements only (paying bi-weekly employees)
+  const visibleArrangements = employee.payRateArrangements.filter(arr => {
+    if (weekSelection === 'this') {
+      // "This Week" is for monitoring - show all arrangements
+      return true
+    }
+    if (weekSelection === 'lastPayPeriod') {
+      return arr.pay_schedule === 'Bi-weekly'
+    }
+    // Last Week → Weekly (or null/undefined for legacy data)
+    return arr.pay_schedule === 'Weekly' || !arr.pay_schedule
+  })
+
+  // Debug: Log arrangement filtering
+  if (employee.name.includes('Carlos') || employee.name.includes('Clara')) {
+    console.log(`[PayrollCard] ${employee.name}:`, {
+      weekSelection,
+      allArrangements: employee.payRateArrangements.map(a => ({ schedule: a.pay_schedule, rate: a.rate })),
+      visibleArrangements: visibleArrangements.map(a => ({ schedule: a.pay_schedule, rate: a.rate })),
+      totalHours: employee.totalHours
+    })
+  }
+
   // Calculate ACTUAL paid amount (sum of all paid arrangements)
   let actualPaidAmount = 0
   employee.paidArrangements.forEach(paidInfo => {
@@ -32,13 +58,13 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
   })
 
   // Check if partially paid (some arrangements paid, some not)
-  const hasMultipleArrangements = employee.payRateArrangements.length > 1
+  const hasMultipleArrangements = visibleArrangements.length > 1
   const isPartiallyPaid = hasMultipleArrangements &&
     employee.paidArrangements.size > 0 &&
-    employee.paidArrangements.size < employee.payRateArrangements.length
+    employee.paidArrangements.size < visibleArrangements.length
 
-  // Select arrangement: if paid, use the one from record; otherwise use selectedArrangement
-  const selectedArrangementId = employee.selectedArrangement?.id || employee.payRateArrangements[0]?.id
+  // Select arrangement: if paid, use the one from record; otherwise use first visible arrangement
+  const selectedArrangementId = employee.selectedArrangement?.id || visibleArrangements[0]?.id
 
   // Calculate hours for a specific arrangement (split-pay logic)
   // RULE: Bi-weekly ALWAYS gets first 40h, Weekly gets remainder (OT)
@@ -72,11 +98,13 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
   }
 
   // Get current arrangement based on selection
-  const currentArrangement = employee.payRateArrangements.find(arr => arr.id === selectedArrangementId) || employee.payRateArrangements[0]
+  const currentArrangement = visibleArrangements.find(arr => arr.id === selectedArrangementId) || visibleArrangements[0]
 
-  // For single-arrangement employees, calculate expected pay
+  // Calculate hours and pay for visible arrangement(s) only
+  // For split-pay employees, this shows only the hours that apply to current tab
+  const visibleHours = currentArrangement ? calculateDefaultHours(currentArrangement.id) : employee.totalHours
   const hourlyRate = currentArrangement?.rate || 0
-  const expectedPay = employee.totalHours * hourlyRate
+  const expectedPay = visibleHours * hourlyRate
 
   // Check for flagged shifts
   const hasFlags = employee.hasIncompleteShifts || employee.workedShifts.some(s => s.isAutoClockOut)
@@ -114,9 +142,14 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
               </div>
             </div>
 
-            {/* Hours */}
+            {/* Hours + Daily Earnings */}
             <div className={`text-sm font-bold text-right ${shift.isIncomplete ? 'text-orange-600' : 'text-gray-900'}`}>
-              {shift.isIncomplete ? '—' : formatHoursMinutes(shift.hoursWorked)}
+              {shift.isIncomplete ? '—' : (
+                <>
+                  {formatHoursMinutes(shift.hoursWorked)}
+                  <span className="text-green-600 ml-1">→ ${(shift.hoursWorked * hourlyRate).toFixed(2)}</span>
+                </>
+              )}
             </div>
 
             {/* Edit Button */}
@@ -150,51 +183,86 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
     </div>
   )
 
+  // Check if same tax_classification appears multiple times (Clara's case: 2 W-2 rates)
+  const taxClassCounts = employee.payRateArrangements.reduce((acc, arr) => {
+    const key = arr.tax_classification || 'Cash'
+    acc[key] = (acc[key] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
   // Arrangement status row component (for split-pay employees)
   const ArrangementRow = ({ arrangement }: { arrangement: PayRateArrangement }) => {
     const isPaid = employee.paidArrangements.has(arrangement.id)
     const paidInfo = employee.paidArrangements.get(arrangement.id)
     const defaultHours = calculateDefaultHours(arrangement.id)
 
-    // Label: "Weekly (1099)" or "Bi-weekly (W-2)"
-    const label = `${arrangement.pay_schedule || 'Standard'} (${arrangement.tax_classification || 'Cash'})`
+    // Badge: show tax classification (1099, W-2, Cash)
+    const taxClass = arrangement.tax_classification?.toUpperCase() || 'CASH'
+    const badgeColor = taxClass === '1099' ? 'bg-orange-100 text-orange-700'
+      : taxClass === 'W-2' ? 'bg-blue-100 text-blue-700'
+      : 'bg-gray-100 text-gray-600'
+
+    // Show rate only if same tax_classification appears multiple times (Clara's case)
+    const showRate = taxClassCounts[arrangement.tax_classification || 'Cash'] > 1
 
     if (isPaid && paidInfo) {
       return (
-        <div className="flex items-center justify-between py-2 px-3 bg-green-50 rounded">
-          <div className="text-sm">
-            <span className="font-medium text-green-800">{label}</span>
-            <span className="text-green-600 ml-2">{paidInfo.hours.toFixed(1)}h @ ${arrangement.rate}/hr</span>
-          </div>
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-green-700 font-bold">${paidInfo.pay.toFixed(2)}</span>
+            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${badgeColor}`}>{taxClass}</span>
+            <span className="text-sm text-gray-600">
+              {(isNaN(paidInfo.hours) ? defaultHours : paidInfo.hours).toFixed(1)}h
+              {showRate && <span className="ml-1">@ ${arrangement.rate}</span>}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 bg-green-100 rounded-md py-2 px-3">
             <CheckCircle className="w-4 h-4 text-green-600" />
+            <span className="text-green-700 font-bold text-sm">${paidInfo.pay.toFixed(0)} Paid</span>
           </div>
         </div>
       )
     }
 
+    // Quick-pay: rounded down to whole dollar, using last payment method
+    const quickAmount = Math.floor(defaultHours * arrangement.rate)
+    const quickMethod = employee.lastPaymentMethod || 'check'
+
     return (
-      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
-        <div className="text-sm">
-          <span className="font-medium text-gray-800">{label}</span>
-          <span className="text-gray-500 ml-2">{defaultHours.toFixed(1)}h @ ${arrangement.rate}/hr</span>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${badgeColor}`}>{taxClass}</span>
+          <span className="text-sm text-gray-600">
+            {defaultHours.toFixed(1)}h
+            {showRate && <span className="ml-1">@ ${arrangement.rate}</span>}
+          </span>
         </div>
-        {weekSelection !== 'this' ? (
+        <div className="flex gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation()
-              onLogPayment(arrangement)
+              onQuickLogPayment(arrangement, defaultHours, quickAmount, quickMethod)
             }}
             disabled={isFinalizing}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-xs font-bold rounded transition-all"
+            className={`flex-1 py-2.5 text-white font-bold text-sm rounded-md transition-all disabled:bg-gray-300 ${
+              quickMethod === 'cash' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
             type="button"
           >
-            Log Payment
+            ${quickAmount} {quickMethod === 'cash' ? 'Cash' : 'Check'}
           </button>
-        ) : (
-          <span className="text-xs text-amber-600 font-medium">Unpaid</span>
-        )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onLogPayment(arrangement, defaultHours)
+            }}
+            disabled={isFinalizing}
+            className="px-3 py-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md transition-all disabled:opacity-50"
+            type="button"
+            title="Custom amount"
+          >
+            <MoreHorizontal size={18} />
+          </button>
+        </div>
       </div>
     )
   }
@@ -242,7 +310,7 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
         {/* Split arrangements detail (if multiple) */}
         {hasMultipleArrangements && (
           <div className="px-4 py-2 border-t border-green-200 space-y-1">
-            {employee.payRateArrangements.map(arr => (
+            {visibleArrangements.map(arr => (
               <ArrangementRow key={arr.id} arrangement={arr} />
             ))}
           </div>
@@ -302,7 +370,7 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
 
         {/* Split arrangements detail - ALWAYS show for partial */}
         <div className="px-4 py-2 border-t border-amber-200 space-y-1">
-          {employee.payRateArrangements.map(arr => (
+          {visibleArrangements.map(arr => (
             <ArrangementRow key={arr.id} arrangement={arr} />
           ))}
         </div>
@@ -314,7 +382,7 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
             <span className="font-semibold text-sm">PARTIAL</span>
           </div>
           <div className="text-sm text-amber-700">
-            {employee.paidArrangements.size} of {employee.payRateArrangements.length} arrangements paid
+            {employee.paidArrangements.size} of {visibleArrangements.length} arrangements paid
           </div>
         </div>
       </div>
@@ -345,7 +413,7 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
               ${expectedPay.toFixed(2)}
             </div>
             <div className="text-sm text-gray-500">
-              ${hourlyRate.toFixed(2)} × {employee.totalHours.toFixed(2)}h
+              ${hourlyRate.toFixed(2)} × {visibleHours.toFixed(2)}h
             </div>
           </div>
           {isExpanded ? (
@@ -361,34 +429,51 @@ export function EmployeePayrollCard({ employee, weekSelection, onLogPayment, isF
 
       {/* Split arrangements detail (if multiple) */}
       {hasMultipleArrangements && (
-        <div className="px-4 py-2 border-t border-gray-200 space-y-1">
-          {employee.payRateArrangements.map(arr => (
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 space-y-3">
+          {visibleArrangements.map(arr => (
             <ArrangementRow key={arr.id} arrangement={arr} />
           ))}
         </div>
       )}
 
-      {/* Payment Actions - Single arrangement, hide for current week */}
-      {!hasMultipleArrangements && weekSelection !== 'this' && (
+      {/* Payment Actions - Single arrangement with quick-pay */}
+      {!hasMultipleArrangements && currentArrangement && (
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              currentArrangement && onLogPayment(currentArrangement)
-            }}
-            disabled={isFinalizing || !currentArrangement}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-md transition-all"
-            type="button"
-          >
-            {isFinalizing ? 'Processing...' : 'Log Payment'}
-          </button>
-        </div>
-      )}
-
-      {/* Unpaid indicator for current week (single arrangement only) */}
-      {!hasMultipleArrangements && weekSelection === 'this' && (
-        <div className="px-4 py-2 bg-amber-50 border-t border-amber-200 text-center">
-          <span className="text-sm text-amber-700 font-medium">Unpaid</span>
+          {(() => {
+            const quickAmount = Math.floor(visibleHours * currentArrangement.rate)
+            const quickMethod = employee.lastPaymentMethod || 'check'
+            return (
+              <div className="flex gap-2">
+                {/* Quick-pay button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onQuickLogPayment(currentArrangement, visibleHours, quickAmount, quickMethod)
+                  }}
+                  disabled={isFinalizing}
+                  className={`flex-1 py-2.5 text-white font-bold text-sm rounded-md transition-all disabled:bg-gray-300 disabled:cursor-not-allowed ${
+                    quickMethod === 'cash' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  type="button"
+                >
+                  {isFinalizing ? 'Processing...' : `$${quickAmount} ${quickMethod === 'cash' ? 'Cash' : 'Check'}`}
+                </button>
+                {/* Custom/edit button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onLogPayment(currentArrangement, visibleHours)
+                  }}
+                  disabled={isFinalizing}
+                  className="px-3 py-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md transition-all disabled:opacity-50"
+                  type="button"
+                  title="Custom amount"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>

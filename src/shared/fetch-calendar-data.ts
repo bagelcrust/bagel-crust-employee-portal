@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../shared/supabase-client'
+import { supabase } from './supabase-client'
 
 /**
  * Calendar event interface

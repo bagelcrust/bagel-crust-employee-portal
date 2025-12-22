@@ -16,15 +16,21 @@ import { PAGE_TITLES, ALERTS } from '../shared/constants'
 import { assertShape, logCondition, logData, logError, logStateChange } from '../shared/debug-utils'
 import { LoginScreen } from './login-screen'
 import { BottomNav } from './bottom-navigation'
-import { ScheduleTab } from './tab-schedule'
-import { TimeOffTab } from './tab-time-off'
-import { TimesheetTab } from './tab-timesheet'
-import { PayrollTab } from './tab-payroll'
-import { TimeLogsTab } from './tab-time-logs'
-import { OwnerHomeTab } from './tab-owner-home'
-import { ProfileTab } from './tab-profile'
-import { CalendarTab } from './tab-calendar'
-import { InventoryTab } from './tab-inventory'
+import { ScheduleTab } from './schedule/tab-schedule'
+import { TimeOffTab } from './time-off/tab-time-off'
+import { TimesheetTab } from './timesheet/tab-timesheet'
+import { PayrollTab } from './payroll/tab-payroll'
+import { TimeLogsTab } from './time-logs/tab-time-logs'
+import { OwnerHomeTab } from './owner-home/tab-owner-home'
+import { ProfileTab } from './profile/tab-profile'
+import { InventoryTab } from './inventory/tab-inventory'
+import { PLTab } from './pl/tab-pl'
+import { WagesTab } from './wages/tab-wages'
+import { BankTab } from './bank/tab-bank'
+import { TrainingTab } from './training/tab-training'
+import { VisionTab } from './vision/tab-vision'
+import { MobileScheduleTab } from './mobile-schedule/tab-mobile-schedule'
+import { AccountantHomeTab } from './accountant-home/tab-accountant-home'
 
 /**
  * EMPLOYEE PORTAL - Mobile-First Design with Refined Glassmorphism
@@ -372,6 +378,14 @@ export default function EmployeePortal() {
             </>
           )}
 
+          {/* SCHEDULE TAB (Owner Only - Mobile Schedule Builder) */}
+          {activeTab === 'schedule' && (
+            <>
+              {logCondition('PORTAL', 'Rendering MobileScheduleTab', true, { role: employee?.role })}
+              <MobileScheduleTab />
+            </>
+          )}
+
           {/* INVENTORY TAB (Owner Only) */}
           {activeTab === 'inventory' && employee && (
             <>
@@ -380,11 +394,48 @@ export default function EmployeePortal() {
             </>
           )}
 
-          {/* CALENDAR TAB (Staff One) */}
-          {activeTab === 'calendar' && (
+          {/* P&L TAB (Accountant) */}
+          {activeTab === 'pl' && (
             <>
-              {logCondition('PORTAL', 'Rendering CalendarTab', true, { role: employee?.role })}
-              <CalendarTab language={(employee?.preferred_language === 'en' ? 'en' : 'es') as 'en' | 'es'} t={t} />
+              {logCondition('PORTAL', 'Rendering PLTab', true, { role: employee?.role })}
+              <PLTab />
+            </>
+          )}
+
+          {/* WAGES TAB (Accountant) - Always mounted to preload check images */}
+          <div className={activeTab === 'wages' ? '' : 'hidden'}>
+            <WagesTab />
+          </div>
+
+          {/* BANK TAB (Accountant) */}
+          {activeTab === 'bank' && (
+            <>
+              {logCondition('PORTAL', 'Rendering BankTab', true, { role: employee?.role })}
+              <BankTab />
+            </>
+          )}
+
+          {/* TRAINING TAB */}
+          {activeTab === 'training' && (
+            <>
+              {logCondition('PORTAL', 'Rendering TrainingTab', true, { role: employee?.role })}
+              <TrainingTab />
+            </>
+          )}
+
+          {/* VISION TAB (Accountant) */}
+          {activeTab === 'vision' && (
+            <>
+              {logCondition('PORTAL', 'Rendering VisionTab', true, { role: employee?.role })}
+              <VisionTab />
+            </>
+          )}
+
+          {/* ACCOUNTANT HOME TAB */}
+          {activeTab === 'accountantHome' && (
+            <>
+              {logCondition('PORTAL', 'Rendering AccountantHomeTab', true, { role: employee?.role })}
+              <AccountantHomeTab onLogout={logout} />
             </>
           )}
 

@@ -475,7 +475,44 @@ export async function fetchPayrollDataRpc(startDate: string, endDate: string) {
     payRates: data?.pay_rates?.length,
     payrollRecords: data?.payroll_records?.length
   });
+
+  // FAIL LOUDLY: Catch silent RLS failures
+  if (data?.employees?.length > 0 && !data?.pay_rates) {
+    console.error('[payrollRpc] ⚠️ CRITICAL: pay_rates is null but employees exist - likely RLS policy missing for anon role!')
+  }
+  if (data?.employees?.length > 0 && !data?.time_entries) {
+    console.error('[payrollRpc] ⚠️ CRITICAL: time_entries is null but employees exist - likely RLS policy missing!')
+  }
+
   return data;
+}
+
+// Fetch last payment method for all employees (for quick-pay preset)
+export async function fetchLastPaymentMethods(): Promise<Map<string, 'cash' | 'check'>> {
+  const { data, error } = await supabase
+    .schema('accounting')
+    .from('portal_pay_records')
+    .select('employee_id, payment_method, created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[payrollRpc] Failed to fetch last payment methods:', error);
+    return new Map();
+  }
+
+  console.log('[payrollRpc] Last payment methods raw data:', data?.length, 'records');
+
+  // Build map of employee_id -> most recent payment_method
+  const methodMap = new Map<string, 'cash' | 'check'>();
+  for (const record of data || []) {
+    if (!methodMap.has(record.employee_id) && record.payment_method) {
+      methodMap.set(record.employee_id, record.payment_method as 'cash' | 'check');
+    }
+  }
+
+  console.log('[payrollRpc] Last payment methods map size:', methodMap.size);
+
+  return methodMap;
 }
 
 // Pay Rates API functions
