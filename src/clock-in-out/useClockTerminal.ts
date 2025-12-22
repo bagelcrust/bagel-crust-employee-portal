@@ -14,15 +14,13 @@ import { startSyncManager, onSyncEvent, getSyncStatus, type SyncEvent } from './
  * - Network monitoring
  */
 
-// Comprehensive logging utility with timestamp and context (DEV mode only)
+// Comprehensive logging utility with timestamp and context (ENABLED IN PRODUCTION FOR DEBUGGING)
 const log = (context: string, message: string, data?: any) => {
-  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.log(`[ClockInOut] ${timestamp} - ${context}: ${message}`, data || '')
 }
 
 const logError = (context: string, error: any, details?: any) => {
-  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.error(`[ClockInOut Error] ${timestamp} - ${context}:`, {
     error: error?.message || error,
@@ -34,13 +32,11 @@ const logError = (context: string, error: any, details?: any) => {
 }
 
 const logSuccess = (context: string, message: string, data?: any) => {
-  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.log(`%c[ClockInOut Success] ${timestamp} - ${context}: ${message}`, 'color: green; font-weight: bold', data || '')
 }
 
 const logWarning = (context: string, message: string, data?: any) => {
-  if (!import.meta.env.DEV) return
   const timestamp = new Date().toISOString()
   console.warn(`[ClockInOut Warning] ${timestamp} - ${context}: ${message}`, data || '')
 }
