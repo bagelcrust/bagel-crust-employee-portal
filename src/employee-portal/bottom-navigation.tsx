@@ -79,7 +79,7 @@ export function BottomNav({ tabs, activeTab, onTabChange, t }: BottomNavProps) {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pb-[calc(4px+env(safe-area-inset-bottom,0px))] bg-white/98 backdrop-blur-md border-t border-black/6 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-      <div className="flex justify-around max-w-[600px] mx-auto pt-1 px-3">
+      <div className="flex overflow-x-auto max-w-[600px] mx-auto pt-1 px-3 gap-1 scrollbar-hide">
         {tabs.map(({ key, iconName }) => {
           const isActive = activeTab === key
           const iconColor = isActive ? '#2563EB' : '#9CA3AF'
@@ -89,7 +89,7 @@ export function BottomNav({ tabs, activeTab, onTabChange, t }: BottomNavProps) {
             <button
               key={key}
               onClick={() => onTabChange(key)}
-              className={`flex flex-col items-center gap-1.5 py-2.5 px-2 border-none cursor-pointer transition-all duration-200 flex-1 relative rounded-xl ${
+              className={`flex flex-col items-center gap-1.5 py-2.5 px-3 min-w-[60px] border-none cursor-pointer transition-all duration-200 relative rounded-xl ${
                 isActive ? 'bg-blue-600/10' : 'bg-transparent'
               }`}
             >
